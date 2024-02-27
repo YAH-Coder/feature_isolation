@@ -9,39 +9,37 @@
 #include <vector>
 
 namespace feature_isolation {
-constexpr std::uintmax_t power(std::uintmax_t base, std::uintmax_t exponent) {
-  std::uintmax_t result{1llu};
+using cInteger = std::uintmax_t;
+constexpr cInteger power(cInteger base, cInteger exponent) {
+  cInteger result{1llu};
   while (exponent--) {
     result *= base;
   }
   return result;
 }
 
-constexpr std::uintmax_t power2(std::uintmax_t exponent) {
-  return power(2ull, exponent);
-}
+constexpr cInteger power2(cInteger exponent) { return power(2ull, exponent); }
 
-constexpr std::uintmax_t product(std::uintmax_t from, std::uintmax_t to) {
+constexpr cInteger product(cInteger from, cInteger to) {
   if (from == 0llu || to == 0llu)
     return 0llu;
-  std::uintmax_t result{1llu};
+  cInteger result{1llu};
   while (from <= to) {
     result *= to--;
   }
   return result;
 }
 
-constexpr std::uintmax_t factorial(std::uintmax_t n) {
+constexpr cInteger factorial(cInteger n) {
   return n == 0llu ? 1llu : product(1llu, n);
 }
 
-constexpr std::uintmax_t combinations(std::uintmax_t n, std::uintmax_t k) {
+constexpr cInteger combinations(cInteger n, cInteger k) {
   return product(n + 1llu - k, n) / factorial(k);
 }
 
-constexpr std::uintmax_t sum_of_combinations(std::uintmax_t n,
-                                             std::uintmax_t k) {
-  std::uintmax_t result{0llu};
+constexpr cInteger sum_of_combinations(cInteger n, cInteger k) {
+  cInteger result{0llu};
   while (k <= n) {
     result += combinations(n, k++);
   }
