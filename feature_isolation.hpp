@@ -1,5 +1,5 @@
-#ifndef FI_HELPER_HPP
-#define FI_HELPER_HPP
+#ifndef FEATURE_ISOLATION_HPP
+#define FEATURE_ISOLATION_HPP
 
 #include <bitset>
 #include <climits>
@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace fi_helper {
+namespace feature_isolation {
 constexpr std::uintmax_t power(std::uintmax_t base, std::uintmax_t exponent) {
   std::uintmax_t result{1llu};
   while (exponent--) {
@@ -104,5 +104,5 @@ std::uintmax_t to_uintmax_t(const std::bitset<N> &bs) {
   }
   return result;
 }
-} // namespace fi_helper
-#endif // FI_HELPER_HPP
+} // namespace feature_isolation
+#endif // FEATURE_ISOLATION_HPP
