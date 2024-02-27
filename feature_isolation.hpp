@@ -95,14 +95,5 @@ private:
 
 static constexpr char tab{'\t'};
 
-template <std::uintmax_t N>
-std::uintmax_t to_uintmax_t(const std::bitset<N> &bs) {
-  static_assert(N <= sizeof(std::uintmax_t) * CHAR_BIT);
-  std::uintmax_t result{0llu};
-  for (std::uintmax_t i{0}; i < bs.size(); ++i) {
-    result += (bs[i] ? 1 : 0) * power2(i);
-  }
-  return result;
-}
 } // namespace feature_isolation
 #endif // FEATURE_ISOLATION_HPP
