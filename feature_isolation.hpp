@@ -6,10 +6,74 @@
 #include <cstdint>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 namespace feature_isolation {
+
 using cInteger = std::uintmax_t;
+
+namespace checked_arithmetic {
+
+template <typename IntegerType>
+constexpr IntegerType add(IntegerType a, IntegerType b) {
+
+  static_assert(std::is_integral<IntegerType>::value,
+                "IntegerType must be an integral type.");
+
+  if (a > 0 && b > std::numeric_limits<IntegerType>::max() - a) {
+    throw std::overflow_error("Overflow in addition.");
+  }
+  return a + b;
+}
+
+template <typename IntegerType>
+constexpr IntegerType subtract(IntegerType a, IntegerType b) {
+
+  static_assert(std::is_integral<IntegerType>::value,
+                "IntegerType must be an integral type.");
+
+  if (b < 0 && a > std::numeric_limits<IntegerType>::max() + b) {
+    throw std::overflow_error("Overflow in substraction.");
+  }
+  if (a < b) {
+    throw std::underflow_error("Underflow in substraction.");
+  }
+  return a - b;
+}
+
+template <typename IntegerType>
+constexpr IntegerType multiply(IntegerType a, IntegerType b) {
+
+  static_assert(std::is_integral<IntegerType>::value,
+                "IntegerType must be an integral type.");
+
+  if (a > 1 && b > 1 && b > std::numeric_limits<IntegerType>::max() / a) {
+    throw std::overflow_error("Overflow in multiplication.");
+  }
+  return a * b;
+}
+
+} // namespace checked_arithmetic
+
+namespace unchecked_arithmetic {
+
+template <typename IntegerType>
+constexpr IntegerType add(IntegerType a, IntegerType b) {
+  return a + b;
+}
+
+template <typename IntegerType>
+constexpr IntegerType subtract(IntegerType a, IntegerType b) {
+  return a - b;
+}
+
+template <typename IntegerType>
+constexpr IntegerType multiply(IntegerType a, IntegerType b) {
+  return a * b;
+}
+} // namespace unchecked_arithmetic
+
 constexpr cInteger power(cInteger base, cInteger exponent) {
   cInteger result{1llu};
   while (exponent--) {
