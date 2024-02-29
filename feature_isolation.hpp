@@ -34,10 +34,10 @@ constexpr IntegerType subtract(IntegerType a, IntegerType b) {
                 "IntegerType must be an integral type.");
 
   if (b < 0 && a > std::numeric_limits<IntegerType>::max() + b) {
-    throw std::overflow_error("Overflow in substraction.");
+    throw std::overflow_error("Overflow in subtraction.");
   }
   if (a < b) {
-    throw std::underflow_error("Underflow in substraction.");
+    throw std::underflow_error("Underflow in subtraction.");
   }
   return a - b;
 }
