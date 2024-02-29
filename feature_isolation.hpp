@@ -11,7 +11,7 @@
 
 namespace feature_isolation {
 
-using cInteger = std::uintmax_t;
+using unsignedInteger = std::uintmax_t;
 
 namespace checked_arithmetic {
 
