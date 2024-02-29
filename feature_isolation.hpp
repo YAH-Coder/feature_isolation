@@ -155,7 +155,7 @@ private:
   std::size_t m_k;
 };
 
-static constexpr char tab{'\t'};
+/* static constexpr char tab{'\t'}; */
 
 } // namespace feature_isolation
 #endif // FEATURE_ISOLATION_HPP
