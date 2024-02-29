@@ -74,36 +74,40 @@ constexpr IntegerType multiply(IntegerType a, IntegerType b) {
 }
 } // namespace unchecked_arithmetic
 
-constexpr cInteger power(cInteger base, cInteger exponent) {
-  cInteger result{1llu};
+constexpr unsignedInteger power(unsignedInteger base,
+                                unsignedInteger exponent) {
+  unsignedInteger result{1llu};
   while (exponent--) {
     result *= base;
   }
   return result;
 }
 
-constexpr cInteger power2(cInteger exponent) { return power(2ull, exponent); }
+constexpr unsignedInteger power2(unsignedInteger exponent) {
+  return power(2ull, exponent);
+}
 
-constexpr cInteger product(cInteger from, cInteger to) {
+constexpr unsignedInteger product(unsignedInteger from, unsignedInteger to) {
   if (from == 0llu || to == 0llu)
     return 0llu;
-  cInteger result{1llu};
+  unsignedInteger result{1llu};
   while (from <= to) {
     result *= to--;
   }
   return result;
 }
 
-constexpr cInteger factorial(cInteger n) {
+constexpr unsignedInteger factorial(unsignedInteger n) {
   return n == 0llu ? 1llu : product(1llu, n);
 }
 
-constexpr cInteger combinations(cInteger n, cInteger k) {
+constexpr unsignedInteger combinations(unsignedInteger n, unsignedInteger k) {
   return product(n + 1llu - k, n) / factorial(k);
 }
 
-constexpr cInteger sum_of_combinations(cInteger n, cInteger k) {
-  cInteger result{0llu};
+constexpr unsignedInteger sum_of_combinations(unsignedInteger n,
+                                              unsignedInteger k) {
+  unsignedInteger result{0llu};
   while (k <= n) {
     result += combinations(n, k++);
   }
