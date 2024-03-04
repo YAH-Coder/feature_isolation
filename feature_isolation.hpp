@@ -1,12 +1,9 @@
 #ifndef FEATURE_ISOLATION_HPP
 #define FEATURE_ISOLATION_HPP
 
-#include <bitset>
-#include <climits>
 #include <cstdint>
 #include <stdexcept>
 #include <string>
-#include <type_traits>
 #include <vector>
 
 namespace feature_isolation {
@@ -15,25 +12,17 @@ using unsignedInteger = std::uintmax_t;
 
 namespace checked_arithmetic {
 
-template <typename IntegerType>
-constexpr IntegerType add(IntegerType a, IntegerType b) {
+constexpr unsignedInteger add(unsignedInteger a, unsignedInteger b) {
 
-  static_assert(std::is_integral<IntegerType>::value,
-                "IntegerType must be an integral type.");
-
-  if (a > 0 && b > std::numeric_limits<IntegerType>::max() - a) {
+  if (a > 0 && b > std::numeric_limits<unsignedInteger>::max() - a) {
     throw std::overflow_error("Overflow in addition.");
   }
   return a + b;
 }
 
-template <typename IntegerType>
-constexpr IntegerType subtract(IntegerType a, IntegerType b) {
+constexpr unsignedInteger subtract(unsignedInteger a, unsignedInteger b) {
 
-  static_assert(std::is_integral<IntegerType>::value,
-                "IntegerType must be an integral type.");
-
-  if (b < 0 && a > std::numeric_limits<IntegerType>::max() + b) {
+  if (b < 0 && a > std::numeric_limits<unsignedInteger>::max() + b) {
     throw std::overflow_error("Overflow in subtraction.");
   }
   if (a < b) {
@@ -42,13 +31,9 @@ constexpr IntegerType subtract(IntegerType a, IntegerType b) {
   return a - b;
 }
 
-template <typename IntegerType>
-constexpr IntegerType multiply(IntegerType a, IntegerType b) {
+constexpr unsignedInteger multiply(unsignedInteger a, unsignedInteger b) {
 
-  static_assert(std::is_integral<IntegerType>::value,
-                "IntegerType must be an integral type.");
-
-  if (a > 1 && b > 1 && b > std::numeric_limits<IntegerType>::max() / a) {
+  if (a > 1 && b > 1 && b > std::numeric_limits<unsignedInteger>::max() / a) {
     throw std::overflow_error("Overflow in multiplication.");
   }
   return a * b;
@@ -58,18 +43,15 @@ constexpr IntegerType multiply(IntegerType a, IntegerType b) {
 
 namespace unchecked_arithmetic {
 
-template <typename IntegerType>
-constexpr IntegerType add(IntegerType a, IntegerType b) {
+constexpr unsignedInteger add(unsignedInteger a, unsignedInteger b) {
   return a + b;
 }
 
-template <typename IntegerType>
-constexpr IntegerType subtract(IntegerType a, IntegerType b) {
+constexpr unsignedInteger subtract(unsignedInteger a, unsignedInteger b) {
   return a - b;
 }
 
-template <typename IntegerType>
-constexpr IntegerType multiply(IntegerType a, IntegerType b) {
+constexpr unsignedInteger multiply(unsignedInteger a, unsignedInteger b) {
   return a * b;
 }
 } // namespace unchecked_arithmetic
