@@ -99,8 +99,8 @@ namespace feature_isolation {
    constexpr unsignedInteger power(unsignedInteger base,
                                    unsignedInteger exponent) {
       unsignedInteger result{1llu};
-      while (exponent--) {
-         result *= base;
+      while (checked_arithmetic::subtract_asign(exponent, 1llu)) {
+         checked_arithmetic::multiply_asign(result, base);
       }
       return result;
    }
@@ -114,7 +114,7 @@ namespace feature_isolation {
          return 0llu;
       unsignedInteger result{1llu};
       while (from <= to) {
-         result *= to--;
+         checked_arithmetic::multiply_asign(result, to--);
       }
       return result;
    }
@@ -124,7 +124,7 @@ namespace feature_isolation {
    }
 
    constexpr unsignedInteger combinations(unsignedInteger n, unsignedInteger k) {
-      return product(n + 1llu - k, n) / factorial(k);
+      return product(checked_arithmetic::subtract(checked_arithmetic::add(n, 1llu), k), n) / factorial(k);
    }
 
    constexpr unsignedInteger sum_of_combinations(unsignedInteger n,
