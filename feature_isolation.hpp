@@ -96,11 +96,17 @@ namespace feature_isolation {
 
    } // namespace unchecked_arithmetic
 
+#ifdef USE_UNCHECKED_ARITHMETIC
+   namespace arithmetic = feature_isolation::unchecked_arithmetic;
+#else
+   namespace arithmetic = feature_isolation::checked_arithmetic;
+#endif
+
    constexpr unsignedInteger power(unsignedInteger base,
                                    unsignedInteger exponent) {
       unsignedInteger result{1llu};
-      while (checked_arithmetic::subtract_asign(exponent, 1llu)) {
-         checked_arithmetic::multiply_asign(result, base);
+      while (arithmetic::subtract_asign(exponent, 1llu)) {
+         arithmetic::multiply_asign(result, base);
       }
       return result;
    }
@@ -114,7 +120,7 @@ namespace feature_isolation {
          return 0llu;
       unsignedInteger result{1llu};
       while (from <= to) {
-         checked_arithmetic::multiply_asign(result, to--);
+         arithmetic::multiply_asign(result, to--);
       }
       return result;
    }
@@ -124,14 +130,14 @@ namespace feature_isolation {
    }
 
    constexpr unsignedInteger combinations(unsignedInteger n, unsignedInteger k) {
-      return product(checked_arithmetic::subtract(checked_arithmetic::add(n, 1llu), k), n) / factorial(k);
+      return product(arithmetic::subtract(arithmetic::add(n, 1llu), k), n) / factorial(k);
    }
 
    constexpr unsignedInteger sum_of_combinations(unsignedInteger n,
                                                  unsignedInteger k) {
       unsignedInteger result{0llu};
       while (k <= n) {
-         result += combinations(n, k++);
+         arithmetic::add_asign(result, combinations(n, arithmetic::add_asign(k, 1llu)));
       }
       return result;
    }
