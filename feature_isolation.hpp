@@ -20,6 +20,14 @@ namespace feature_isolation {
          return a + b;
       }
 
+      constexpr unsignedInteger add_asign(unsignedInteger a, unsignedInteger b) {
+
+         if (a > 0 && b > std::numeric_limits<unsignedInteger>::max() - a) {
+            throw std::overflow_error("Overflow in addition.");
+         }
+         return a += b;
+      }
+
       constexpr unsignedInteger subtract(unsignedInteger a, unsignedInteger b) {
 
          if (b < 0 && a > std::numeric_limits<unsignedInteger>::max() + b) {
@@ -31,12 +39,31 @@ namespace feature_isolation {
          return a - b;
       }
 
+      constexpr unsignedInteger subtract_asign(unsignedInteger a, unsignedInteger b) {
+
+         if (b < 0 && a > std::numeric_limits<unsignedInteger>::max() + b) {
+            throw std::overflow_error("Overflow in subtraction.");
+         }
+         if (a < b) {
+            throw std::underflow_error("Underflow in subtraction.");
+         }
+         return a -= b;
+      }
+
       constexpr unsignedInteger multiply(unsignedInteger a, unsignedInteger b) {
 
          if (a > 1 && b > 1 && b > std::numeric_limits<unsignedInteger>::max() / a) {
             throw std::overflow_error("Overflow in multiplication.");
          }
          return a * b;
+      }
+
+      constexpr unsignedInteger multiply_asign(unsignedInteger a, unsignedInteger b) {
+
+         if (a > 1 && b > 1 && b > std::numeric_limits<unsignedInteger>::max() / a) {
+            throw std::overflow_error("Overflow in multiplication.");
+         }
+         return a *= b;
       }
 
    } // namespace checked_arithmetic
@@ -47,13 +74,26 @@ namespace feature_isolation {
          return a + b;
       }
 
+      constexpr unsignedInteger add_asign(unsignedInteger a, unsignedInteger b) {
+         return a += b;
+      }
+
       constexpr unsignedInteger subtract(unsignedInteger a, unsignedInteger b) {
          return a - b;
+      }
+
+      constexpr unsignedInteger subtract_asign(unsignedInteger a, unsignedInteger b) {
+         return a -= b;
       }
 
       constexpr unsignedInteger multiply(unsignedInteger a, unsignedInteger b) {
          return a * b;
       }
+
+      constexpr unsignedInteger multiply_asign(unsignedInteger a, unsignedInteger b) {
+         return a *= b;
+      }
+
    } // namespace unchecked_arithmetic
 
    constexpr unsignedInteger power(unsignedInteger base,
