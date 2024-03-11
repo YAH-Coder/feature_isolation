@@ -9,12 +9,15 @@
 namespace feature_isolation {
 
    using unsignedInteger = std::uintmax_t;
+   const unsignedInteger zero = static_cast<unsignedInteger>(0);
+   const unsignedInteger one = static_cast<unsignedInteger>(1);
+   const unsignedInteger two = static_cast<unsignedInteger>(2);
 
    namespace checked_arithmetic {
 
       constexpr unsignedInteger add(unsignedInteger a, unsignedInteger b) {
 
-         if (a > 0 && b > std::numeric_limits<unsignedInteger>::max() - a) {
+         if (a > zero && b > std::numeric_limits<unsignedInteger>::max() - a) {
             throw std::overflow_error("Overflow in addition.");
          }
          return a + b;
@@ -22,7 +25,7 @@ namespace feature_isolation {
 
       constexpr unsignedInteger add_asign(unsignedInteger a, unsignedInteger b) {
 
-         if (a > 0 && b > std::numeric_limits<unsignedInteger>::max() - a) {
+         if (a > zero && b > std::numeric_limits<unsignedInteger>::max() - a) {
             throw std::overflow_error("Overflow in addition.");
          }
          return a += b;
@@ -30,7 +33,7 @@ namespace feature_isolation {
 
       constexpr unsignedInteger subtract(unsignedInteger a, unsignedInteger b) {
 
-         if (b < 0 && a > std::numeric_limits<unsignedInteger>::max() + b) {
+         if (b < zero && a > std::numeric_limits<unsignedInteger>::max() + b) {
             throw std::overflow_error("Overflow in subtraction.");
          }
          if (a < b) {
@@ -41,7 +44,7 @@ namespace feature_isolation {
 
       constexpr unsignedInteger subtract_asign(unsignedInteger a, unsignedInteger b) {
 
-         if (b < 0 && a > std::numeric_limits<unsignedInteger>::max() + b) {
+         if (b < zero && a > std::numeric_limits<unsignedInteger>::max() + b) {
             throw std::overflow_error("Overflow in subtraction.");
          }
          if (a < b) {
@@ -52,7 +55,7 @@ namespace feature_isolation {
 
       constexpr unsignedInteger multiply(unsignedInteger a, unsignedInteger b) {
 
-         if (a > 1 && b > 1 && b > std::numeric_limits<unsignedInteger>::max() / a) {
+         if (a > one && b > one && b > std::numeric_limits<unsignedInteger>::max() / a) {
             throw std::overflow_error("Overflow in multiplication.");
          }
          return a * b;
@@ -60,7 +63,7 @@ namespace feature_isolation {
 
       constexpr unsignedInteger multiply_asign(unsignedInteger a, unsignedInteger b) {
 
-         if (a > 1 && b > 1 && b > std::numeric_limits<unsignedInteger>::max() / a) {
+         if (a > one && b > one && b > std::numeric_limits<unsignedInteger>::max() / a) {
             throw std::overflow_error("Overflow in multiplication.");
          }
          return a *= b;
@@ -104,21 +107,21 @@ namespace feature_isolation {
 
    constexpr unsignedInteger power(unsignedInteger base,
                                    unsignedInteger exponent) {
-      unsignedInteger result{1llu};
-      while (arithmetic::subtract_asign(exponent, 1llu)) {
+      unsignedInteger result{one};
+      while (arithmetic::subtract_asign(exponent, one)) {
          arithmetic::multiply_asign(result, base);
       }
       return result;
    }
 
    constexpr unsignedInteger power2(unsignedInteger exponent) {
-      return power(2ull, exponent);
+      return power(two, exponent);
    }
 
    constexpr unsignedInteger product(unsignedInteger from, unsignedInteger to) {
-      if (from == 0llu || to == 0llu)
-         return 0llu;
-      unsignedInteger result{1llu};
+      if (from == zero || to == zero)
+         return zero;
+      unsignedInteger result{one};
       while (from <= to) {
          arithmetic::multiply_asign(result, to--);
       }
@@ -126,18 +129,18 @@ namespace feature_isolation {
    }
 
    constexpr unsignedInteger factorial(unsignedInteger n) {
-      return n == 0llu ? 1llu : product(1llu, n);
+      return n == zero ? one : product(one, n);
    }
 
    constexpr unsignedInteger combinations(unsignedInteger n, unsignedInteger k) {
-      return product(arithmetic::subtract(arithmetic::add(n, 1llu), k), n) / factorial(k);
+      return product(arithmetic::subtract(arithmetic::add(n, one), k), n) / factorial(k);
    }
 
    constexpr unsignedInteger sum_of_combinations(unsignedInteger n,
                                                  unsignedInteger k) {
-      unsignedInteger result{0llu};
+      unsignedInteger result{zero};
       while (k <= n) {
-         arithmetic::add_asign(result, combinations(n, arithmetic::add_asign(k, 1llu)));
+         arithmetic::add_asign(result, combinations(n, arithmetic::add_asign(k, one)));
       }
       return result;
    }
@@ -156,18 +159,18 @@ namespace feature_isolation {
       }
       void initialize() {
          std::size_t start{};
-         for (auto i{k()}; i > 0; --i) {
+         for (auto i{k()}; i > zero; --i) {
             m_state.push_back(start++);
          }
       };
       std::size_t k() const { return m_k; }
       bool next() {
-         for (auto i{m_state.size()}; i > 0; --i) {
-            auto v{m_state.at(i - 1)};
-            if (v < m_symbols.size() && v + 1 + k() - i < m_symbols.size()) {
-               m_state.at(i - 1) += 1;
+         for (auto i{m_state.size()}; i > zero; --i) {
+            auto v{m_state.at(i - one)};
+            if (v < m_symbols.size() && v + one + k() - i < m_symbols.size()) {
+               m_state.at(i - one) += one;
                for (auto j{i}; j < m_state.size(); ++j) {
-                  m_state.at(j) = m_state.at(j - 1) + 1;
+                  m_state.at(j) = m_state.at(j - one) + one;
                }
                return true;
             }
@@ -191,4 +194,5 @@ namespace feature_isolation {
    /* static constexpr char tab{'\t'}; */
 
 } // namespace feature_isolation
+
 #endif // FEATURE_ISOLATION_HPP
