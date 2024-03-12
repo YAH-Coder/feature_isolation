@@ -125,7 +125,7 @@ namespace feature_isolation {
    }
 
    constexpr unsignedInteger product(unsignedInteger from, unsignedInteger to) {
-      if (from == zero || to == zero)
+      if (from == zero || to == zero || (from > to))
          return zero;
       unsignedInteger result{one};
       while (from <= to) {
