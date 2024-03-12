@@ -1,5 +1,5 @@
-#ifndef FEATURE_ISOLATION_HPP
-#define FEATURE_ISOLATION_HPP
+#ifndef FI_MATHHELPER_HPP
+#define FI_MATHHELPER_HPP
 
 #include <cstdint>
 #include <stdexcept>
@@ -195,4 +195,4 @@ namespace feature_isolation {
 
 } // namespace feature_isolation
 
-#endif // FEATURE_ISOLATION_HPP
+#endif // FI_MATHHELPER_HPP
