@@ -23,12 +23,13 @@ namespace feature_isolation {
          return a + b;
       }
 
-      constexpr unsignedInteger add_asign(unsignedInteger a, unsignedInteger b) {
+      constexpr unsignedInteger add_asign(unsignedInteger& a, unsignedInteger b) {
 
          if (a > zero && b > std::numeric_limits<unsignedInteger>::max() - a) {
             throw std::overflow_error("Overflow in addition.");
          }
-         return a += b;
+         a += b;
+         return a + b;
       }
 
       constexpr unsignedInteger subtract(unsignedInteger a, unsignedInteger b) {
@@ -42,7 +43,7 @@ namespace feature_isolation {
          return a - b;
       }
 
-      constexpr unsignedInteger subtract_asign(unsignedInteger a, unsignedInteger b) {
+      constexpr unsignedInteger subtract_asign(unsignedInteger& a, unsignedInteger b) {
 
          if (b < zero && a > std::numeric_limits<unsignedInteger>::max() + b) {
             throw std::overflow_error("Overflow in subtraction.");
@@ -50,7 +51,8 @@ namespace feature_isolation {
          if (a < b) {
             throw std::underflow_error("Underflow in subtraction.");
          }
-         return a -= b;
+         a -= b;
+         return a - b;
       }
 
       constexpr unsignedInteger multiply(unsignedInteger a, unsignedInteger b) {
@@ -61,12 +63,13 @@ namespace feature_isolation {
          return a * b;
       }
 
-      constexpr unsignedInteger multiply_asign(unsignedInteger a, unsignedInteger b) {
+      constexpr unsignedInteger multiply_asign(unsignedInteger& a, unsignedInteger b) {
 
          if (a > one && b > one && b > std::numeric_limits<unsignedInteger>::max() / a) {
             throw std::overflow_error("Overflow in multiplication.");
          }
-         return a *= b;
+         a *= b;
+         return a * b;
       }
 
    } // namespace checked_arithmetic
@@ -77,24 +80,27 @@ namespace feature_isolation {
          return a + b;
       }
 
-      constexpr unsignedInteger add_asign(unsignedInteger a, unsignedInteger b) {
-         return a += b;
+      constexpr unsignedInteger add_asign(unsignedInteger& a, unsignedInteger b) {
+         a += b;
+         return a + b;
       }
 
       constexpr unsignedInteger subtract(unsignedInteger a, unsignedInteger b) {
          return a - b;
       }
 
-      constexpr unsignedInteger subtract_asign(unsignedInteger a, unsignedInteger b) {
-         return a -= b;
+      constexpr unsignedInteger subtract_asign(unsignedInteger& a, unsignedInteger b) {
+         a -= b;
+         return a - b;
       }
 
       constexpr unsignedInteger multiply(unsignedInteger a, unsignedInteger b) {
          return a * b;
       }
 
-      constexpr unsignedInteger multiply_asign(unsignedInteger a, unsignedInteger b) {
-         return a *= b;
+      constexpr unsignedInteger multiply_asign(unsignedInteger& a, unsignedInteger b) {
+         a *= b;
+         return a * b;
       }
 
    } // namespace unchecked_arithmetic
@@ -133,7 +139,7 @@ namespace feature_isolation {
    }
 
    constexpr unsignedInteger combinations(unsignedInteger n, unsignedInteger k) {
-      return product(arithmetic::subtract(arithmetic::add(n, one), k), n) / factorial(k);
+      return (product(arithmetic::subtract(arithmetic::add(n, one), k), n) / factorial(k));
    }
 
    constexpr unsignedInteger sum_of_combinations(unsignedInteger n,
