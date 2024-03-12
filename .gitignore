@@ -1,2 +1,4 @@
 catch.hpp
 *.json
+.clangd
+.clang-format
