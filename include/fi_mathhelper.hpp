@@ -126,7 +126,7 @@ namespace feature_isolation {
    constexpr unsignedInteger power(unsignedInteger base,
                                    unsignedInteger exponent) {
       unsignedInteger result{one};
-      while (arithmetic::subtract_asign(exponent, one)) {
+      for (unsignedInteger i = 0; i < exponent; arithmetic::add_asign(i, one)) {
          arithmetic::multiply_asign(result, base);
       }
       return result;
@@ -157,8 +157,8 @@ namespace feature_isolation {
    constexpr unsignedInteger sum_of_combinations(unsignedInteger n,
                                                  unsignedInteger k) {
       unsignedInteger result{zero};
-      while (k <= n) {
-         arithmetic::add_asign(result, combinations(n, arithmetic::add_asign(k, one)));
+      for (unsignedInteger i = zero; i <= k; arithmetic::add_asign(i, one)) {
+         arithmetic::add_asign(result, combinations(n, i));
       }
       return result;
    }
