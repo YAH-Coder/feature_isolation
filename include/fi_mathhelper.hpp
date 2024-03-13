@@ -29,7 +29,7 @@ namespace feature_isolation {
             throw std::overflow_error("Overflow in addition.");
          }
          a += b;
-         return a + b;
+         return a;
       }
 
       constexpr unsignedInteger subtract(unsignedInteger a, unsignedInteger b) {
@@ -52,7 +52,7 @@ namespace feature_isolation {
             throw std::underflow_error("Underflow in subtraction.");
          }
          a -= b;
-         return a - b;
+         return a;
       }
 
       constexpr unsignedInteger multiply(unsignedInteger a, unsignedInteger b) {
@@ -69,7 +69,7 @@ namespace feature_isolation {
             throw std::overflow_error("Overflow in multiplication.");
          }
          a *= b;
-         return a * b;
+         return a;
       }
 
    } // namespace checked_arithmetic
@@ -82,7 +82,7 @@ namespace feature_isolation {
 
       constexpr unsignedInteger add_asign(unsignedInteger& a, unsignedInteger b) {
          a += b;
-         return a + b;
+         return a;
       }
 
       constexpr unsignedInteger subtract(unsignedInteger a, unsignedInteger b) {
@@ -91,7 +91,7 @@ namespace feature_isolation {
 
       constexpr unsignedInteger subtract_asign(unsignedInteger& a, unsignedInteger b) {
          a -= b;
-         return a - b;
+         return a;
       }
 
       constexpr unsignedInteger multiply(unsignedInteger a, unsignedInteger b) {
@@ -100,7 +100,7 @@ namespace feature_isolation {
 
       constexpr unsignedInteger multiply_asign(unsignedInteger& a, unsignedInteger b) {
          a *= b;
-         return a * b;
+         return a;
       }
 
    } // namespace unchecked_arithmetic
