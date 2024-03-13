@@ -9,9 +9,9 @@
 namespace feature_isolation {
 
    using unsignedInteger = std::uintmax_t;
-   const unsignedInteger zero = static_cast<unsignedInteger>(0);
-   const unsignedInteger one = static_cast<unsignedInteger>(1);
-   const unsignedInteger two = static_cast<unsignedInteger>(2);
+   constexpr unsignedInteger zero = static_cast<unsignedInteger>(0);
+   constexpr unsignedInteger one = static_cast<unsignedInteger>(1);
+   constexpr unsignedInteger two = static_cast<unsignedInteger>(2);
 
    namespace checked_arithmetic {
 
