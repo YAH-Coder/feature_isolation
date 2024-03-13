@@ -97,6 +97,11 @@ namespace feature_isolation {
          return a;
       }
 
+      constexpr unsignedInteger subtract_asign_return(unsignedInteger& a, unsignedInteger b) {
+         a -= b;
+         return (a + b);
+      }
+
       constexpr unsignedInteger multiply(unsignedInteger a, unsignedInteger b) {
          return a * b;
       }
