@@ -147,6 +147,9 @@ namespace feature_isolation {
    }
 
    constexpr unsignedInteger combinations(unsignedInteger n, unsignedInteger k) {
+      if (k == zero || n == k) {
+         return one;
+      }
       return (product(arithmetic::subtract(arithmetic::add(n, one), k), n) / factorial(k));
    }
 
