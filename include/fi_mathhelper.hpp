@@ -34,9 +34,6 @@ namespace feature_isolation {
 
       constexpr unsignedInteger subtract(unsignedInteger a, unsignedInteger b) {
 
-         if (b < zero && a > std::numeric_limits<unsignedInteger>::max() + b) {
-            throw std::overflow_error("Overflow in subtraction.");
-         }
          if (a < b) {
             throw std::underflow_error("Underflow in subtraction.");
          }
@@ -45,9 +42,6 @@ namespace feature_isolation {
 
       constexpr unsignedInteger subtract_asign(unsignedInteger& a, unsignedInteger b) {
 
-         if (b < zero && a > std::numeric_limits<unsignedInteger>::max() + b) {
-            throw std::overflow_error("Overflow in subtraction.");
-         }
          if (a < b) {
             throw std::underflow_error("Underflow in subtraction.");
          }
@@ -57,9 +51,6 @@ namespace feature_isolation {
 
       constexpr unsignedInteger subtract_asign_return(unsignedInteger& a, unsignedInteger b) {
 
-         if (b < zero && a > std::numeric_limits<unsignedInteger>::max() + b) {
-            throw std::overflow_error("Overflow in subtraction.");
-         }
          if (a < b) {
             throw std::underflow_error("Underflow in subtraction.");
          }
@@ -141,7 +132,7 @@ namespace feature_isolation {
          return zero;
       unsignedInteger result{one};
       while (from <= to) {
-         arithmetic::multiply_asign(result, to--);
+         arithmetic::multiply_asign(result, arithmetic::subtract_asign_return(to, one));
       }
       return result;
    }
