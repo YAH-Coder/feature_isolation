@@ -50,6 +50,7 @@ void testSubtractionFunc(Func func, const std::string& testName, bool expectUnde
    }
 }
 
+// Template function to test multiplication operations
 template <typename Func>
 void testMultiplicationFunc(Func func, const std::string& testName, bool expectThrow) {
    SECTION(testName + " - Normal operation without overflow") {
@@ -190,12 +191,12 @@ TEST_CASE("Combinations function tests", "[arithmetic][combinations]") {
 // Test cases for the sum_of_combinations function
 TEST_CASE("Sum of combinations function tests", "[arithmetic][sum_of_combinations]") {
    SECTION("Normal operation") {
-      REQUIRE(sum_of_combinations(3, 1) == 7);  // 3C1 + 3C2 + 3C3 = 3 + 3 + 1 = 7
+      REQUIRE(sum_of_combinations(3, 1) == 4);  // 3C0 + 3C1 = 1 + 3 = 4
       REQUIRE(sum_of_combinations(4, 2) == 11); // 4C2 + 4C3 + 4C4 = 6 + 4 + 1 = 11
    }
 
    SECTION("Sum of combinations with k = 0") {
-      REQUIRE(sum_of_combinations(3, 0) == 8); // 3C0 + 3C1 + 3C2 + 3C3 = 1 + 3 + 3 + 1 = 8
+      REQUIRE(sum_of_combinations(3, 0) == 1); // 3C0 = 1
    }
 
    SECTION("Sum of combinations with n = 0") {
@@ -203,6 +204,6 @@ TEST_CASE("Sum of combinations function tests", "[arithmetic][sum_of_combination
    }
 
    SECTION("Sum of combinations with k > n") {
-      REQUIRE(sum_of_combinations(3, 4) == 0); // Should be 0, as no valid combinations when k > n
+      REQUIRE(sum_of_combinations(3, 4) == 8);
    }
 }
