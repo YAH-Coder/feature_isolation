@@ -114,27 +114,23 @@ Key Features</h1>
 <h1><a class="anchor" id="usage"></a>
 Usage</h1>
 <ol type="1">
-<li><b>Include the header:</b> <div class="fragment"><div class="line">++</div>
-<div class="line"><span class="preprocessor">  #include &lt;<a class="code" href="fi__mathhelper_8hpp.html">FI_MathHelper.hpp</a>&gt;</span></div>
+<li><b>Include the header:</b> <div class="fragment"><div class="line"><span class="preprocessor">#include &lt;<a class="code" href="fi__mathhelper_8hpp.html">FI_MathHelper.hpp</a>&gt;</span></div>
 <div class="ttc" id="afi__mathhelper_8hpp_html"><div class="ttname"><a href="fi__mathhelper_8hpp.html">fi_mathhelper.hpp</a></div><div class="ttdoc">This header provides mathematical helper functions, including safe arithmetic operations,...</div></div>
 </div><!-- fragment --></li>
-<li><b>Choose the namespace:</b> <div class="fragment"><div class="line">++</div>
-<div class="line">  <span class="keyword">namespace </span><a class="code hl_namespace" href="namespacefeature__isolation_1_1checked__arithmetic.html">arithmetic</a> = <a class="code hl_namespace" href="namespacefeature__isolation_1_1checked__arithmetic.html">feature_isolation::checked_arithmetic</a>; <span class="comment">// For safety </span></div>
-<div class="line">  <span class="comment">// OR</span></div>
-<div class="line">  <span class="keyword">namespace </span><a class="code hl_namespace" href="namespacefeature__isolation_1_1checked__arithmetic.html">arithmetic</a> = <a class="code hl_namespace" href="namespacefeature__isolation_1_1unchecked__arithmetic.html">feature_isolation::unchecked_arithmetic</a>; <span class="comment">// For performance</span></div>
+<li><b>Choose the namespace:</b> <div class="fragment"><div class="line"><span class="keyword">namespace </span><a class="code hl_namespace" href="namespacefeature__isolation_1_1checked__arithmetic.html">arithmetic</a> = <a class="code hl_namespace" href="namespacefeature__isolation_1_1checked__arithmetic.html">feature_isolation::checked_arithmetic</a>; <span class="comment">// For safety </span></div>
+<div class="line"><span class="comment">// OR</span></div>
+<div class="line"><span class="keyword">namespace </span><a class="code hl_namespace" href="namespacefeature__isolation_1_1checked__arithmetic.html">arithmetic</a> = <a class="code hl_namespace" href="namespacefeature__isolation_1_1unchecked__arithmetic.html">feature_isolation::unchecked_arithmetic</a>; <span class="comment">// For performance</span></div>
 <div class="ttc" id="anamespacefeature__isolation_1_1checked__arithmetic_html"><div class="ttname"><a href="namespacefeature__isolation_1_1checked__arithmetic.html">feature_isolation::checked_arithmetic</a></div><div class="ttdoc">Provides arithmetic operations with overflow and underflow checks.</div><div class="ttdef"><b>Definition</b> fi_mathhelper.hpp:16</div></div>
 <div class="ttc" id="anamespacefeature__isolation_1_1unchecked__arithmetic_html"><div class="ttname"><a href="namespacefeature__isolation_1_1unchecked__arithmetic.html">feature_isolation::unchecked_arithmetic</a></div><div class="ttdoc">Provides arithmetic operations without overflow or underflow checks.</div><div class="ttdef"><b>Definition</b> fi_mathhelper.hpp:80</div></div>
 </div><!-- fragment --></li>
-<li><b>Utilize the functions</b> <div class="fragment"><div class="line">++</div>
-<div class="line">  unsignedInteger safeResult = <a class="code hl_function" href="namespacefeature__isolation_1_1checked__arithmetic.html#a8919fce5780a50baa8798a8346d42921">arithmetic::add</a>(a, b); </div>
-<div class="line">  unsignedInteger factorialValue = arithmetic::factorial(5);</div>
+<li><b>Utilize the functions</b> <div class="fragment"><div class="line">unsignedInteger safeResult = <a class="code hl_function" href="namespacefeature__isolation_1_1checked__arithmetic.html#a8919fce5780a50baa8798a8346d42921">arithmetic::add</a>(a, b); </div>
+<div class="line">unsignedInteger factorialValue = arithmetic::factorial(5);</div>
 <div class="ttc" id="anamespacefeature__isolation_1_1checked__arithmetic_html_a8919fce5780a50baa8798a8346d42921"><div class="ttname"><a href="namespacefeature__isolation_1_1checked__arithmetic.html#a8919fce5780a50baa8798a8346d42921">feature_isolation::checked_arithmetic::add</a></div><div class="ttdeci">constexpr unsignedInteger add(unsignedInteger a, unsignedInteger b)</div><div class="ttdoc">Performs safe addition of two unsigned integers.</div><div class="ttdef"><b>Definition</b> fi_mathhelper.hpp:18</div></div>
 </div><!-- fragment --></li>
 </ol>
 <h1><a class="anchor" id="example"></a>
 Example</h1>
-<div class="fragment"><div class="line"> ++</div>
-<div class="line"><span class="preprocessor">#include &lt;iostream&gt;</span></div>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;iostream&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &quot;<a class="code" href="fi__mathhelper_8hpp.html">FI_MathHelper.hpp</a>&quot;</span></div>
 <div class="line"> </div>
 <div class="line"><span class="keywordtype">int</span> main() {</div>
