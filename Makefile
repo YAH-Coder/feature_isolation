@@ -23,7 +23,7 @@ docs: Doxyfile
 
 clean:
 	rm -f $(OUTPUT_DIR)/test $(OUTPUT_DIR)/benchmark
-	rm -rf doc/html
+	rm -rf docs/html
 
 .PHONY: all docs clean
 
