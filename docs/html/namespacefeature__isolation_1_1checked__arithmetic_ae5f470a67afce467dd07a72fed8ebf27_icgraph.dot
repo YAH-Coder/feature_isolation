@@ -1,0 +1,18 @@
+digraph "feature_isolation::checked_arithmetic::subtract_asign_return"
+{
+ // LATEX_PDF_SIZE
+  bgcolor="transparent";
+  edge [fontname=Helvetica,fontsize=10,labelfontname=Helvetica,labelfontsize=10];
+  node [fontname=Helvetica,fontsize=10,shape=box,height=0.2,width=0.4];
+  rankdir="RL";
+  Node1 [id="Node000001",label="feature_isolation::\lchecked_arithmetic::\lsubtract_asign_return",height=0.2,width=0.4,color="gray40", fillcolor="grey60", style="filled", fontcolor="black",tooltip="Performs safe subtraction and assignment of two unsigned integers. Returns the original value of the ..."];
+  Node1 -> Node2 [id="edge1_Node000001_Node000002",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node2 [id="Node000002",label="feature_isolation::\lproduct",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$namespacefeature__isolation.html#af0bc991bc727754d4a832f10e802be7a",tooltip="Calculates the product of a range of unsigned integers."];
+  Node2 -> Node3 [id="edge2_Node000002_Node000003",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node3 [id="Node000003",label="feature_isolation::\lcombinations",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$namespacefeature__isolation.html#a898c8defbaa488a748866c74526e6314",tooltip="Calculates the number of combinations of k elements from a set of n elements."];
+  Node3 -> Node4 [id="edge3_Node000003_Node000004",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node4 [id="Node000004",label="feature_isolation::\lsum_of_combinations",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$namespacefeature__isolation.html#a13f8f29f524b2e4b43db4b95b460383b",tooltip="Calculates the sum of the number of combinations for all sizes from 0 to k from a set of n elements."];
+  Node2 -> Node5 [id="edge4_Node000002_Node000005",dir="back",color="steelblue1",style="solid",tooltip=" "];
+  Node5 [id="Node000005",label="feature_isolation::\lfactorial",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$namespacefeature__isolation.html#a4dd2169c292df604d5a02ba1143b677d",tooltip="Calculates the factorial of an unsigned integer."];
+  Node5 -> Node3 [id="edge5_Node000005_Node000003",dir="back",color="steelblue1",style="solid",tooltip=" "];
+}
