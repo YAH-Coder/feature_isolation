@@ -1,7 +1,20 @@
-catch.hpp
+# -----------------
+# IDE/Editor Files
+# -----------------
 .clangd
 .clang-format
+.DS_Store
+.editorconfig
+
+# -----------------
+# Test Files
+# -----------------
+catch.hpp
 /tests/*
+
+# -----------------
+# CMake Files
+# -----------------
 CMakeLists.txt
 CMakeCache.txt
 CMakeFiles
@@ -12,7 +25,13 @@ install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
 _deps
+
+# -----------------
+# Object Files
+# -----------------
 obj/*
-.DS_Store
+
+# -----------------
+# Documentation Files
+# -----------------
 /doc/*
-.editorconfig
