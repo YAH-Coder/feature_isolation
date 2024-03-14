@@ -1,4 +1,81 @@
 /**
+ * @mainpage Feature Isolation Mathematical Helper Functions
+ * 
+ * @section introduction Introduction
+ *
+ * This library provides a robust set of mathematical functions and utilities, with a 
+ * particular emphasis on safety and precision in integer calculations. It is designed
+ * to be a helpful tool in applications where arithmetic errors would have significant 
+ * consequences.
+ *
+ * @section features Key Features
+ *
+ * * **Checked Arithmetic:** 
+ *    -  Functions for addition, subtraction, and multiplication that rigorously check 
+ *       for potential integer overflow and underflow.
+ *    -  Throws `std::overflow_error` or `std::underflow_error` if calculations would
+ *       produce invalid results. 
+ *    -  Helps prevent silent, unexpected errors caused by exceeding the limits of
+ *       integer representation.
+ * * **Unchecked Arithmetic:** 
+ *    -  Standard arithmetic operations without overflow/underflow checks.
+ *    -  Prioritizes performance in scenarios where the developer can guarantee 
+ *       error-free calculations or where the risk of overflow/underflow is negligible.
+ * * **Power Calculations:**
+ *    -  Efficiently calculates powers (base raised to an exponent).
+ *    -  Includes a specialized function for calculating powers of 2. 
+ * * **Factorials:**
+ *    -  Computes factorials of non-negative integers.
+ * * **Combinations:** 
+ *    -  Calculates the number of combinations of k elements from a set of size n (C(n, k)).
+ *    -  Calculates the sum of all the number of combinations of varying sizes up to k elements 
+ *       (k = 0, 1, ..., k).
+ * * **Combinations Generator:** 
+ *    -  Class (`combinationT`) for iteratively generating all combinations of a given size 
+ *       from a set of elements.
+ * 
+ * @section usage Usage
+ *
+ * 1. **Include the header:**
+ *    ```c++
+ *    #include <FI_MathHelper.hpp>
+ *    ```
+ * 2. **Choose the namespace:**
+ *    ```c++
+ *    namespace arithmetic = feature_isolation::checked_arithmetic; // For safety 
+ *    // OR
+ *    namespace arithmetic = feature_isolation::unchecked_arithmetic; // For performance
+ *    ```
+ * 3. **Utilize the functions**
+ *    ```c++
+ *    unsignedInteger safeResult = arithmetic::add(a, b); 
+ *    unsignedInteger factorialValue = arithmetic::factorial(5);
+ *    ```
+ *
+ * @section example Example
+ *
+ * ```c++
+ * #include <iostream>
+ * #include "FI_MathHelper.hpp"
+ *
+ * int main() {
+ *   using namespace feature_isolation::checked_arithmetic;
+ *
+ *   try {
+ *       unsignedInteger result = multiply(1000000, 1000000);  
+ *       std::cout << "Result: " << result << std::endl;
+ *   } catch (const std::overflow_error& e) {
+ *       std::cerr << "Overflow error: " << e.what() << std::endl;
+ *   }
+ *   return 0;
+ * }
+ * ```
+ *
+ * **Customization:**
+ * Control whether checked or unchecked operations are used by default through the `USE_UNCHECKED_ARITHMETIC` preprocessor macro.  
+ */
+
+/**
  * @file fi_mathhelper.hpp
  * @brief This header provides mathematical helper functions, including 
  *        safe arithmetic operations, power calculations, factorials, 
