@@ -1,0 +1,38 @@
+name: Run tests and generate docs
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: brew install gcc doxygen
+
+    - name: Build tests
+      run: make test
+
+    - name: Run tests
+      run: ./testing/test
+
+    - name: Generate docs
+      run: make docs
+
+    - name: Commit files
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add docs/*
+        git commit -m "Update documentation." -a
+
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.ref }}
