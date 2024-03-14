@@ -3,7 +3,7 @@
 CXX = g++
 CXXSTANDARD = -std=c++20
 CXXFLAGS = -Wall -Iinclude
-OUTPUT = tests
+OUTPUT = testing
 DOXYGEN = doxygen
 
 # Targets
@@ -19,7 +19,7 @@ docs: Doxyfile
 	$(DOXYGEN) $<
 
 clean:
-	rm -f tests/test tests/benchmark
+	rm -f $(OUTPUT)/test $(OUTPUT)/benchmark
 	rm -rf doc/html
 
 .PHONY: all docs clean
