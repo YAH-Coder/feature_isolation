@@ -33,5 +33,5 @@ obj/*
 # -----------------
 # Documentation Files
 # -----------------
-html/*
+docs/html/*
 Doxyfile.in
