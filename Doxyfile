@@ -1,6 +1,6 @@
-PROJECT_NAME           = "feature_isolation"
+PROJECT_NAME           = "Mathematical helper functions for feature isolation"
 PROJECT_NUMBER         = 
-PROJECT_BRIEF          = ""
+PROJECT_BRIEF          = "Library for safe arithmetic and mathematical helper functions"
 OUTPUT_DIRECTORY       = docs
 INPUT                  = include/fi_mathhelper.hpp include/fi_mathhelper.dox
 RECURSIVE              = NO
