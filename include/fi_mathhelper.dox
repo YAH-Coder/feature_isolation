@@ -1,0 +1,172 @@
+/**
+ * @namespace feature_isolation
+ * @brief Provides utilities for safe and efficient mathematical operations.
+ *
+ * This namespace contains facilities for:
+ * - Checked and unchecked arithmetic operations to manage overflow/underflow.
+ * - Common mathematical functions (factorial, combinations, etc.).
+ * - A combinatorial generator class for symbol combinations.
+ */
+
+/**
+ * @var typedef feature_isolation::unsignedInteger
+ * @brief A typedef for std::uintmax_t.
+ */
+
+/**
+ * @var constexpr unsignedInteger feature_isolation::zero
+ * @brief A constexpr variable representing zero.
+ */
+
+/**
+ * @var constexpr unsignedInteger feature_isolation::one
+ * @brief A constexpr variable representing one.
+ */
+
+/**
+ * @var constexpr unsignedInteger feature_isolation::two
+ * @brief A constexpr variable representing two.
+ */
+
+/**
+ * @namespace feature_isolation::checked_arithmetic
+ * @brief Provides arithmetic operations with overflow and underflow checks.
+ *
+ * This namespace offers a set of arithmetic operations designed for situations where the 
+ * prevention of integer overflow and underflow is critical. Unlike standard arithmetic 
+ * operators, the functions within this namespace rigorously check for potential overflow 
+ * or underflow conditions before performing calculations. If a result would exceed the 
+ * representable range of the `unsignedInteger` type, appropriate exceptions 
+ * (`std::overflow_error` or `std::underflow_error`) are thrown. 
+ *
+ * **Use Cases:**
+ *   * Operations involving very large numbers or unpredictable inputs
+ *   * Code where the consequences of arithmetic errors are severe
+ *
+ * **Design Considerations:**  
+ *   * Prioritizes safety and correctness over raw performance.
+ *   * Provides both in-place modification functions (e.g., `add_asign`) and functions
+ *     that return new values (e.g., `add`).  
+ */
+
+/**
+ * @fn constexpr unsignedInteger feature_isolation::checked_arithmetic::add(unsignedInteger a, unsignedInteger b)
+ * @brief Performs safe addition of two unsigned integers.
+ *
+ * This function adds two unsigned integers in a safe manner. It checks for potential overflow before performing the addition. If an overflow is detected, it throws a `std::overflow_error` exception.
+ *
+ * @param a An unsigned integer to be added.
+ * @param b An unsigned integer to be added.
+ * 
+ * @return The result of adding `a` and `b` if no overflow occurs.
+ *
+ * @throws std::overflow_error If the addition of `a` and `b` would result in an overflow.
+ */
+
+/**
+ * @fn constexpr unsignedInteger feature_isolation::checked_arithmetic::add_assign(unsignedInteger& a, unsignedInteger b)
+ * @brief Performs safe addition and assignment of two unsigned integers.
+ *
+ * This function adds an unsigned integer `b` to another unsigned integer `a` in a safe manner. 
+ * It checks for potential overflow before performing the addition. If an overflow is detected, it throws a `std::overflow_error` exception. 
+ * The result of the addition is then assigned to `a`.
+ *
+ * @param a A reference to an unsigned integer to which the result will be assigned.
+ * @param b An unsigned integer to be added to `a`.
+ * 
+ * @return The result of adding `a` and `b` if no overflow occurs.
+ *
+ * @throws std::overflow_error If the addition of `a` and `b` would result in an overflow.
+ */
+
+/**
+ * @fn constexpr unsignedInteger feature_isolation::checked_arithmetic::subtract(unsignedInteger a, unsignedInteger b)
+ */
+
+/**
+ * @fn constexpr unsignedInteger feature_isolation::checked_arithmetic::subtract_asign(unsignedInteger& a, unsignedInteger b)
+ */
+
+/**
+ * @fn constexpr unsignedInteger feature_isolation::checked_arithmetic::subtract_asign_return(unsignedInteger& a, unsignedInteger b)
+ */
+
+/**
+ * @fn constexpr unsignedInteger feature_isolation::checked_arithmetic::multiply(unsignedInteger a, unsignedInteger b)
+ */
+
+/**
+ * @fn constexpr unsignedInteger feature_isolation::checked_arithmetic::multiply_asign(unsignedInteger& a, unsignedInteger b)
+ */
+
+/**
+ * @fn constexpr unsignedInteger feature_isolation::unchecked_arithmetic::add(unsignedInteger a, unsignedInteger b)
+ */
+
+/**
+ * @fn constexpr unsignedInteger feature_isolation::unchecked_arithmetic::add_asign(unsignedInteger& a, unsignedInteger b)
+ */
+
+/**
+ * @fn constexpr unsignedInteger feature_isolation::unchecked_arithmetic::subtract(unsignedInteger a, unsignedInteger b)
+ */
+
+/**
+ * @fn constexpr unsignedInteger feature_isolation::unchecked_arithmetic::subtract_asign(unsignedInteger& a, unsignedInteger b)
+ */
+
+/**
+ * @fn constexpr unsignedInteger feature_isolation::unchecked_arithmetic::subtract_asign_return(unsignedInteger& a, unsignedInteger b)
+ */
+
+/**
+ * @fn constexpr unsignedInteger feature_isolation::unchecked_arithmetic::multiply(unsignedInteger a, unsignedInteger b)
+ */
+
+/**
+ * @fn constexpr unsignedInteger feature_isolation::unchecked_arithmetic::multiply_asign(unsignedInteger& a, unsignedInteger b)
+ */
+
+/**
+ * @fn constexpr unsignedInteger feature_isolation::power(unsignedInteger base, unsignedInteger exponent)
+ */
+
+/**
+ * @fn constexpr unsignedInteger feature_isolation::power2(unsignedInteger exponent)
+ */
+
+/**
+ * @fn constexpr unsignedInteger feature_isolation::product(unsignedInteger from, unsignedInteger to)
+ */
+
+/**
+ * @fn constexpr unsignedInteger feature_isolation::factorial(unsignedInteger n)
+ */
+
+/**
+ * @fn constexpr unsignedInteger feature_isolation::combinations(unsignedInteger n, unsignedInteger k)
+ */
+
+/**
+ * @fn constexpr unsignedInteger feature_isolation::sum_of_combinations(unsignedInteger n, unsignedInteger k)
+ */
+
+/**
+ * @fn template <class T> feature_isolation::combinationT<T>::combinationT(const std::vector<T> symbols, std::size_t k)
+ */
+
+/**
+ * @fn template <class T> void feature_isolation::combinationT<T>::initialize()
+ */
+
+/**
+ * @fn template <class T> std::size_t feature_isolation::combinationT<T>::k() const
+ */
+
+/**
+ * @fn template <class T> bool feature_isolation::combinationT<T>::next()
+ */
+
+/**
+ * @fn template <class T> std::vector<T> feature_isolation::combinationT<T>::operator()() const
+ */
