@@ -1,0 +1,26 @@
+digraph "feature_isolation::sum_of_combinations"
+{
+ // LATEX_PDF_SIZE
+  bgcolor="transparent";
+  edge [fontname=Helvetica,fontsize=10,labelfontname=Helvetica,labelfontsize=10];
+  node [fontname=Helvetica,fontsize=10,shape=box,height=0.2,width=0.4];
+  rankdir="LR";
+  Node1 [id="Node000001",label="feature_isolation::\lsum_of_combinations",height=0.2,width=0.4,color="gray40", fillcolor="grey60", style="filled", fontcolor="black",tooltip="Calculates the sum of the number of combinations for all sizes from 0 to k from a set of n elements."];
+  Node1 -> Node2 [id="edge1_Node000001_Node000002",color="steelblue1",style="solid",tooltip=" "];
+  Node2 [id="Node000002",label="feature_isolation::\lchecked_arithmetic::\ladd_asign",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$namespacefeature__isolation_1_1checked__arithmetic.html#acce5eedb3fb3a5321d7da4b60f9ce7f8",tooltip=" "];
+  Node1 -> Node3 [id="edge2_Node000001_Node000003",color="steelblue1",style="solid",tooltip=" "];
+  Node3 [id="Node000003",label="feature_isolation::\lcombinations",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$namespacefeature__isolation.html#a898c8defbaa488a748866c74526e6314",tooltip="Calculates the number of combinations of k elements from a set of n elements."];
+  Node3 -> Node4 [id="edge3_Node000003_Node000004",color="steelblue1",style="solid",tooltip=" "];
+  Node4 [id="Node000004",label="feature_isolation::\lchecked_arithmetic::add",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$namespacefeature__isolation_1_1checked__arithmetic.html#a8919fce5780a50baa8798a8346d42921",tooltip="Performs safe addition of two unsigned integers."];
+  Node3 -> Node5 [id="edge4_Node000003_Node000005",color="steelblue1",style="solid",tooltip=" "];
+  Node5 [id="Node000005",label="feature_isolation::\lfactorial",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$namespacefeature__isolation.html#a4dd2169c292df604d5a02ba1143b677d",tooltip="Calculates the factorial of an unsigned integer."];
+  Node5 -> Node6 [id="edge5_Node000005_Node000006",color="steelblue1",style="solid",tooltip=" "];
+  Node6 [id="Node000006",label="feature_isolation::\lproduct",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$namespacefeature__isolation.html#af0bc991bc727754d4a832f10e802be7a",tooltip="Calculates the product of a range of unsigned integers."];
+  Node6 -> Node7 [id="edge6_Node000006_Node000007",color="steelblue1",style="solid",tooltip=" "];
+  Node7 [id="Node000007",label="feature_isolation::\lchecked_arithmetic::\lmultiply_asign",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$namespacefeature__isolation_1_1checked__arithmetic.html#ae356af3c68724e85753bdd21dda70857",tooltip="Performs safe multiplication and assignment of two unsigned integers."];
+  Node6 -> Node8 [id="edge7_Node000006_Node000008",color="steelblue1",style="solid",tooltip=" "];
+  Node8 [id="Node000008",label="feature_isolation::\lchecked_arithmetic::\lsubtract_asign_return",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$namespacefeature__isolation_1_1checked__arithmetic.html#ae5f470a67afce467dd07a72fed8ebf27",tooltip="Performs safe subtraction and assignment of two unsigned integers. Returns the original value of the ..."];
+  Node3 -> Node6 [id="edge8_Node000003_Node000006",color="steelblue1",style="solid",tooltip=" "];
+  Node3 -> Node9 [id="edge9_Node000003_Node000009",color="steelblue1",style="solid",tooltip=" "];
+  Node9 [id="Node000009",label="feature_isolation::\lchecked_arithmetic::\lsubtract",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$namespacefeature__isolation_1_1checked__arithmetic.html#a880191da863b41a4b7941977d67c1b11",tooltip="Performs safe subtraction of two unsigned integers."];
+}

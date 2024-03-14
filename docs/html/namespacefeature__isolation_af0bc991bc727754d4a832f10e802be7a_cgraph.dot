@@ -1,0 +1,13 @@
+digraph "feature_isolation::product"
+{
+ // LATEX_PDF_SIZE
+  bgcolor="transparent";
+  edge [fontname=Helvetica,fontsize=10,labelfontname=Helvetica,labelfontsize=10];
+  node [fontname=Helvetica,fontsize=10,shape=box,height=0.2,width=0.4];
+  rankdir="LR";
+  Node1 [id="Node000001",label="feature_isolation::\lproduct",height=0.2,width=0.4,color="gray40", fillcolor="grey60", style="filled", fontcolor="black",tooltip="Calculates the product of a range of unsigned integers."];
+  Node1 -> Node2 [id="edge1_Node000001_Node000002",color="steelblue1",style="solid",tooltip=" "];
+  Node2 [id="Node000002",label="feature_isolation::\lchecked_arithmetic::\lmultiply_asign",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$namespacefeature__isolation_1_1checked__arithmetic.html#ae356af3c68724e85753bdd21dda70857",tooltip="Performs safe multiplication and assignment of two unsigned integers."];
+  Node1 -> Node3 [id="edge2_Node000001_Node000003",color="steelblue1",style="solid",tooltip=" "];
+  Node3 [id="Node000003",label="feature_isolation::\lchecked_arithmetic::\lsubtract_asign_return",height=0.2,width=0.4,color="grey40", fillcolor="white", style="filled",URL="$namespacefeature__isolation_1_1checked__arithmetic.html#ae5f470a67afce467dd07a72fed8ebf27",tooltip="Performs safe subtraction and assignment of two unsigned integers. Returns the original value of the ..."];
+}
