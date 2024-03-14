@@ -12,6 +12,7 @@ all: test benchmark
 test: src/test.cpp include/fi_mathhelper.hpp
 	mkdir -p $(OUTPUT_DIR)
 	$(CXX) $(CXXSTANDARD) $(CXXFLAGS) $< -o $(OUTPUT_DIR)/$@ 
+	./$(OUTPUT_DIR)/$@
 
 benchmark: src/benchmark.cpp include/fi_mathhelper.hpp
 	mkdir -p $(OUTPUT_DIR)
