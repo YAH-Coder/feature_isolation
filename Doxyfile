@@ -1,7 +1,7 @@
 PROJECT_NAME           = "feature_isolation"
 PROJECT_NUMBER         = 
 PROJECT_BRIEF          = ""
-OUTPUT_DIRECTORY       = doc
+OUTPUT_DIRECTORY       = docs
 INPUT                  = include/fi_mathhelper.hpp include/fi_mathhelper.dox
 RECURSIVE              = NO
 GENERATE_LATEX         = NO
