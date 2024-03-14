@@ -37,24 +37,24 @@
  * @section usage Usage
  *
  * 1. **Include the header:**
- *    ```c++
+ *    ```c
  *    #include <FI_MathHelper.hpp>
  *    ```
  * 2. **Choose the namespace:**
- *    ```c++
+ *    ```c
  *    namespace arithmetic = feature_isolation::checked_arithmetic; // For safety 
  *    // OR
  *    namespace arithmetic = feature_isolation::unchecked_arithmetic; // For performance
  *    ```
  * 3. **Utilize the functions**
- *    ```c++
+ *    ```c
  *    unsignedInteger safeResult = arithmetic::add(a, b); 
  *    unsignedInteger factorialValue = arithmetic::factorial(5);
  *    ```
  *
  * @section example Example
  *
- * ```c++
+ * ```c
  * #include <iostream>
  * #include "FI_MathHelper.hpp"
  *
