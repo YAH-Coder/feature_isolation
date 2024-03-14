@@ -3,23 +3,25 @@
 CXX = g++
 CXXSTANDARD = -std=c++20
 CXXFLAGS = -Wall -Iinclude
-OUTPUT = testing
+OUTPUT_DIR = testing
 DOXYGEN = doxygen
 
 # Targets
 all: test benchmark
 
 test: src/test.cpp include/fi_mathhelper.hpp
-	$(CXX) $(CXXSTANDARD) $(CXXFLAGS) $< -o $(OUTPUT)/$@ 
+	mkdir -p $(OUTPUT_DIR)
+	$(CXX) $(CXXSTANDARD) $(CXXFLAGS) $< -o $(OUTPUT_DIR)/$@ 
 
 benchmark: src/benchmark.cpp include/fi_mathhelper.hpp
-	$(CXX) $(CXXSTANDARD) $(CXXFLAGS) $< -o $(OUTPUT)/$@ 
+	mkdir -p $(OUTPUT_DIR)
+	$(CXX) $(CXXSTANDARD) $(CXXFLAGS) $< -o $(OUTPUT_DIR)/$@ 
 
 docs: Doxyfile
 	$(DOXYGEN) $<
 
 clean:
-	rm -f $(OUTPUT)/test $(OUTPUT)/benchmark
+	rm -f $(OUTPUT_DIR)/test $(OUTPUT_DIR)/benchmark
 	rm -rf doc/html
 
 .PHONY: all docs clean
