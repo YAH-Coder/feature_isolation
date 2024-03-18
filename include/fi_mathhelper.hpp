@@ -1,6 +1,7 @@
 #ifndef FI_MATHHELPER_HPP
 #define FI_MATHHELPER_HPP
 
+#include <bitset>
 #include <cstdint>
 #include <stdexcept>
 #include <string>
@@ -209,6 +210,16 @@ namespace feature_isolation {
    };
 
    /* static constexpr char tab{'\t'}; */
+
+   template <unsignedInteger N>
+   unsignedInteger to_unsignedInteger(const std::bitset<N>& bs) {
+      static_assert(N <= sizeof(unsignedInteger) * CHAR_BIT);
+      unsignedInteger result{zero};
+      for (unsignedInteger i{zero}; i < bs.size(); ++i) {
+         result += (bs[i] ? one : zero) * power2(i);
+      }
+      return result;
+   }
 
 } // namespace feature_isolation
 
