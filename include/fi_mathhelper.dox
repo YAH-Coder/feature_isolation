@@ -515,3 +515,17 @@
  * @return A vector containing the elements of the current combination. 
  *         The vector represents a copy of the internal state.
  */
+
+/**
+ * @fn template <unsignedInteger N> unsignedInteger feature_isolation::to_unsignedInteger(const std::bitset<N>& bs)
+ * @brief Interprets the contents of a std::bitset as an unsigned integer.
+ *
+ * This function takes a `std::bitset` of fixed size `N` and interprets its contents as a binary number, converting that representation into an unsigned integer value.
+ *
+ * @param bs The `std::bitset` whose contents are to be interpreted.
+ *
+ * @return The corresponding unsigned integer value.
+ *
+ * @pre The size `N` of the bitset must fit within the byte width of the 
+ *      target `unsignedInteger` type. A `static_assert` ensures this at compile time.
+ */ 
