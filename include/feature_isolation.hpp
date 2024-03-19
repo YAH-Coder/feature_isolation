@@ -9,7 +9,7 @@
 #include <string>
 
 namespace feature_isolation {
-   static const unsignedInteger F{1llu};
+   static const unsignedInteger F{one};
    static const unsignedInteger O{feature_isolation::power2(2)};
    static const unsignedInteger A{feature_isolation::power2(3)};
    static const unsignedInteger N{feature_isolation::power2(4)};
@@ -28,7 +28,7 @@ namespace feature_isolation {
     public:
       inline static constexpr unsignedInteger F{f};
       inline static constexpr unsignedInteger S{feature_isolation::power2(F)};
-      inline static constexpr unsignedInteger O{feature_isolation::sum_of_combinations(F, 2)};
+      inline static constexpr unsignedInteger O{feature_isolation::sum_of_combinations(F, two)};
       inline static constexpr unsignedInteger A{O};
       inline static constexpr unsignedInteger N{F};
       inline static constexpr unsignedInteger ON{O};
@@ -37,7 +37,7 @@ namespace feature_isolation {
       inline static constexpr unsignedInteger ANF{ONF};
       inline static constexpr unsignedInteger DF{f + 4 * O + 2 * ONF};
       inline static constexpr unsignedInteger T = {F + DF};
-      inline static std::bitset<S> m_available_systems{~0llu};
+      inline static std::bitset<S> m_available_systems{~zero};
       inline static unsignedInteger m_feature_categories{feature_isolation::ALL};
       struct featureT {
          std::string name{};
@@ -61,13 +61,13 @@ namespace feature_isolation {
       inline static featuresT<F> m_F;
       static void F_features() {
          using namespace std::string_literals; // for using "x"s as string literal
-         unsignedInteger i{0llu};
-         for (unsignedInteger shift_to_left{0llu}; shift_to_left < F; ++shift_to_left) {
+         unsignedInteger i{zero};
+         for (unsignedInteger shift_to_left{zero}; shift_to_left < F; ++shift_to_left) {
             std::string name{"f"s + std::to_string(shift_to_left + 1)};
-            unsignedInteger mask{1llu << shift_to_left};
+            unsignedInteger mask{one << shift_to_left};
             std::bitset<S> difference_expression{};
             std::vector<unsignedInteger> systems;
-            for (unsignedInteger system{0llu}; system < S; ++system) {
+            for (unsignedInteger system{zero}; system < S; ++system) {
                if (system & mask) {
                   difference_expression.set(system);
                   systems.push_back(system + 1);
@@ -84,13 +84,13 @@ namespace feature_isolation {
       inline static featuresT<N> m_N;
       static void N_features() {
          using namespace std::string_literals; // for using "x"s as string literal
-         unsignedInteger i{0llu};
-         for (unsignedInteger shift_to_left{0llu}; shift_to_left < F; ++shift_to_left) {
+         unsignedInteger i{zero};
+         for (unsignedInteger shift_to_left{zero}; shift_to_left < F; ++shift_to_left) {
             std::string name{"!f"s + std::to_string(shift_to_left + 1)};
-            unsignedInteger mask{1llu << shift_to_left};
+            unsignedInteger mask{one << shift_to_left};
             std::bitset<S> difference_expression{};
             std::vector<unsignedInteger> systems;
-            for (unsignedInteger system{0llu}; system < S; ++system) {
+            for (unsignedInteger system{zero}; system < S; ++system) {
                if (!(system & mask)) {
                   difference_expression.set(system);
                   systems.push_back(system + 1);
@@ -107,10 +107,10 @@ namespace feature_isolation {
       inline static featuresT<O> m_O;
       static void O_features() {
          using namespace std::string_literals; // for using "x"s as string literal
-         unsignedInteger i{0llu};
+         unsignedInteger i{zero};
          for (unsignedInteger k{2llu}; k <= F; ++k) {
             std::vector<unsignedInteger> features;
-            for (unsignedInteger n{1llu}; n <= F; ++n) {
+            for (unsignedInteger n{one}; n <= F; ++n) {
                features.push_back(n);
             }
             feature_isolation::combinationT or_features{features, k};
@@ -118,16 +118,16 @@ namespace feature_isolation {
                std::string name{};
                unsignedInteger mask{};
                auto draw{or_features()};
-               for (unsignedInteger n{0llu}; const auto& element : draw) {
+               for (unsignedInteger n{zero}; const auto& element : draw) {
                   name += "f"s + std::to_string(element);
                   if (++n < draw.size()) {
                      name += " + "s;
                   }
-                  mask |= (1llu << (element - 1));
+                  mask |= (one << (element - 1));
                }
                std::bitset<S> difference_expression{};
                std::vector<unsignedInteger> systems;
-               for (unsignedInteger system{0llu}; system < S; ++system) {
+               for (unsignedInteger system{zero}; system < S; ++system) {
                   if (system & mask) {
                      difference_expression.set(system);
                      systems.push_back(system + 1);
@@ -145,7 +145,7 @@ namespace feature_isolation {
       inline static featuresT<A> m_A;
       static void A_features() {
          using namespace std::string_literals; // for using "x"s as string literal
-         unsignedInteger i{0llu};
+         unsignedInteger i{zero};
          for (unsignedInteger k{2llu}; k <= F; ++k) {
             std::vector<unsignedInteger> features;
             for (unsignedInteger n{1}; n <= F; ++n) {
@@ -156,16 +156,16 @@ namespace feature_isolation {
                std::string name{};
                unsignedInteger mask{};
                auto draw{and_features()};
-               for (unsignedInteger n{0llu}; const auto& element : draw) {
+               for (unsignedInteger n{zero}; const auto& element : draw) {
                   name += "f"s + std::to_string(element);
                   if (++n < draw.size()) {
                      name += " * "s;
                   }
-                  mask |= (1llu << (element - 1));
+                  mask |= (one << (element - 1));
                }
                std::bitset<S> difference_expression{};
                std::vector<unsignedInteger> systems;
-               for (unsignedInteger system{0llu}; system < S; ++system) {
+               for (unsignedInteger system{zero}; system < S; ++system) {
                   if ((system & mask) == mask) {
                      difference_expression.set(system);
                      systems.push_back(system + 1);
@@ -183,10 +183,10 @@ namespace feature_isolation {
       inline static featuresT<ON> m_ON;
       static void ON_features() {
          using namespace std::string_literals; // for using "x"s as string literal
-         unsignedInteger i{0llu};
+         unsignedInteger i{zero};
          for (unsignedInteger k{2llu}; k <= F; ++k) {
             std::vector<unsignedInteger> features;
-            for (unsignedInteger n{1llu}; n <= F; ++n) {
+            for (unsignedInteger n{one}; n <= F; ++n) {
                features.push_back(n);
             }
             feature_isolation::combinationT or_not_features{features, k};
@@ -194,16 +194,16 @@ namespace feature_isolation {
                std::string name{};
                unsignedInteger mask{};
                auto draw{or_not_features()};
-               for (unsignedInteger n{0llu}; const auto& element : draw) {
+               for (unsignedInteger n{zero}; const auto& element : draw) {
                   name += "!f"s + std::to_string(element);
                   if (++n < draw.size()) {
                      name += " + "s;
                   }
-                  mask |= 1llu << (element - 1);
+                  mask |= one << (element - 1);
                }
                std::bitset<S> difference_expression{};
                std::vector<unsignedInteger> systems;
-               for (unsignedInteger system{0llu}; system < S; ++system) {
+               for (unsignedInteger system{zero}; system < S; ++system) {
                   if (!((system & mask) == mask)) {
                      difference_expression.set(system);
                      systems.push_back(system + 1);
@@ -221,10 +221,10 @@ namespace feature_isolation {
       inline static featuresT<AN> m_AN;
       static void AN_features() {
          using namespace std::string_literals; // for using "x"s as string literal
-         unsignedInteger i{0llu};
+         unsignedInteger i{zero};
          for (unsignedInteger k{2llu}; k <= F; ++k) {
             std::vector<unsignedInteger> features;
-            for (unsignedInteger n{1llu}; n <= F; ++n) {
+            for (unsignedInteger n{one}; n <= F; ++n) {
                features.push_back(n);
             }
             feature_isolation::combinationT and_not_features{features, k};
@@ -232,16 +232,16 @@ namespace feature_isolation {
                std::string name{};
                unsignedInteger mask{};
                auto draw{and_not_features()};
-               for (unsignedInteger n{0llu}; const auto& element : draw) {
+               for (unsignedInteger n{zero}; const auto& element : draw) {
                   name += "!f"s + std::to_string(element);
                   if (++n < draw.size()) {
                      name += " * "s;
                   }
-                  mask |= 1llu << (element - 1);
+                  mask |= one << (element - 1);
                }
                std::bitset<S> difference_expression{};
                std::vector<unsignedInteger> systems;
-               for (unsignedInteger system{0llu}; system < S; ++system) {
+               for (unsignedInteger system{zero}; system < S; ++system) {
                   if (!(system & mask)) {
                      difference_expression.set(system);
                      systems.push_back(system + 1);
@@ -259,8 +259,8 @@ namespace feature_isolation {
       inline static featuresT<ONF> m_ONF;
       static void ONF_features() {
          using namespace std::string_literals; // for using "x"s as string literal
-         unsignedInteger i{0llu};
-         for (unsignedInteger k{1llu}; k < F; ++k) {
+         unsignedInteger i{zero};
+         for (unsignedInteger k{one}; k < F; ++k) {
             std::vector<unsignedInteger> features;
             for (unsignedInteger n{1}; n <= F; ++n) {
                features.push_back(n);
@@ -271,16 +271,16 @@ namespace feature_isolation {
                unsignedInteger f_mask{},
                    n_mask{};
                auto draw{independent_features()};
-               unsignedInteger f_index{0llu};
-               for (unsignedInteger n{0llu}; n < F; ++n) {
+               unsignedInteger f_index{zero};
+               for (unsignedInteger n{zero}; n < F; ++n) {
 
                   if (f_index < draw.size() && draw.at(f_index) == (n + 1)) {
                      name += "f"s + std::to_string(n + 1);
-                     f_mask |= 1llu << n;
+                     f_mask |= one << n;
                      ++f_index;
                   } else {
                      name += "!f"s + std::to_string(n + 1);
-                     n_mask |= 1llu << n;
+                     n_mask |= one << n;
                   }
                   if (n < F - 1) {
                      name += " + "s;
@@ -288,7 +288,7 @@ namespace feature_isolation {
                }
                std::bitset<S> difference_expression{};
                std::vector<unsignedInteger> systems;
-               for (unsignedInteger system{0llu}; system < S; ++system) {
+               for (unsignedInteger system{zero}; system < S; ++system) {
                   if ((system & f_mask) || (!((system & n_mask) == n_mask))) {
                      difference_expression.set(system);
                      systems.push_back(system + 1);
@@ -306,8 +306,8 @@ namespace feature_isolation {
       inline static featuresT<ANF> m_ANF;
       static void ANF_features() {
          using namespace std::string_literals; // for using "x"s as string literal
-         unsignedInteger i{0llu};
-         for (unsignedInteger k{1llu}; k < F; ++k) {
+         unsignedInteger i{zero};
+         for (unsignedInteger k{one}; k < F; ++k) {
             std::vector<unsignedInteger> features;
             for (unsignedInteger n{1}; n <= F; ++n) {
                features.push_back(n);
@@ -318,16 +318,16 @@ namespace feature_isolation {
                unsignedInteger f_mask{},
                    n_mask{};
                auto draw{independent_features()};
-               unsignedInteger f_index{0llu};
-               for (unsignedInteger n{0llu}; n < F; ++n) {
+               unsignedInteger f_index{zero};
+               for (unsignedInteger n{zero}; n < F; ++n) {
 
                   if (f_index < draw.size() && draw.at(f_index) == (n + 1)) {
                      name += "f"s + std::to_string(n + 1);
-                     f_mask |= 1llu << n;
+                     f_mask |= one << n;
                      ++f_index;
                   } else {
                      name += "!f"s + std::to_string(n + 1);
-                     n_mask |= 1llu << n;
+                     n_mask |= one << n;
                   }
                   if (n < F - 1) {
                      name += " * "s;
@@ -335,7 +335,7 @@ namespace feature_isolation {
                }
                std::bitset<S> difference_expression{};
                std::vector<unsignedInteger> systems;
-               for (unsignedInteger system{0llu}; system < S; ++system) {
+               for (unsignedInteger system{zero}; system < S; ++system) {
                   if ((system & f_mask) && (!((system & n_mask) == n_mask))) {
                      difference_expression.set(system);
                      systems.push_back(system + 1);
@@ -351,7 +351,7 @@ namespace feature_isolation {
          }
       }
       static void initialize(const unsignedInteger categories,
-                             const std::bitset<S>& available_systems = std::bitset<S>(~0llu)) {
+                             const std::bitset<S>& available_systems = std::bitset<S>(~zero)) {
          m_available_systems = available_systems;
          m_feature_categories = categories;
          if (categories & feature_isolation::F) {
@@ -380,7 +380,7 @@ namespace feature_isolation {
          }
       }
       feature_isolationT(const unsignedInteger categories = feature_isolation::ALL,
-                         const std::bitset<S>& available_systems = std::bitset<S>(~0llu)) {
+                         const std::bitset<S>& available_systems = std::bitset<S>(~zero)) {
          initialize(categories, available_systems);
       }
       static void print_general_information(std::ostream& os) {
@@ -420,9 +420,9 @@ namespace feature_isolation {
       }
       static unsignedInteger to_llu(const std::bitset<S>& bits) {
          unsignedInteger result{};
-         for (unsignedInteger n{0llu}; n < S; ++n) {
+         for (unsignedInteger n{zero}; n < S; ++n) {
             if (bits[n]) {
-               result |= 1llu << n;
+               result |= one << n;
             }
          }
          return result;
@@ -466,7 +466,7 @@ namespace feature_isolation {
       static void print_systems_with_feature_names(std::ostream& os) {
          os << 'S' << "\t"
             << "FEATURES" << std::endl;
-         for (unsignedInteger n{0llu}; const auto& system : m_systems) {
+         for (unsignedInteger n{zero}; const auto& system : m_systems) {
             os << "S" << ++n << "\t";
             for (const auto& feature : system.features) {
                os << feature.name << "\t";
@@ -507,7 +507,7 @@ namespace feature_isolation {
             << "T"
             << "\t"
             << "DF" << std::endl;
-         for (unsignedInteger n{0llu}; const auto& s : m_systems) {
+         for (unsignedInteger n{zero}; const auto& s : m_systems) {
             os << "S" << ++n << "\t" << s.F << "\t" << s.O << "\t" << s.A << "\t"
                << s.N << "\t" << s.ON << "\t" << s.AN << "\t"
                << s.ONF << "\t" << s.ANF << "\t"
@@ -546,12 +546,12 @@ namespace feature_isolation {
          os << "\t"
             << "EXPRESSION-IDs" << std::endl;
          os << "S";
-         for (unsignedInteger n{0llu}; n < T; ++n) {
+         for (unsignedInteger n{zero}; n < T; ++n) {
             os << "\t" << e_ids.at(n);
          }
          os << std::endl;
          std::cout << std::endl;
-         for (unsignedInteger n{0llu}; const auto& s : m_systems) {
+         for (unsignedInteger n{zero}; const auto& s : m_systems) {
             std::bitset<T> all_features{};
             for (const auto& feature : s.features) {
                auto index{std::find(e_ids.begin(), e_ids.end(),
@@ -561,7 +561,7 @@ namespace feature_isolation {
                frequencies.at(index) += 1;
             }
             os << "S" << ++n;
-            for (unsignedInteger i{0llu}; i < all_features.size(); ++i) {
+            for (unsignedInteger i{zero}; i < all_features.size(); ++i) {
                os << "\t";
                if (all_features[i]) {
                   os << '1';
@@ -593,7 +593,7 @@ namespace feature_isolation {
             os << (i + 1);
             if (++column == max_column) {
                os << std::endl;
-               column = 0llu;
+               column = zero;
             } else {
                os << "\t";
             }
