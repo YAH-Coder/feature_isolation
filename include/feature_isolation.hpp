@@ -418,15 +418,7 @@ namespace feature_isolation {
          << "\t" << t << '\n'
          << std::endl;
     }
-    static unsignedInteger to_llu( const std::bitset<S>& bits ) {
-      unsignedInteger result {};
-      for ( unsignedInteger n { zero }; n < S; ++n ) {
-        if ( bits[n] ) {
-          result |= one << n;
-        }
-      }
-      return result;
-    }
+
     template <unsignedInteger size>
     static void print_features( std::ostream& os, const featuresT<size>& features, const std::string& category ) {
       if ( feature_isolation::to_unsignedInteger( features.at( 0 ).id ) == 0 ) // dirty hack to suppress output of empty feature categories.
@@ -435,7 +427,7 @@ namespace feature_isolation {
       }
       os << features.size() << " " << category << "-FEATURES" << std::endl;
       for ( const auto& e : features ) {
-        os << to_llu( e.id ) << "\t" << e.name << "\t" << e.id << std::endl;
+        os << feature_isolation::to_unsignedInteger( e.id ) << "\t" << e.name << "\t" << e.id << std::endl;
       }
       os << std::endl;
     }
