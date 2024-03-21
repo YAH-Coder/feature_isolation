@@ -212,11 +212,13 @@ namespace feature_isolation {
   /* static constexpr char tab{'\t'}; */
 
   template <unsignedInteger N>
-  unsignedInteger to_unsignedInteger( const std::bitset<N>& bs ) {
+  unsignedInteger to_unsignedInteger( const std::bitset<N>& bits ) {
     static_assert( N <= sizeof( unsignedInteger ) * CHAR_BIT );
     unsignedInteger result { zero };
-    for ( unsignedInteger i { zero }; i < bs.size(); ++i ) {
-      result += ( bs[i] ? one : zero ) * power2( i );
+    for ( std::uintmax_t n { zero }; n < N; ++n ) {
+      if ( bits[n] ) {
+        result |= one << n;
+      }
     }
     return result;
   }
