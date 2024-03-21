@@ -517,7 +517,7 @@
  */
 
 /**
- * @fn template <unsignedInteger N> unsignedInteger feature_isolation::to_unsignedInteger(const std::bitset<N>& bs)
+ * @fn template <unsignedInteger N> unsignedInteger feature_isolation::to_unsignedInteger(const std::bitset<N>& bits)
  * @brief Interprets the contents of a std::bitset as an unsigned integer.
  *
  * This function takes a `std::bitset` of fixed size `N` and interprets its contents as a binary number, converting that representation into an unsigned integer value.
