@@ -9,31 +9,31 @@
 
 namespace feature_isolation {
 
-  using unsignedInteger = std::uintmax_t;
-  constexpr unsignedInteger zero = static_cast<unsignedInteger>( 0 );
-  constexpr unsignedInteger one = static_cast<unsignedInteger>( 1 );
-  constexpr unsignedInteger two = static_cast<unsignedInteger>( 2 );
+  using unsigned_integer = std::uintmax_t;
+  constexpr unsigned_integer zero = static_cast<unsigned_integer>( 0 );
+  constexpr unsigned_integer one = static_cast<unsigned_integer>( 1 );
+  constexpr unsigned_integer two = static_cast<unsigned_integer>( 2 );
 
   namespace checked_arithmetic {
 
-    constexpr unsignedInteger add( unsignedInteger a, unsignedInteger b ) {
+    constexpr unsigned_integer add( unsigned_integer a, unsigned_integer b ) {
 
-      if ( a > zero && b > std::numeric_limits<unsignedInteger>::max() - a ) {
+      if ( a > zero && b > std::numeric_limits<unsigned_integer>::max() - a ) {
         throw std::overflow_error( "Overflow in addition." );
       }
       return a + b;
     }
 
-    constexpr unsignedInteger add_asign( unsignedInteger& a, unsignedInteger b ) {
+    constexpr unsigned_integer add_assign( unsigned_integer& a, unsigned_integer b ) {
 
-      if ( a > zero && b > std::numeric_limits<unsignedInteger>::max() - a ) {
+      if ( a > zero && b > std::numeric_limits<unsigned_integer>::max() - a ) {
         throw std::overflow_error( "Overflow in addition." );
       }
       a += b;
       return a;
     }
 
-    constexpr unsignedInteger subtract( unsignedInteger a, unsignedInteger b ) {
+    constexpr unsigned_integer subtract( unsigned_integer a, unsigned_integer b ) {
 
       if ( a < b ) {
         throw std::underflow_error( "Underflow in subtraction." );
@@ -41,7 +41,7 @@ namespace feature_isolation {
       return a - b;
     }
 
-    constexpr unsignedInteger subtract_asign( unsignedInteger& a, unsignedInteger b ) {
+    constexpr unsigned_integer subtract_assign( unsigned_integer& a, unsigned_integer b ) {
 
       if ( a < b ) {
         throw std::underflow_error( "Underflow in subtraction." );
@@ -50,7 +50,7 @@ namespace feature_isolation {
       return a;
     }
 
-    constexpr unsignedInteger subtract_asign_return( unsignedInteger& a, unsignedInteger b ) {
+    constexpr unsigned_integer subtract_assign_return( unsigned_integer& a, unsigned_integer b ) {
 
       if ( a < b ) {
         throw std::underflow_error( "Underflow in subtraction." );
@@ -59,17 +59,17 @@ namespace feature_isolation {
       return ( a + b );
     }
 
-    constexpr unsignedInteger multiply( unsignedInteger a, unsignedInteger b ) {
+    constexpr unsigned_integer multiply( unsigned_integer a, unsigned_integer b ) {
 
-      if ( a > one && b > one && b > std::numeric_limits<unsignedInteger>::max() / a ) {
+      if ( a > one && b > one && b > std::numeric_limits<unsigned_integer>::max() / a ) {
         throw std::overflow_error( "Overflow in multiplication." );
       }
       return a * b;
     }
 
-    constexpr unsignedInteger multiply_asign( unsignedInteger& a, unsignedInteger b ) {
+    constexpr unsigned_integer multiply_assign( unsigned_integer& a, unsigned_integer b ) {
 
-      if ( a > one && b > one && b > std::numeric_limits<unsignedInteger>::max() / a ) {
+      if ( a > one && b > one && b > std::numeric_limits<unsigned_integer>::max() / a ) {
         throw std::overflow_error( "Overflow in multiplication." );
       }
       a *= b;
@@ -80,34 +80,34 @@ namespace feature_isolation {
 
   namespace unchecked_arithmetic {
 
-    constexpr unsignedInteger add( unsignedInteger a, unsignedInteger b ) {
+    constexpr unsigned_integer add( unsigned_integer a, unsigned_integer b ) {
       return a + b;
     }
 
-    constexpr unsignedInteger add_asign( unsignedInteger& a, unsignedInteger b ) {
+    constexpr unsigned_integer add_assign( unsigned_integer& a, unsigned_integer b ) {
       a += b;
       return a;
     }
 
-    constexpr unsignedInteger subtract( unsignedInteger a, unsignedInteger b ) {
+    constexpr unsigned_integer subtract( unsigned_integer a, unsigned_integer b ) {
       return a - b;
     }
 
-    constexpr unsignedInteger subtract_asign( unsignedInteger& a, unsignedInteger b ) {
+    constexpr unsigned_integer subtract_assign( unsigned_integer& a, unsigned_integer b ) {
       a -= b;
       return a;
     }
 
-    constexpr unsignedInteger subtract_asign_return( unsignedInteger& a, unsignedInteger b ) {
+    constexpr unsigned_integer subtract_assign_return( unsigned_integer& a, unsigned_integer b ) {
       a -= b;
       return ( a + b );
     }
 
-    constexpr unsignedInteger multiply( unsignedInteger a, unsignedInteger b ) {
+    constexpr unsigned_integer multiply( unsigned_integer a, unsigned_integer b ) {
       return a * b;
     }
 
-    constexpr unsignedInteger multiply_asign( unsignedInteger& a, unsignedInteger b ) {
+    constexpr unsigned_integer multiply_assign( unsigned_integer& a, unsigned_integer b ) {
       a *= b;
       return a;
     }
@@ -120,53 +120,54 @@ namespace feature_isolation {
   namespace arithmetic = feature_isolation::checked_arithmetic;
 #endif
 
-  constexpr unsignedInteger power( unsignedInteger base,
-                                   unsignedInteger exponent ) {
-    unsignedInteger result { one };
-    for ( unsignedInteger i = 0; i < exponent; arithmetic::add_asign( i, one ) ) {
-      arithmetic::multiply_asign( result, base );
+  constexpr unsigned_integer power( unsigned_integer base,
+                                    unsigned_integer exponent ) {
+    unsigned_integer result { one };
+    for ( unsigned_integer i = 0; i < exponent; arithmetic::add_assign( i, one ) ) {
+      arithmetic::multiply_assign( result, base );
     }
     return result;
   }
 
-  constexpr unsignedInteger power2( unsignedInteger exponent ) {
+  constexpr unsigned_integer power2( unsigned_integer exponent ) {
     return power( two, exponent );
   }
 
-  constexpr unsignedInteger product( unsignedInteger from, unsignedInteger to ) {
+  constexpr unsigned_integer product( unsigned_integer from, unsigned_integer to ) {
     if ( from == zero || to == zero || ( from > to ) )
       return zero;
-    unsignedInteger result { one };
+    unsigned_integer result { one };
     while ( from <= to ) {
-      arithmetic::multiply_asign( result, arithmetic::subtract_asign_return( to, one ) );
+      arithmetic::multiply_assign( result, arithmetic::subtract_assign_return( to, one ) );
     }
     return result;
   }
 
-  constexpr unsignedInteger factorial( unsignedInteger n ) {
+  constexpr unsigned_integer factorial( unsigned_integer n ) {
     return n == zero ? one : product( one, n );
   }
 
-  constexpr unsignedInteger combinations( unsignedInteger n, unsignedInteger k ) {
+  constexpr unsigned_integer combinations( unsigned_integer n, unsigned_integer k ) {
     if ( k == zero || n == k ) {
       return one;
     }
     return ( product( arithmetic::subtract( arithmetic::add( n, one ), k ), n ) / factorial( k ) );
   }
 
-  constexpr unsignedInteger sum_of_combinations( unsignedInteger n,
-                                                 unsignedInteger k ) {
-    unsignedInteger result { zero };
-    for ( unsignedInteger i = zero; i <= k; arithmetic::add_asign( i, one ) ) {
-      arithmetic::add_asign( result, combinations( n, i ) );
+  constexpr unsigned_integer sum_of_combinations( unsigned_integer n,
+                                                  unsigned_integer k ) {
+    unsigned_integer result { zero };
+    //for ( unsigned_integer i = zero; i <= k; arithmetic::add_assign( i, one ) ) {
+    for ( unsigned_integer i = k; i <= n; arithmetic::add_assign( i, one ) ) {
+      arithmetic::add_assign( result, combinations( n, i ) );
     }
     return result;
   }
 
   template <class T>
-  class combinationT {
+  class combination {
   public:
-    combinationT( const std::vector<T> symbols, std::size_t k )
+    combination( const std::vector<T> symbols, std::size_t k )
         : m_symbols( symbols ), m_k( k ) {
       if ( k > symbols.size() ) {
         throw std::logic_error( "n = " + std::to_string( symbols.size() ) +
@@ -211,10 +212,10 @@ namespace feature_isolation {
 
   /* static constexpr char tab{'\t'}; */
 
-  template <unsignedInteger N>
-  unsignedInteger to_unsignedInteger( const std::bitset<N>& bits ) {
-    static_assert( N <= sizeof( unsignedInteger ) * CHAR_BIT );
-    unsignedInteger result { zero };
+  template <unsigned_integer N>
+  unsigned_integer to_unsigned_integer( const std::bitset<N>& bits ) {
+    static_assert( N <= sizeof( unsigned_integer ) * CHAR_BIT );
+    unsigned_integer result { zero };
     for ( std::uintmax_t n { zero }; n < N; ++n ) {
       if ( bits[n] ) {
         result |= one << n;
