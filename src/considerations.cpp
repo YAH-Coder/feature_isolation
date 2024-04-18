@@ -16,17 +16,17 @@ unsigned_integer T(unsigned_integer F)
           2 * (sum_of_combinations(F,1) - 1);
 }
 
-unsigned_integer option1(unsigned_integer T,unsigned_integer S)
+unsigned_integer feature_option1(unsigned_integer T,unsigned_integer S)
 {
    return T * S * sizeof(unsigned_integer);
 }
 
-unsigned_integer option2(unsigned_integer T,unsigned_integer S)
+unsigned_integer feature_option2(unsigned_integer T,unsigned_integer S)
 {
-   return option1(T,S) / 2;
+   return feature_option1(T,S) / 2;
 }
 
-unsigned_integer option3(unsigned_integer T,unsigned_integer S)
+unsigned_integer feature_option3(unsigned_integer T,unsigned_integer S)
 {
    return T * S / CHAR_BIT;
 }
@@ -41,21 +41,34 @@ unsigned_integer mebibyte(unsigned_integer byte)
    return kibibyte(byte) / 1024;
 }
 
-void memory_feature_representation(unsigned_integer F)
+unsigned_integer system_option1(unsigned_integer S,unsigned_integer T)
+{
+   return S * (S / 2) * (T / CHAR_BIT);
+}
+
+unsigned_integer system_option2(unsigned_integer S,unsigned_integer T)
+{
+  return S * (S / 2) * sizeof(unsigned_integer); 
+}
+
+void memory_representation(unsigned_integer F)
 {
    unsigned_integer S { power2(F) };
-   cout << F << '\t' << T(F) << '\t'
-        << kibibyte(option1(F,S)) << '\t'
-        << kibibyte(option2(F,S)) << '\t'
-        << kibibyte(option3(F,S)) 
+   unsigned_integer T { ::T(F) };
+   cout << F << '\t' << T << '\t'
+        << kibibyte(feature_option1(F,S)) << '\t'
+        << kibibyte(feature_option2(F,S)) << '\t'
+        << kibibyte(feature_option3(F,S)) << '\t'
+        << kibibyte(system_option1(S,T)) << '\t'
+        << kibibyte(system_option2(S,T))
         << endl;
 }
 
 int main()
 {
-   cout << "F\tT\tO1\tO2\tO3" << endl;
+   cout << "F\tT\tF1\tF2\tF3\tS1\tS2" << endl;
    for (unsigned_integer F = 2; F <= 32; ++F)
    {
-      memory_feature_representation(F);
+      memory_representation(F);
    }
 }
