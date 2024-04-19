@@ -157,7 +157,6 @@ namespace feature_isolation {
   constexpr unsigned_integer sum_of_combinations( unsigned_integer n,
                                                   unsigned_integer k ) {
     unsigned_integer result { zero };
-    //for ( unsigned_integer i = zero; i <= k; arithmetic::add_assign( i, one ) ) {
     for ( unsigned_integer i = k; i <= n; arithmetic::add_assign( i, one ) ) {
       arithmetic::add_assign( result, combinations( n, i ) );
     }

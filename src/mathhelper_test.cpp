@@ -10,19 +10,19 @@ template <typename Func>
 void testAdditionFunc( Func func, const std::string& testName, bool expectThrow ) {
   SECTION( testName + " - Normal operation without overflow" ) {
     REQUIRE( func( 1, 2 ) == 3 );
-    REQUIRE( func( std::numeric_limits<unsignedInteger>::max() - 1, 1 ) == std::numeric_limits<unsignedInteger>::max() );
+    REQUIRE( func( std::numeric_limits<unsigned_integer>::max() - 1, 1 ) == std::numeric_limits<unsigned_integer>::max() );
   }
   SECTION( testName + " - Edge cases for overflow" ) {
     if ( expectThrow ) {
-      REQUIRE_THROWS_AS( func( std::numeric_limits<unsignedInteger>::max(), 1 ), std::overflow_error );
+      REQUIRE_THROWS_AS( func( std::numeric_limits<unsigned_integer>::max(), 1 ), std::overflow_error );
     } else {
-      REQUIRE_NOTHROW( func( std::numeric_limits<unsignedInteger>::max(), 1 ) );
+      REQUIRE_NOTHROW( func( std::numeric_limits<unsigned_integer>::max(), 1 ) );
     }
   }
   SECTION( testName + " - Test with zero values" ) {
     REQUIRE( func( 0, 0 ) == 0 );
     REQUIRE( func( 0, 1 ) == 1 );
-    REQUIRE( func( std::numeric_limits<unsignedInteger>::max(), 0 ) == std::numeric_limits<unsignedInteger>::max() );
+    REQUIRE( func( std::numeric_limits<unsigned_integer>::max(), 0 ) == std::numeric_limits<unsigned_integer>::max() );
   }
 }
 
@@ -31,13 +31,13 @@ template <typename Func>
 void testSubtractionFunc( Func func, const std::string& testName, bool expectUnderflow ) {
   SECTION( testName + " - Normal operation without underflow" ) {
     REQUIRE( func( 3, 1 ) == 2 );
-    REQUIRE( func( std::numeric_limits<unsignedInteger>::max(), 1 ) == std::numeric_limits<unsignedInteger>::max() - 1 );
+    REQUIRE( func( std::numeric_limits<unsigned_integer>::max(), 1 ) == std::numeric_limits<unsigned_integer>::max() - 1 );
   }
   SECTION( testName + " - Edge cases for underflow" ) {
     if ( expectUnderflow ) {
-      REQUIRE_THROWS_AS( func( 1, std::numeric_limits<unsignedInteger>::max() ), std::underflow_error );
+      REQUIRE_THROWS_AS( func( 1, std::numeric_limits<unsigned_integer>::max() ), std::underflow_error );
     } else {
-      REQUIRE_NOTHROW( func( 1, std::numeric_limits<unsignedInteger>::max() ) );
+      REQUIRE_NOTHROW( func( 1, std::numeric_limits<unsigned_integer>::max() ) );
     }
   }
   SECTION( testName + " - Test with zero values" ) {
@@ -55,22 +55,22 @@ template <typename Func>
 void testMultiplicationFunc( Func func, const std::string& testName, bool expectThrow ) {
   SECTION( testName + " - Normal operation without overflow" ) {
     REQUIRE( func( 2, 3 ) == 6 );
-    REQUIRE( func( 1, std::numeric_limits<unsignedInteger>::max() ) == std::numeric_limits<unsignedInteger>::max() );
+    REQUIRE( func( 1, std::numeric_limits<unsigned_integer>::max() ) == std::numeric_limits<unsigned_integer>::max() );
   }
   SECTION( testName + " - Edge cases for overflow" ) {
     if ( expectThrow ) {
       // For checked functions, expect an overflow_error when multiplying values that would exceed max
-      REQUIRE_THROWS_AS( func( std::numeric_limits<unsignedInteger>::max() / 2 + 1, 3 ), std::overflow_error );
+      REQUIRE_THROWS_AS( func( std::numeric_limits<unsigned_integer>::max() / 2 + 1, 3 ), std::overflow_error );
     } else {
       // For unchecked functions, no overflow detection so no exception expected
-      REQUIRE_NOTHROW( func( std::numeric_limits<unsignedInteger>::max() / 2 + 1, 3 ) );
+      REQUIRE_NOTHROW( func( std::numeric_limits<unsigned_integer>::max() / 2 + 1, 3 ) );
     }
   }
   SECTION( testName + " - Test with zero and one" ) {
     REQUIRE( func( 0, 10 ) == 0 );
     REQUIRE( func( 10, 0 ) == 0 );
-    REQUIRE( func( 1, std::numeric_limits<unsignedInteger>::max() ) == std::numeric_limits<unsignedInteger>::max() );
-    REQUIRE( func( std::numeric_limits<unsignedInteger>::max(), 1 ) == std::numeric_limits<unsignedInteger>::max() );
+    REQUIRE( func( 1, std::numeric_limits<unsigned_integer>::max() ) == std::numeric_limits<unsigned_integer>::max() );
+    REQUIRE( func( std::numeric_limits<unsigned_integer>::max(), 1 ) == std::numeric_limits<unsigned_integer>::max() );
   }
 }
 
@@ -78,22 +78,22 @@ void testMultiplicationFunc( Func func, const std::string& testName, bool expect
 TEST_CASE( "Arithmetic function tests for addition", "[arithmetic][add]" ) {
   // Checked functions expect throws on overflow
   testAdditionFunc( checked_arithmetic::add, "Checked add", true );
-  testAdditionFunc( []( unsignedInteger a, unsignedInteger b ) { return checked_arithmetic::add_asign( a, b ); }, "Checked add_asign", true );
+  testAdditionFunc( []( unsigned_integer a, unsigned_integer b ) { return checked_arithmetic::add_assign( a, b ); }, "Checked add_assign", true );
 
   // Unchecked functions do not expect throws on overflow
   testAdditionFunc( unchecked_arithmetic::add, "Unchecked add", false );
-  testAdditionFunc( []( unsignedInteger a, unsignedInteger b ) { return unchecked_arithmetic::add_asign( a, b ); }, "Unchecked add_asign", false );
+  testAdditionFunc( []( unsigned_integer a, unsigned_integer b ) { return unchecked_arithmetic::add_assign( a, b ); }, "Unchecked add_assign", false );
 }
 
 // Test cases for subtraction functions
 TEST_CASE( "Arithmetic function tests for subtraction", "[arithmetic][subtract]" ) {
   // Checked functions expect underflow detection
   testSubtractionFunc( checked_arithmetic::subtract, "Checked subtract", true );
-  testSubtractionFunc( []( unsignedInteger a, unsignedInteger b ) { return checked_arithmetic::subtract_asign( a, b ); }, "Checked subtract_asign", true );
+  testSubtractionFunc( []( unsigned_integer a, unsigned_integer b ) { return checked_arithmetic::subtract_assign( a, b ); }, "Checked subtract_assign", true );
 
   // Unchecked functions do not perform underflow detection
   testSubtractionFunc( unchecked_arithmetic::subtract, "Unchecked subtract", false );
-  testSubtractionFunc( []( unsignedInteger a, unsignedInteger b ) { return unchecked_arithmetic::subtract_asign( a, b ); }, "Unchecked subtract_asign", false );
+  testSubtractionFunc( []( unsigned_integer a, unsigned_integer b ) { return unchecked_arithmetic::subtract_assign( a, b ); }, "Unchecked subtract_assign", false );
 }
 
 TEST_CASE( "Power function tests", "[arithmetic][power]" ) {
