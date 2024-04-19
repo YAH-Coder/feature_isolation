@@ -43,31 +43,31 @@ unsigned_integer mebibyte(unsigned_integer byte)
 
 unsigned_integer system_option1(unsigned_integer S,unsigned_integer T)
 {
-   return S * (S / 2) * (T / CHAR_BIT);
+   return S * (T / 2) * (S / CHAR_BIT);
 }
 
 unsigned_integer system_option2(unsigned_integer S,unsigned_integer T)
 {
-  return S * (S / 2) * sizeof(unsigned_integer); 
+  return S * (T / 2) * sizeof(unsigned_integer); 
 }
 
 void memory_representation(unsigned_integer F)
 {
    unsigned_integer S { power2(F) };
    unsigned_integer T { ::T(F) };
-   cout << F << '\t' << T << '\t'
-        << kibibyte(feature_option1(F,S)) << '\t'
-        << kibibyte(feature_option2(F,S)) << '\t'
-        << kibibyte(feature_option3(F,S)) << '\t'
-        << kibibyte(system_option1(S,T)) << '\t'
-        << kibibyte(system_option2(S,T))
+   cout << F << '\t' << S << '\t' << T << '\t'
+        << mebibyte(feature_option1(T,S)) << '\t'
+        << mebibyte(feature_option2(T,S)) << '\t'
+        << mebibyte(feature_option3(T,S)) << '\t'
+        << mebibyte(system_option1(S,T)) << '\t'
+        << mebibyte(system_option2(S,T))
         << endl;
 }
 
 int main()
 {
-   cout << "F\tT\tF1\tF2\tF3\tS1\tS2" << endl;
-   for (unsigned_integer F = 2; F <= 32; ++F)
+   cout << "F\tS\tT\tF1\tF2\tF3\tS1\tS2" << endl;
+   for (unsigned_integer F = 2; F <= 20; ++F)
    {
       memory_representation(F);
    }
