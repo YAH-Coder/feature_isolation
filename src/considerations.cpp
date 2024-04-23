@@ -1,4 +1,5 @@
 #include "../include/fi_mathhelper.hpp"
+#include "../include/feature_isolation2.hpp"
 using namespace feature_isolation;
 #include <iostream>
 #include <climits>
@@ -67,69 +68,6 @@ void memory_representation(unsigned_integer F)
         << endl;
 }
 
-//////////////////////////////////////////////////
-// Playing with some data types //////////////////
-//////////////////////////////////////////////////
-
-using feature_description = std::vector<bool>;
-using features = std::vector<feature_description>;
-using system_description = std::set<unsigned_integer>;
-using systems = std::vector<system_description>;
-
-std::string to_string(const feature_description& fd)
-{
-   string result { };
-   for(const auto& b : fd)
-   {
-      //result += to_string(b); // LSB left most place, MSB right most place
-      result = to_string(b) + result; //  MSB left most place, LSB right most place
-   }
-   return result;
-}
-
-// The following function requires a maximum of S = 32
-unsigned_integer to_unsigned_integer(const feature_description& fd)
-{
-   unsigned_integer result { 0 };
-   for (unsigned_integer exponent { 0 };const auto& b : fd)
-   {
-      arithmetic::add_assign(result,(b ? power2(exponent) : 0));
-      ++exponent;
-   }
-   return result;
-}
-
-std::string to_string(const system_description& sd,const features& f)
-{
-   string result { "{ " };
-   for (const auto& i : sd)
-   {
-      result += to_string(to_unsigned_integer(f.at(i))) + " ";
-   }
-   result += "}";
-   return result;
-}
-
-std::string to_string(const systems& s,const features& f)
-{
-   string result { };
-   for (const auto& system: s)
-   {
-      result += to_string(system,f) + "\n";
-   }
-   return result;
-}
-
-std::string to_string(const features& f)
-{
-   string result { };
-   for(const auto& feature : f)
-   {
-      result += to_string(feature) + "\n";
-   }
-   return result;
-}
-
 void test()
 {
    systems s(4);
@@ -152,4 +90,5 @@ int main()
       memory_representation(F);
    }
    test();
+   feature_isolation_t fi { 3 };
 }
