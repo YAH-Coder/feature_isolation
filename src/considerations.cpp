@@ -90,5 +90,6 @@ int main()
       memory_representation(F);
    }
    test();
-   feature_isolation_t fi { 3 };
+   feature_isolation_t fi { 20 };
+   cout << to_string(fi) << endl;
 }
