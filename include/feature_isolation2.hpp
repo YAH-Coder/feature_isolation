@@ -39,7 +39,6 @@ namespace feature_isolation
 
    unsigned_integer to_unsigned_integer(const feature_description& fd)
    {
-      static_assert(sizeof(unsigned_integer) == 8);
       unsigned_integer result { 0 };
       for (unsigned_integer exponent { 0 };const auto& b : fd)
       {
