@@ -79,5 +79,6 @@ int main()
    cout << to_string(fi) << endl;
    cout << "F" << endl << to_string(fi.F_features) << endl
         << "N" << endl << to_string(fi.N_features) << endl
-        << "A" << endl << to_string(fi.A_features) << endl;
+        << "A" << endl << to_string(fi.A_features) << endl
+        << "O" << endl << to_string(fi.O_features) << endl;
 }
