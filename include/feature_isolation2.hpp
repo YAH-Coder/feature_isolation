@@ -164,7 +164,7 @@ namespace feature_isolation
          }
          result = features(sum_of_combinations(F,2,R),feature_description(S,false));
          std::vector<unsigned_integer> all_features(F);
-         std::iota(all_features.begin(),all_features.end(),zero); // fill with zero .. F
+         std::iota(all_features.begin(),all_features.end(),zero); // fill with zero .. F - 1
          auto feature_index { zero };
          for (auto drawing_size { two }; drawing_size <= R; ++drawing_size)
          {
@@ -210,7 +210,7 @@ namespace feature_isolation
          }
          result = features(sum_of_combinations(F,2,R),feature_description(S,false));
          std::vector<unsigned_integer> all_features(F);
-         std::iota(all_features.begin(),all_features.end(),zero); // fill with zero .. F
+         std::iota(all_features.begin(),all_features.end(),zero); // fill with zero .. F - 1
          auto feature_index { zero };
          for (auto drawing_size { two }; drawing_size <= R; ++drawing_size)
          {
