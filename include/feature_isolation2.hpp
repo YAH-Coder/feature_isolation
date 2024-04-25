@@ -8,6 +8,8 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <stdexcept>
+#include <numeric>
 
 namespace feature_isolation
 {
@@ -101,9 +103,9 @@ namespace feature_isolation
       if (feature_categories & ::feature_isolation::F)
       {
          result = features(F,feature_description(S,false));
-         for (unsigned_integer feature_index { 0 };feature_index < F;++feature_index)
+         for (auto feature_index { zero };feature_index < F;++feature_index)
          {
-            for (unsigned_integer system_index { 0 };system_index < S;++system_index)
+            for (auto system_index { zero };system_index < S;++system_index)
             {
                if (system_index & (one << feature_index))
                {
@@ -123,9 +125,9 @@ namespace feature_isolation
       if (feature_categories & ::feature_isolation::N)
       {
          result = features(F,feature_description(S,false));
-         for (unsigned_integer feature_index { 0 };feature_index < F;++feature_index)
+         for (auto feature_index { zero };feature_index < F;++feature_index)
          {
-            for (unsigned_integer system_index { 0 };system_index < S;++system_index)
+            for (auto system_index { zero };system_index < S;++system_index)
             {
                if (!(system_index & (one << feature_index)))
                {
@@ -137,7 +139,51 @@ namespace feature_isolation
       return result;   
    }
 
-class feature_isolation_t
+   [[nodiscard]] features initialize_A_features(unsigned_integer F,
+                                                unsigned_integer S,
+                                                unsigned_integer R,
+                                                unsigned_integer feature_categories)
+   {
+      features result;
+      if (feature_categories & ::feature_isolation::A)
+      {
+         if (R > F)
+         {
+            throw std::invalid_argument("R > F in feature_isolation::initialize_A_features");
+         }
+         result = features(sum_of_combinations(F,2,R),feature_description(S,false));
+         std::vector<unsigned_integer> all_features(F);
+         std::iota(all_features.begin(),all_features.end(),one); // fill with 1 ..F
+         auto feature_index { zero };
+         for (auto drawing_size { two }; drawing_size <= R; ++drawing_size)
+         {
+            combination selection { all_features,drawing_size };
+            do
+            {
+               auto mask { zero };
+               std::cout << "*** ";
+               for (auto e : selection())
+               {
+                  std::cout << e << " ";
+                  //arithmetic::add_assign(mask,power2(e));
+                  mask |= (one << e);
+               }
+               std::cout << " " << mask << std::endl;
+               for (auto system_index { zero };system_index < S;++system_index)
+               {
+                  if ((system_index & mask) == mask)
+                  {
+                     result.at(feature_index).at(system_index) = true;
+                  }
+               }
+               ++feature_index;
+            } while (selection.next());
+          }
+       }
+      return result;   
+   }
+
+   class feature_isolation_t
    {
       public:
          explicit feature_isolation_t(unsigned_integer f,
@@ -145,8 +191,8 @@ class feature_isolation_t
                                       unsigned_integer feature_categories = ::feature_isolation::ALL)
             : F {f },
               S { power2( F ) },
-              O { sum_of_combinations( F, two ) },
-              A { O },
+              A { sum_of_combinations( F, two ) },
+              O { A },
               N { F },
               AN { O },
               ON { O },
@@ -157,13 +203,14 @@ class feature_isolation_t
               m_max_rank { max_rank },
               m_feature_categories { feature_categories },
               F_features { initialize_F_features(F,S,m_feature_categories) },
-              N_features { initialize_N_features(F,S,m_feature_categories) }
+              N_features { initialize_N_features(F,S,m_feature_categories) },
+              A_features { initialize_A_features(F,S,m_max_rank,m_feature_categories) }
          {};
          using cui = const unsigned_integer;
          cui F,
              S,
-             O,
              A,
+             O,
              N,
              AN,
              ON,
@@ -174,14 +221,15 @@ class feature_isolation_t
              m_max_rank,
              m_feature_categories;
          features F_features,
-                  N_features;
+                  N_features,
+                  A_features;
    };
 
 std::string to_string(const feature_isolation_t& fi)
    {
       std::ostringstream os;
       os << "F = " << fi.F << " S = " << fi.S 
-         << " O = " << fi.O << " A = " << fi.A 
+         << " A = " << fi.A << " O = " << fi.O 
          << " N = " << fi.N << " AN = " << fi.AN << " ON = " << fi.ON
          << " ANF = " << fi.ANF << " ONF = " << fi.ONF
          << " DF = " << fi.DF << " T = " << fi.T << std::endl;
