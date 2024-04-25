@@ -93,10 +93,56 @@ namespace feature_isolation
    static const unsigned_integer FOANONAN { FOAN + ON + AN };
    static const unsigned_integer ALL { FOANONAN + ONF + ANF };
 
-   class feature_isolation_t
+   [[nodiscard]] features initialize_F_features(unsigned_integer F,
+                                                unsigned_integer S,
+                                                unsigned_integer feature_categories)
+   {
+      features result;
+      if (feature_categories & ::feature_isolation::F)
+      {
+         result = features(F,feature_description(S,false));
+         for (unsigned_integer feature_index { 0 };feature_index < F;++feature_index)
+         {
+            for (unsigned_integer system_index { 0 };system_index < S;++system_index)
+            {
+               if (system_index & (one << feature_index))
+               {
+                  result.at(feature_index).at(system_index) = true;
+               }
+            }
+          }
+       }
+      return result;   
+   }
+
+   [[nodiscard]] features initialize_N_features(unsigned_integer F,
+                                                unsigned_integer S,
+                                                unsigned_integer feature_categories)
+   {
+      features result;
+      if (feature_categories & ::feature_isolation::N)
+      {
+         result = features(F,feature_description(S,false));
+         for (unsigned_integer feature_index { 0 };feature_index < F;++feature_index)
+         {
+            for (unsigned_integer system_index { 0 };system_index < S;++system_index)
+            {
+               if (!(system_index & (one << feature_index)))
+               {
+                  result.at(feature_index).at(system_index) = true;
+               }
+            }
+          }
+       }
+      return result;   
+   }
+
+class feature_isolation_t
    {
       public:
-         explicit feature_isolation_t(unsigned_integer f)
+         explicit feature_isolation_t(unsigned_integer f,
+                                      unsigned_integer max_rank,
+                                      unsigned_integer feature_categories = ::feature_isolation::ALL)
             : F {f },
               S { power2( F ) },
               O { sum_of_combinations( F, two ) },
@@ -106,8 +152,12 @@ namespace feature_isolation
               ON { O },
               ANF { sum_of_combinations( F, 1 ) - 1 },
               ONF { ANF },
-              DF { f + 4 * O + 2 * ONF },
-              T { F + DF }
+              DF { f + 4 * O + 2 * ANF },
+              T { F + DF },
+              m_max_rank { max_rank },
+              m_feature_categories { feature_categories },
+              F_features { initialize_F_features(F,S,m_feature_categories) },
+              N_features { initialize_N_features(F,S,m_feature_categories) }
          {};
          using cui = const unsigned_integer;
          cui F,
@@ -120,7 +170,11 @@ namespace feature_isolation
              ANF,
              ONF,
              DF,
-             T;
+             T,
+             m_max_rank,
+             m_feature_categories;
+         features F_features,
+                  N_features;
    };
 
 std::string to_string(const feature_isolation_t& fi)
