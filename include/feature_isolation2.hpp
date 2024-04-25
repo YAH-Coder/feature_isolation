@@ -21,6 +21,17 @@ namespace feature_isolation
    constexpr bool MSB_LSB { true }; // Customization point for MSB at
                                     // left-most position.
 
+   std::string to_bitstring(unsigned_integer b) // For debugging only.
+   {
+   
+      std::string result { };
+      for (auto i { zero }; i <= sizeof(unsigned_integer) * 8; ++i)
+      {
+         result = ((b & one << i) ? "1" : "0") + result;
+      }
+      return result;
+   }
+
    std::string to_string(const feature_description& fd)
    {
      std::string result { };
@@ -153,7 +164,7 @@ namespace feature_isolation
          }
          result = features(sum_of_combinations(F,2,R),feature_description(S,false));
          std::vector<unsigned_integer> all_features(F);
-         std::iota(all_features.begin(),all_features.end(),one); // fill with 1 ..F
+         std::iota(all_features.begin(),all_features.end(),zero); // fill with zero .. F
          auto feature_index { zero };
          for (auto drawing_size { two }; drawing_size <= R; ++drawing_size)
          {
@@ -161,18 +172,66 @@ namespace feature_isolation
             do
             {
                auto mask { zero };
-               std::cout << "*** ";
+               //std::cout << "*** ";
                for (auto e : selection())
                {
-                  std::cout << e << " ";
+                  //std::cout << e << " ";
                   //arithmetic::add_assign(mask,power2(e));
                   mask |= (one << e);
                }
-               std::cout << " " << mask << std::endl;
+               //std::cout << " " << mask << std::endl;
                for (auto system_index { zero };system_index < S;++system_index)
                {
                   if ((system_index & mask) == mask)
                   {
+                     //std::cout << "MA " << to_bitstring(mask) << std::endl 
+                     //          << "SI " << to_bitstring(system_index) << std::endl;
+                     result.at(feature_index).at(system_index) = true;
+                  }
+               }
+               ++feature_index;
+            } while (selection.next());
+          }
+       }
+      return result;   
+   }
+
+   [[nodiscard]] features initialize_O_features(unsigned_integer F,
+                                                unsigned_integer S,
+                                                unsigned_integer R,
+                                                unsigned_integer feature_categories)
+   {
+      features result;
+      if (feature_categories & ::feature_isolation::A)
+      {
+         if (R > F)
+         {
+            throw std::invalid_argument("R > F in feature_isolation::initialize_O_features");
+         }
+         result = features(sum_of_combinations(F,2,R),feature_description(S,false));
+         std::vector<unsigned_integer> all_features(F);
+         std::iota(all_features.begin(),all_features.end(),zero); // fill with zero .. F
+         auto feature_index { zero };
+         for (auto drawing_size { two }; drawing_size <= R; ++drawing_size)
+         {
+            combination selection { all_features,drawing_size };
+            do
+            {
+               auto mask { zero };
+               //std::cout << "*** ";
+               for (auto e : selection())
+               {
+                  //std::cout << e << " ";
+                  //arithmetic::add_assign(mask,power2(e));
+                  mask |= (one << e);
+               }
+               //std::cout << " " << mask << std::endl;
+               for (auto system_index { zero };system_index < S;++system_index)
+               {
+                  if (system_index & mask)
+                  {
+                     //std::cout << "MA " << to_bitstring(mask) << std::endl 
+                     //          << "SI " << to_bitstring(system_index) << std::endl;
                      result.at(feature_index).at(system_index) = true;
                   }
                }
@@ -204,7 +263,8 @@ namespace feature_isolation
               m_feature_categories { feature_categories },
               F_features { initialize_F_features(F,S,m_feature_categories) },
               N_features { initialize_N_features(F,S,m_feature_categories) },
-              A_features { initialize_A_features(F,S,m_max_rank,m_feature_categories) }
+              A_features { initialize_A_features(F,S,m_max_rank,m_feature_categories) },
+              O_features { initialize_O_features(F,S,m_max_rank,m_feature_categories) } 
          {};
          using cui = const unsigned_integer;
          cui F,
@@ -222,7 +282,8 @@ namespace feature_isolation
              m_feature_categories;
          features F_features,
                   N_features,
-                  A_features;
+                  A_features,
+                  O_features;
    };
 
 std::string to_string(const feature_isolation_t& fi)
