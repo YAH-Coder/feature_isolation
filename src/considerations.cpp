@@ -68,20 +68,6 @@ void memory_representation(unsigned_integer F)
         << endl;
 }
 
-void test()
-{
-   systems s(4);
-   features f(32,feature_description(32,false));
-   for (unsigned_integer p { 0 };auto& feature : f)
-   {
-      feature.at(p) = true;
-      s.at(p % 4).insert(p);
-      ++p;
-   }
-   cout << to_string(f) << endl;
-   cout << to_string(s,f) << endl;
-}
-
 int main()
 {
    cout << "F\tS\tT\tF1\tF2\tF3\tS1\tS2" << endl;
@@ -89,7 +75,8 @@ int main()
    {
       memory_representation(F);
    }
-   test();
-   feature_isolation_t fi { 20 };
+   feature_isolation_t fi { 4,4,ALL };
    cout << to_string(fi) << endl;
+   cout << "F" << endl << to_string(fi.F_features) << endl
+        << "N" << endl << to_string(fi.N_features) << endl;
 }
