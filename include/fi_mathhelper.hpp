@@ -154,7 +154,19 @@ namespace feature_isolation {
     return ( product( arithmetic::subtract( arithmetic::add( n, one ), k ), n ) / factorial( k ) );
   }
 
+  // REFTACTORING REQUIRED: OF THE TWO FOLLOWING FUNCTIONS IMPLEMENT ONE BY
+  // CALLING THE OTHER!
   constexpr unsigned_integer sum_of_combinations( unsigned_integer n,
+                                                  unsigned_integer lower_k,
+                                                  unsigned_integer upper_k ) {
+    unsigned_integer result { zero };
+    for ( unsigned_integer i = lower_k; i <= upper_k; arithmetic::add_assign( i, one ) ) {
+      arithmetic::add_assign( result, combinations( n, i ) );
+    }
+    return result;
+  }
+
+constexpr unsigned_integer sum_of_combinations( unsigned_integer n,
                                                   unsigned_integer k ) {
     unsigned_integer result { zero };
     for ( unsigned_integer i = k; i <= n; arithmetic::add_assign( i, one ) ) {
