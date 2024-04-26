@@ -1,5 +1,5 @@
 #include "../include/fi_mathhelper.hpp"
-#include "../include/feature_isolation2.hpp"
+#include "../include/feature_isolation.hpp"
 using namespace feature_isolation;
 #include <iostream>
 #include <climits>
