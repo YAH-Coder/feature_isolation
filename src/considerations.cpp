@@ -1,5 +1,5 @@
 #include "../include/fi_mathhelper.hpp"
-#include "../include/feature_isolation.hpp"
+#include "../include/feature_isolation2.hpp"
 using namespace feature_isolation;
 #include <iostream>
 #include <climits>
@@ -80,5 +80,7 @@ int main()
    cout << "F" << endl << to_string(fi.F_features) << endl
         << "N" << endl << to_string(fi.N_features) << endl
         << "A" << endl << to_string(fi.A_features) << endl
-        << "O" << endl << to_string(fi.O_features) << endl;
+        << "O" << endl << to_string(fi.O_features) << endl
+        << "A" << endl << to_string(fi.AN_features) << endl
+        << "O" << endl << to_string(fi.ON_features) << endl;
 }
