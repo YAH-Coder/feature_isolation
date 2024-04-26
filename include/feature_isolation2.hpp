@@ -2,14 +2,14 @@
 #define FEATURE_ISOLATION_HPP
 
 #include "../include/fi_mathhelper.hpp"
-#include <algorithm>
+#include <algorithm> // Because of iota() and find().
 #include <vector>
 #include <set>
 #include <iostream>
 #include <string>
 #include <sstream>
 #include <stdexcept>
-#include <numeric>
+#include <numeric> // Because of CHAR_BIT.
 
 namespace feature_isolation
 {
@@ -106,98 +106,6 @@ namespace feature_isolation
    static const unsigned_integer FAONANON { FAON + AN + ON };
    static const unsigned_integer ALL { FAONANON + ANF + ONF };
 
-/*   [[nodiscard]] features_t initialize_A_features(unsigned_integer F,
-                                                  unsigned_integer S,
-                                                  unsigned_integer R,
-                                                  unsigned_integer feature_categories)
-   {
-      features_t result;
-      if (feature_categories & ::feature_isolation::A)
-      {
-         if (R > F)
-         {
-            throw std::invalid_argument("R > F in feature_isolation::initialize_A_features");
-         }
-         result = features_t(sum_of_combinations(F,2,R),feature_t(S,false));
-         std::vector<unsigned_integer> all_features(F);
-         std::iota(all_features.begin(),all_features.end(),zero); // fill with zero .. F - 1
-         auto feature_index { zero };
-         for (auto drawing_size { two }; drawing_size <= R; ++drawing_size)
-         {
-            combination selection { all_features,drawing_size };
-            do
-            {
-               auto mask { zero };
-               //std::cout << "*** ";
-               for (auto e : selection())
-               {
-                  //std::cout << e << " ";
-                  //arithmetic::add_assign(mask,power2(e));
-                  mask |= (one << e);
-               }
-               //std::cout << " " << mask << std::endl;
-               for (auto system_index { zero };system_index < S;++system_index)
-               {
-                  if ((system_index & mask) == mask)
-                  {
-                     //std::cout << "MA " << to_bitstring(mask) << std::endl 
-                     //          << "SI " << to_bitstring(system_index) << std::endl;
-                     result.at(feature_index).at(system_index) = true;
-                  }
-               }
-               ++feature_index;
-            } while (selection.next());
-          }
-       }
-      return result;   
-   }
-
-   [[nodiscard]] features_t initialize_O_features(unsigned_integer F,
-                                                  unsigned_integer S,
-                                                  unsigned_integer R,
-                                                  unsigned_integer feature_categories)
-   {
-      features_t result;
-      if (feature_categories & ::feature_isolation::A)
-      {
-         if (R > F)
-         {
-            throw std::invalid_argument("R > F in feature_isolation::initialize_O_features");
-         }
-         result = features_t(sum_of_combinations(F,2,R),feature_t(S,false));
-         std::vector<unsigned_integer> all_features(F);
-         std::iota(all_features.begin(),all_features.end(),zero); // fill with zero .. F - 1
-         auto feature_index { zero };
-         for (auto drawing_size { two }; drawing_size <= R; ++drawing_size)
-         {
-            combination selection { all_features,drawing_size };
-            do
-            {
-               auto mask { zero };
-               //std::cout << "*** ";
-               for (auto e : selection())
-               {
-                  //std::cout << e << " ";
-                  //arithmetic::add_assign(mask,power2(e));
-                  mask |= (one << e);
-               }
-               //std::cout << " " << mask << std::endl;
-               for (auto system_index { zero };system_index < S;++system_index)
-               {
-                  if (system_index & mask)
-                  {
-                     //std::cout << "MA " << to_bitstring(mask) << std::endl 
-                     //          << "SI " << to_bitstring(system_index) << std::endl;
-                     result.at(feature_index).at(system_index) = true;
-                  }
-               }
-               ++feature_index;
-            } while (selection.next());
-          }
-       }
-      return result;   
-   }*/
-
    class feature_isolation_t
    {
       public:
@@ -213,7 +121,7 @@ namespace feature_isolation
               ON { O },
               ANF { sum_of_combinations( F, 1 ) - 1 },
               ONF { ANF },
-              DF { f + 4 * O + 2 * ANF },
+              DF { f + 4 * A + 2 * ANF },
               T { F + DF },
               R { max_rank },
               C { feature_categories },
@@ -222,7 +130,9 @@ namespace feature_isolation
               A_features { initialize_A_features() },
               O_features { initialize_O_features() },
               AN_features { initialize_AN_features() },
-              ON_features { initialize_ON_features() }
+              ON_features { initialize_ON_features() },
+              ANF_features { initialize_ANF_features() },
+              ONF_features { initialize_ONF_features() }
          {};
          using cui = const unsigned_integer;
          cui F,
@@ -243,7 +153,9 @@ namespace feature_isolation
                     A_features,
                     O_features,
                     AN_features,
-                    ON_features;
+                    ON_features,
+                    ANF_features,
+                    ONF_features;
       private:
          [[nodiscard]] features_t initialize_F_features()
          {
@@ -345,7 +257,7 @@ namespace feature_isolation
          {
            if (R > F)
            {
-             throw std::invalid_argument("R > F in feature_isolation_t::initialize_A_features()");
+             throw std::invalid_argument("R > F in feature_isolation_t::initialize_AN_features()");
            }
            auto result = features_t(sum_of_combinations(F,2,R),feature_t(S,false));
            std::vector<unsigned_integer> feature_indices(F);
@@ -371,9 +283,9 @@ namespace feature_isolation
          {
            if (R > F)
            {
-             throw std::invalid_argument("R > F in feature_isolation_t::initialize_O_features()");
+             throw std::invalid_argument("R > F in feature_isolation_t::initialize_ON_features()");
            }
-           auto result = features_t(sum_of_combinations(F,2,R),feature_t(S,false));
+           auto result = features_t(sum_of_combinations(F,1,R) - 1,feature_t(S,false));
            std::vector<unsigned_integer> feature_indices(F);
            std::iota(feature_indices.begin(),feature_indices.end(),zero);
            auto feature_index { zero };
@@ -388,6 +300,76 @@ namespace feature_isolation
                {
                   or_combine(result.at(feature_index),N_features.at(indices.at(index)));
                }
+               ++feature_index;
+             } while (selection.next());
+           }
+           return result;   
+         }
+         [[nodiscard]] features_t initialize_ANF_features()
+         {
+           if (R > F)
+           {
+             throw std::invalid_argument("R > F in feature_isolation_t::initialize_ANF_features()");
+           }
+           auto result = features_t(sum_of_combinations(F,1) - 1,feature_t(S,false));
+           std::vector<unsigned_integer> feature_indices(F);
+           std::iota(feature_indices.begin(),feature_indices.end(),zero);
+           auto feature_index { zero };
+           for (auto drawing_size { one }; drawing_size < F; ++drawing_size)
+           {
+             combination selection { feature_indices,drawing_size };
+             do
+             {
+               auto indices { selection() };
+               result.at(feature_index) = F_features.at(indices.at(0));
+               for (auto index { one };index < indices.size(); ++index)
+               {
+                 or_combine(result.at(feature_index),F_features.at(indices.at(index)));
+               }
+               feature_t not_features(S,false);
+               for (auto index { zero }; index < F; ++index)
+               {
+                 if (std::find(indices.begin(),indices.end(),index) == indices.end())
+                 {
+                   or_combine(not_features,N_features.at(index));
+                 }
+               }
+               and_combine(result.at(feature_index),not_features);
+               ++feature_index;
+             } while (selection.next());
+           }
+           return result;   
+         }
+         [[nodiscard]] features_t initialize_ONF_features()
+         {
+           if (R > F)
+           {
+             throw std::invalid_argument("R > F in feature_isolation_t::initialize_ANF_features()");
+           }
+           auto result = features_t(sum_of_combinations(F,1) - 1,feature_t(S,false));
+           std::vector<unsigned_integer> feature_indices(F);
+           std::iota(feature_indices.begin(),feature_indices.end(),zero);
+           auto feature_index { zero };
+           for (auto drawing_size { one }; drawing_size < F; ++drawing_size)
+           {
+             combination selection { feature_indices,drawing_size };
+             do
+             {
+               auto indices { selection() };
+               result.at(feature_index) = F_features.at(indices.at(0));
+               for (auto index { one };index < indices.size(); ++index)
+               {
+                 or_combine(result.at(feature_index),F_features.at(indices.at(index)));
+               }
+               feature_t not_features(S,false);
+               for (auto index { zero }; index < F; ++index)
+               {
+                 if (std::find(indices.begin(),indices.end(),index) == indices.end())
+                 {
+                   or_combine(not_features,N_features.at(index));
+                 }
+               }
+               or_combine(result.at(feature_index),not_features);
                ++feature_index;
              } while (selection.next());
            }

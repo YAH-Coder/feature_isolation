@@ -82,5 +82,7 @@ int main()
         << "A" << endl << to_string(fi.A_features) << endl
         << "O" << endl << to_string(fi.O_features) << endl
         << "AN" << endl << to_string(fi.AN_features) << endl
-        << "ON" << endl << to_string(fi.ON_features) << endl;
+        << "ON" << endl << to_string(fi.ON_features) << endl
+        << "ANF" << endl << to_string(fi.ANF_features) << endl
+        << "ONF" << endl << to_string(fi.ONF_features) << endl;
 }
