@@ -200,7 +200,7 @@ namespace feature_isolation
            {
              throw std::invalid_argument("R > F in feature_isolation_t::initialize_A_features()");
            }
-           auto result = features_t(sum_of_combinations(F,2,R),feature_t(S,false));
+           auto result = features_t(sum_of_combinations(F,2,R),feature_t(S,true));
            std::vector<unsigned_integer> feature_indices(F);
            std::iota(feature_indices.begin(),feature_indices.end(),zero);
            auto feature_index { zero };
@@ -210,8 +210,7 @@ namespace feature_isolation
              do
              {
                auto indices { selection() };
-               result.at(feature_index) = F_features.at(indices.at(0));
-               for (auto index { one };index < indices.size(); ++index)
+               for (auto index { zero };index < indices.size(); ++index)
                {
                   and_combine(result.at(feature_index),F_features.at(indices.at(index)));
                }
@@ -243,8 +242,7 @@ namespace feature_isolation
              do
              {
                auto indices { selection() };
-               result.at(feature_index) = F_features.at(indices.at(0));
-               for (auto index { one };index < indices.size(); ++index)
+               for (auto index { zero };index < indices.size(); ++index)
                {
                   or_combine(result.at(feature_index),F_features.at(indices.at(index)));
                }
@@ -259,7 +257,7 @@ namespace feature_isolation
            {
              throw std::invalid_argument("R > F in feature_isolation_t::initialize_AN_features()");
            }
-           auto result = features_t(sum_of_combinations(F,2,R),feature_t(S,false));
+           auto result = features_t(sum_of_combinations(F,2,R),feature_t(S,true));
            std::vector<unsigned_integer> feature_indices(F);
            std::iota(feature_indices.begin(),feature_indices.end(),zero);
            auto feature_index { zero };
@@ -269,8 +267,7 @@ namespace feature_isolation
              do
              {
                auto indices { selection() };
-               result.at(feature_index) = N_features.at(indices.at(0));
-               for (auto index { one };index < indices.size(); ++index)
+               for (auto index { zero };index < indices.size(); ++index)
                {
                   and_combine(result.at(feature_index),N_features.at(indices.at(index)));
                }
@@ -295,8 +292,7 @@ namespace feature_isolation
              do
              {
                auto indices { selection() };
-               result.at(feature_index) = N_features.at(indices.at(0));
-               for (auto index { one };index < indices.size(); ++index)
+               for (auto index { zero };index < indices.size(); ++index)
                {
                   or_combine(result.at(feature_index),N_features.at(indices.at(index)));
                }
@@ -321,8 +317,7 @@ namespace feature_isolation
              do
              {
                auto indices { selection() };
-               result.at(feature_index) = F_features.at(indices.at(0));
-               for (auto index { one };index < indices.size(); ++index)
+               for (auto index { zero };index < indices.size(); ++index)
                {
                  or_combine(result.at(feature_index),F_features.at(indices.at(index)));
                }
@@ -356,8 +351,7 @@ namespace feature_isolation
              do
              {
                auto indices { selection() };
-               result.at(feature_index) = F_features.at(indices.at(0));
-               for (auto index { one };index < indices.size(); ++index)
+               for (auto index { zero };index < indices.size(); ++index)
                {
                  or_combine(result.at(feature_index),F_features.at(indices.at(index)));
                }
