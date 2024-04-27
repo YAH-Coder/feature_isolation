@@ -15,21 +15,74 @@ namespace feature_isolation
 {
    using feature_t = std::vector<bool>;
    using features_t = std::vector<feature_t>;
-   using system_t = std::set<unsigned_integer>;
+   class system_t
+   {
+     public:
+       std::set<unsigned_integer> F,
+                                  N,
+                                  A,
+                                  O,
+                                  AN,
+                                  ON,
+                                  ANF,
+                                  ONF;
+      [[nodiscard]] auto DF() const
+      {
+        return N.size() + A.size() + O.size() +
+               AN.size() + ON.size() +
+               ANF.size() + ONF.size();
+      }
+      [[nodiscard]] auto T() const
+      {
+        return DF() + F.size();
+      }
+      auto all_features() const
+      {
+        auto result { F };
+        for (auto f : N)
+        {
+          result.insert(f);
+        }
+        for (auto f : A)
+        {
+          result.insert(f);
+        }
+        for (auto f : O)
+        {
+          result.insert(f);
+        }   
+        for (auto f : AN)
+        {
+          result.insert(f);
+        }   
+        for (auto f : ON)
+        {
+          result.insert(f);
+        }   
+        for (auto f : ANF)
+        {
+          result.insert(f);
+        }   
+        for (auto f : ONF)
+        {
+          result.insert(f);
+        }   
+        return result;
+      }
+   };
    using systems_t = std::vector<system_t>;
 
    constexpr bool MSB_LSB { true }; // Customization point for MSB at
                                     // left-most position.
 
    std::string to_bitstring(unsigned_integer b) // For debugging only.
-   {
-   
-      std::string result { };
-      for (auto i { zero }; i <= sizeof(unsigned_integer) * 8; ++i)
-      {
-         result = ((b & one << i) ? "1" : "0") + result;
-      }
-      return result;
+   {  
+     std::string result { };
+     for (auto i { zero }; i <= sizeof(unsigned_integer) * 8; ++i)
+     {
+       result = ((b & one << i) ? "1" : "0") + result;
+     }
+     return result;
    }
 
    std::string to_string(const feature_t& fd)
@@ -61,10 +114,10 @@ namespace feature_isolation
       return result;
    }
 
-   std::string to_string(const system_t& sd,const features_t& f)
+   std::string to_string(const system_t& s,const features_t& f)
    {
       std::string result { "{ " };
-      for (const auto& i : sd)
+      for (const auto& i : s.all_features())
       {
          result += std::to_string(to_unsigned_integer(f.at(i))) + " ";
       }
@@ -132,7 +185,8 @@ namespace feature_isolation
               AN_features { initialize_AN_features() },
               ON_features { initialize_ON_features() },
               ANF_features { initialize_ANF_features() },
-              ONF_features { initialize_ONF_features() }
+              ONF_features { initialize_ONF_features() },
+              m_systems { initialize_systems() }
          {};
          using cui = const unsigned_integer;
          cui F,
@@ -156,6 +210,7 @@ namespace feature_isolation
                     ON_features,
                     ANF_features,
                     ONF_features;
+         systems_t m_systems;
       private:
          [[nodiscard]] features_t initialize_F_features()
          {
@@ -368,6 +423,24 @@ namespace feature_isolation
              } while (selection.next());
            }
            return result;   
+         }
+         [[nodiscard]] systems_t initialize_systems()
+         {
+            systems_t result(S,system_t { });
+            if (C & feature_isolation::F)
+            {
+               for (const auto& feature : F)
+               {
+HIER GEHT ES ERSTMAL NICHT WEITER. ALLE FEATURES ZUSAMMEN MÜSSEN NOCH IN EINEN
+GEMEINSAMEN CONTAINER. IDEAL WÄRE ES, WENN SIE DABEI INTERN LEXIKOGRAPHISCH
+AUFSTEIGEND SORTIERT WÄREN. DAS IST WOHL ABER NURZU SCHAFFEN, WENN MAN SIE ALLE
+IN EIN SET PACKT, WAS DEN SPEICHERBEDARF DANN LOCKER VERDOPPELT.
+ANSONSTEN KÖNNTE MAN JEDEM FEATURE AUCH EINEN OFFSET ADDIEREN, DER SICH AUS DER
+MENGE DER IN DER VORANGEHENDEN KATEGORIE BEFINDLICHEN FEATURES ERGIBT. DANN WÄRE
+DIE ORDNUNG ABER NICHT MEHR SO, WIE ERWARTET.
+               }
+            }
+            return result;
          }
 };
 
