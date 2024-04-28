@@ -86,10 +86,5 @@ int main()
         << "ANF" << endl << to_string(fi.ANF_features) << " " << fi.ANF_features.size() << endl
         << "ONF" << endl << to_string(fi.ONF_features) << " " << fi.ONF_features.size() << endl;
    cout << "SYSTEMS" << endl;
-   //cout << to_string(fi.m_systems,fi) << endl;
-   cout << "S = " << fi.m_systems.size() << " T = " << fi.T << endl;
-   for (auto i { zero };i < fi.T; ++i)
-   {
-      cout << i << " " << to_string(fi.at(i)) << endl;
-   }
+   cout << to_string(fi.m_systems,fi) << endl;
 }
