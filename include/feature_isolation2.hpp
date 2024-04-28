@@ -213,27 +213,27 @@ namespace feature_isolation
             {
                return F_features.at(id);
             }
-            if (id < N)
+            if (id < F + N)
             {
                return N_features.at(id - F);
             }
-            if (id < A)
+            if (id < F + N + A)
             {
                return A_features.at(id - F - N);
             }
-            if (id < O)
+            if (id < F + N + A + O)
             {
                return O_features.at(id - F - N - A);
             }
-            if (id < AN)
+            if (id < F + N + A + O + AN)
             {
                return AN_features.at(id - F - N - A - O);
             }
-            if (id < ON)
+            if (id < F + N + A + O + ON)
             {
                return ON_features.at(id - F - N - A - O - AN);
             }
-            if (id < ANF)
+            if (id < F + N + A + O + ON + ANF)
             {
                return ANF_features.at(id - F - N - A - O - AN - ON);
             }
@@ -452,7 +452,7 @@ namespace feature_isolation
            }
            return result;   
          }
-         void insert_id(const feature_t feature,unsigned_integer feature_id,unsigned_integer category)
+         void insert_id(systems_t& systems,const feature_t feature,unsigned_integer feature_id,unsigned_integer category)
          {
            for (auto system_id { zero };auto system : feature)
            {
@@ -460,16 +460,17 @@ namespace feature_isolation
              {
                switch (category)
                {
-                 case ::feature_isolation::F : m_systems.at(system_id).F_feature_ids.insert(feature_id);
-                 case ::feature_isolation::N : m_systems.at(system_id).N_feature_ids.insert(feature_id);
-                 case ::feature_isolation::A : m_systems.at(system_id).A_feature_ids.insert(feature_id);
-                 case ::feature_isolation::O : m_systems.at(system_id).O_feature_ids.insert(feature_id);
-                 case ::feature_isolation::AN : m_systems.at(system_id).AN_feature_ids.insert(feature_id);
-                 case ::feature_isolation::ON : m_systems.at(system_id).ON_feature_ids.insert(feature_id);
-                 case ::feature_isolation::ANF : m_systems.at(system_id).ANF_feature_ids.insert(feature_id);
-                 case ::feature_isolation::ONF : m_systems.at(system_id).ONF_feature_ids.insert(feature_id);
+                 case ::feature_isolation::F : systems.at(system_id).F_feature_ids.insert(feature_id);break; 
+                 case ::feature_isolation::N : systems.at(system_id).N_feature_ids.insert(feature_id);break; 
+                 case ::feature_isolation::A : systems.at(system_id).A_feature_ids.insert(feature_id);break; 
+                 case ::feature_isolation::O : systems.at(system_id).O_feature_ids.insert(feature_id);break; 
+                 case ::feature_isolation::AN : systems.at(system_id).AN_feature_ids.insert(feature_id);break; 
+                 case ::feature_isolation::ON : systems.at(system_id).ON_feature_ids.insert(feature_id);break; 
+                 case ::feature_isolation::ANF : systems.at(system_id).ANF_feature_ids.insert(feature_id);break; 
+                 case ::feature_isolation::ONF : systems.at(system_id).ONF_feature_ids.insert(feature_id);break; 
                }
              }
+             ++system_id;
            }
          }
          [[nodiscard]] systems_t initialize_systems()
@@ -480,58 +481,59 @@ namespace feature_isolation
            {
              for (const auto& feature : F_features)
              {
-               insert_id(feature,feature_id++,::feature_isolation::F);
+               insert_id(result,feature,feature_id++,::feature_isolation::F);
              }
            }
            if (C & feature_isolation::N)
            {
              for (const auto& feature : N_features)
              {
-               insert_id(feature,feature_id++,::feature_isolation::N);
+               insert_id(result,feature,feature_id++,::feature_isolation::N);
              }
            }
            if (C & feature_isolation::A)
            {
              for (const auto& feature : A_features)
              {
-               insert_id(feature,feature_id++,::feature_isolation::A);
+               insert_id(result,feature,feature_id++,::feature_isolation::A);
              }
            }
            if (C & feature_isolation::O)
            {
              for (const auto& feature : O_features)
              {
-               insert_id(feature,feature_id++,::feature_isolation::O);
+               insert_id(result,feature,feature_id++,::feature_isolation::O);
              }
            }
            if (C & feature_isolation::AN)
            {
              for (const auto& feature : AN_features)
              {
-               insert_id(feature,feature_id++,::feature_isolation::AN);
+               insert_id(result,feature,feature_id++,::feature_isolation::AN);
              }
            }
            if (C & feature_isolation::ON)
            {
              for (const auto& feature : ON_features)
              {
-               insert_id(feature,feature_id++,::feature_isolation::ON);
+               insert_id(result,feature,feature_id++,::feature_isolation::ON);
              }
            }
            if (C & feature_isolation::ANF)
            {
              for (const auto& feature : ANF_features)
              {
-               insert_id(feature,feature_id++,::feature_isolation::ANF);
+               insert_id(result,feature,feature_id++,::feature_isolation::ANF);
              }
            }
            if (C & feature_isolation::ONF)
            {
              for (const auto& feature : ONF_features)
              {
-               insert_id(feature,feature_id++,::feature_isolation::ONF);
+               insert_id(result,feature,feature_id++,::feature_isolation::ONF);
              }
            }
+           std::cout << "***" << feature_id << std::endl;
            return result;
          }
   };
@@ -551,9 +553,10 @@ namespace feature_isolation
   std::string to_string(const system_t& s,const feature_isolation_t& fi)
   {
     std::string result { "{ " };
-    for (const auto& i : s.all_features())
+    for (const auto& feature_index : s.all_features())
     {
-      result += std::to_string(to_unsigned_integer(fi.at(i))) + " ";
+      result += std::to_string(to_unsigned_integer(fi.at(feature_index))) + " ";
+      //result += to_string(fi.at(feature_index)) + " ";
     }
     result += "}";
     return result;

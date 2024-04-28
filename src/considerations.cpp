@@ -77,14 +77,19 @@ int main()
    }
    feature_isolation_t fi { 4,4,ALL };
    cout << to_string(fi) << endl;
-   cout << "F" << endl << to_string(fi.F_features) << endl
-        << "N" << endl << to_string(fi.N_features) << endl
-        << "A" << endl << to_string(fi.A_features) << endl
-        << "O" << endl << to_string(fi.O_features) << endl
-        << "AN" << endl << to_string(fi.AN_features) << endl
-        << "ON" << endl << to_string(fi.ON_features) << endl
-        << "ANF" << endl << to_string(fi.ANF_features) << endl
-        << "ONF" << endl << to_string(fi.ONF_features) << endl;
+   cout << "F" << endl << to_string(fi.F_features) << " " << fi.F_features.size() << endl
+        << "N" << endl << to_string(fi.N_features) << " " << fi.N_features.size() << endl
+        << "A" << endl << to_string(fi.A_features) << " " << fi.A_features.size() << endl
+        << "O" << endl << to_string(fi.O_features) << " " << fi.O_features.size() << endl
+        << "AN" << endl << to_string(fi.AN_features) << " " << fi.AN_features.size() << endl
+        << "ON" << endl << to_string(fi.ON_features) << " " << fi.ON_features.size() << endl
+        << "ANF" << endl << to_string(fi.ANF_features) << " " << fi.ANF_features.size() << endl
+        << "ONF" << endl << to_string(fi.ONF_features) << " " << fi.ONF_features.size() << endl;
    cout << "SYSTEMS" << endl;
-   cout << to_string(fi.m_systems,fi) << endl;
+   //cout << to_string(fi.m_systems,fi) << endl;
+   cout << "S = " << fi.m_systems.size() << " T = " << fi.T << endl;
+   for (auto i { zero };i < fi.T; ++i)
+   {
+      cout << i << " " << to_string(fi.at(i)) << endl;
+   }
 }
