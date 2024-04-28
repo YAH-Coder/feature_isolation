@@ -13,57 +13,64 @@
 
 namespace feature_isolation
 {
+   constexpr bool MSB_LSB { true }; // Customization point for MSB at
+                                    // left-most position.
+   constexpr unsigned_integer feature_digits { sizeof(unsigned_integer) * CHAR_BIT };
+
    using feature_t = std::vector<bool>;
    using features_t = std::vector<feature_t>;
+   using feature_ids_t = std::set<unsigned_integer>;
+
    class system_t
    {
      public:
-       std::set<unsigned_integer> F,
-                                  N,
-                                  A,
-                                  O,
-                                  AN,
-                                  ON,
-                                  ANF,
-                                  ONF;
+       feature_ids_t F_feature_ids,
+                     N_feature_ids,
+                     A_feature_ids,
+                     O_feature_ids,
+                     AN_feature_ids,
+                     ON_feature_ids,
+                     ANF_feature_ids,
+                     ONF_feature_ids;
       [[nodiscard]] auto DF() const
       {
-        return N.size() + A.size() + O.size() +
-               AN.size() + ON.size() +
-               ANF.size() + ONF.size();
+        return N_feature_ids.size() + 
+               A_feature_ids.size() + O_feature_ids.size() +
+               AN_feature_ids.size() + ON_feature_ids.size() +
+               ANF_feature_ids.size() + ONF_feature_ids.size();
       }
       [[nodiscard]] auto T() const
       {
-        return DF() + F.size();
+        return DF() + F_feature_ids.size();
       }
       auto all_features() const
       {
-        auto result { F };
-        for (auto f : N)
+        auto result { F_feature_ids };
+        for (auto f : N_feature_ids)
         {
           result.insert(f);
         }
-        for (auto f : A)
+        for (auto f : A_feature_ids)
         {
           result.insert(f);
         }
-        for (auto f : O)
+        for (auto f : O_feature_ids)
         {
           result.insert(f);
         }   
-        for (auto f : AN)
+        for (auto f : AN_feature_ids)
         {
           result.insert(f);
         }   
-        for (auto f : ON)
+        for (auto f : ON_feature_ids)
         {
           result.insert(f);
         }   
-        for (auto f : ANF)
+        for (auto f : ANF_feature_ids)
         {
           result.insert(f);
         }   
-        for (auto f : ONF)
+        for (auto f : ONF_feature_ids)
         {
           result.insert(f);
         }   
@@ -71,9 +78,6 @@ namespace feature_isolation
       }
    };
    using systems_t = std::vector<system_t>;
-
-   constexpr bool MSB_LSB { true }; // Customization point for MSB at
-                                    // left-most position.
 
    std::string to_bitstring(unsigned_integer b) // For debugging only.
    {  
@@ -114,23 +118,15 @@ namespace feature_isolation
       return result;
    }
 
-   std::string to_string(const system_t& s,const features_t& f)
-   {
-      std::string result { "{ " };
-      for (const auto& i : s.all_features())
-      {
-         result += std::to_string(to_unsigned_integer(f.at(i))) + " ";
-      }
-      result += "}";
-      return result;
-   }
+   class feature_isolation_t; // Pending declaration.
+   std::string to_string(const system_t& s,const feature_isolation_t& fi);
 
-   std::string to_string(const systems_t& s,const features_t& f)
+   std::string to_string(const systems_t& s,const feature_isolation_t& fi)
    {
       std::string result { };
       for (const auto& system: s)
       {
-         result += to_string(system,f) + "\n";
+         result += to_string(system,fi) + "\n";
       }
       return result;
    }
@@ -211,6 +207,38 @@ namespace feature_isolation
                     ANF_features,
                     ONF_features;
          systems_t m_systems;
+         [[nodiscard]] feature_t at(unsigned_integer id) const
+         {
+            if (id < F)
+            {
+               return F_features.at(id);
+            }
+            if (id < N)
+            {
+               return N_features.at(id - F);
+            }
+            if (id < A)
+            {
+               return A_features.at(id - F - N);
+            }
+            if (id < O)
+            {
+               return O_features.at(id - F - N - A);
+            }
+            if (id < AN)
+            {
+               return AN_features.at(id - F - N - A - O);
+            }
+            if (id < ON)
+            {
+               return ON_features.at(id - F - N - A - O - AN);
+            }
+            if (id < ANF)
+            {
+               return ANF_features.at(id - F - N - A - O - AN - ON);
+            }
+            return ONF_features.at(id - F - N - A - O - AN - ON - ANF);
+        }
       private:
          [[nodiscard]] features_t initialize_F_features()
          {
@@ -424,36 +452,111 @@ namespace feature_isolation
            }
            return result;   
          }
+         void insert_id(const feature_t feature,unsigned_integer feature_id,unsigned_integer category)
+         {
+           for (auto system_id { zero };auto system : feature)
+           {
+             if (system)
+             {
+               switch (category)
+               {
+                 case ::feature_isolation::F : m_systems.at(system_id).F_feature_ids.insert(feature_id);
+                 case ::feature_isolation::N : m_systems.at(system_id).N_feature_ids.insert(feature_id);
+                 case ::feature_isolation::A : m_systems.at(system_id).A_feature_ids.insert(feature_id);
+                 case ::feature_isolation::O : m_systems.at(system_id).O_feature_ids.insert(feature_id);
+                 case ::feature_isolation::AN : m_systems.at(system_id).AN_feature_ids.insert(feature_id);
+                 case ::feature_isolation::ON : m_systems.at(system_id).ON_feature_ids.insert(feature_id);
+                 case ::feature_isolation::ANF : m_systems.at(system_id).ANF_feature_ids.insert(feature_id);
+                 case ::feature_isolation::ONF : m_systems.at(system_id).ONF_feature_ids.insert(feature_id);
+               }
+             }
+           }
+         }
          [[nodiscard]] systems_t initialize_systems()
          {
-            systems_t result(S,system_t { });
-            if (C & feature_isolation::F)
-            {
-               for (const auto& feature : F)
-               {
-HIER GEHT ES ERSTMAL NICHT WEITER. ALLE FEATURES ZUSAMMEN MÜSSEN NOCH IN EINEN
-GEMEINSAMEN CONTAINER. IDEAL WÄRE ES, WENN SIE DABEI INTERN LEXIKOGRAPHISCH
-AUFSTEIGEND SORTIERT WÄREN. DAS IST WOHL ABER NURZU SCHAFFEN, WENN MAN SIE ALLE
-IN EIN SET PACKT, WAS DEN SPEICHERBEDARF DANN LOCKER VERDOPPELT.
-ANSONSTEN KÖNNTE MAN JEDEM FEATURE AUCH EINEN OFFSET ADDIEREN, DER SICH AUS DER
-MENGE DER IN DER VORANGEHENDEN KATEGORIE BEFINDLICHEN FEATURES ERGIBT. DANN WÄRE
-DIE ORDNUNG ABER NICHT MEHR SO, WIE ERWARTET.
-               }
-            }
-            return result;
+           systems_t result(S,system_t { });
+           auto feature_id { zero };
+           if (C & feature_isolation::F)
+           {
+             for (const auto& feature : F_features)
+             {
+               insert_id(feature,feature_id++,::feature_isolation::F);
+             }
+           }
+           if (C & feature_isolation::N)
+           {
+             for (const auto& feature : N_features)
+             {
+               insert_id(feature,feature_id++,::feature_isolation::N);
+             }
+           }
+           if (C & feature_isolation::A)
+           {
+             for (const auto& feature : A_features)
+             {
+               insert_id(feature,feature_id++,::feature_isolation::A);
+             }
+           }
+           if (C & feature_isolation::O)
+           {
+             for (const auto& feature : O_features)
+             {
+               insert_id(feature,feature_id++,::feature_isolation::O);
+             }
+           }
+           if (C & feature_isolation::AN)
+           {
+             for (const auto& feature : AN_features)
+             {
+               insert_id(feature,feature_id++,::feature_isolation::AN);
+             }
+           }
+           if (C & feature_isolation::ON)
+           {
+             for (const auto& feature : ON_features)
+             {
+               insert_id(feature,feature_id++,::feature_isolation::ON);
+             }
+           }
+           if (C & feature_isolation::ANF)
+           {
+             for (const auto& feature : ANF_features)
+             {
+               insert_id(feature,feature_id++,::feature_isolation::ANF);
+             }
+           }
+           if (C & feature_isolation::ONF)
+           {
+             for (const auto& feature : ONF_features)
+             {
+               insert_id(feature,feature_id++,::feature_isolation::ONF);
+             }
+           }
+           return result;
          }
-};
+  };
 
-std::string to_string(const feature_isolation_t& fi)
-   {
-      std::ostringstream os;
-      os << "F = " << fi.F << " S = " << fi.S 
-         << " A = " << fi.A << " O = " << fi.O 
-         << " N = " << fi.N << " AN = " << fi.AN << " ON = " << fi.ON
-         << " ANF = " << fi.ANF << " ONF = " << fi.ONF
-         << " DF = " << fi.DF << " T = " << fi.T
-         << " R = " << fi.R << " C = " << fi.C << std::endl;
-      return os.str();
-   }
+  std::string to_string(const feature_isolation_t& fi)
+  {
+    std::ostringstream os;
+    os << "F = " << fi.F << " S = " << fi.S 
+       << " A = " << fi.A << " O = " << fi.O 
+       << " N = " << fi.N << " AN = " << fi.AN << " ON = " << fi.ON
+       << " ANF = " << fi.ANF << " ONF = " << fi.ONF
+       << " DF = " << fi.DF << " T = " << fi.T
+       << " R = " << fi.R << " C = " << fi.C << std::endl;
+    return os.str();
+  }
+
+  std::string to_string(const system_t& s,const feature_isolation_t& fi)
+  {
+    std::string result { "{ " };
+    for (const auto& i : s.all_features())
+    {
+      result += std::to_string(to_unsigned_integer(fi.at(i))) + " ";
+    }
+    result += "}";
+    return result;
+  }
 }
 #endif // FEATURE_ISOLATION

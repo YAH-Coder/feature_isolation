@@ -85,4 +85,6 @@ int main()
         << "ON" << endl << to_string(fi.ON_features) << endl
         << "ANF" << endl << to_string(fi.ANF_features) << endl
         << "ONF" << endl << to_string(fi.ONF_features) << endl;
+   cout << "SYSTEMS" << endl;
+   cout << to_string(fi.m_systems,fi) << endl;
 }
