@@ -6,6 +6,7 @@ using namespace feature_isolation;
 #include <set>
 #include <vector>
 #include <string>
+#include <fstream>
 using namespace std;
 
 unsigned_integer S(unsigned_integer F)
@@ -76,7 +77,7 @@ int main()
       memory_representation(F);
    }
    feature_isolation_t fi { 4,4,ALL };
-   cout << to_string(fi) << endl;
+/*   cout << to_string(fi) << endl;
    cout << "F" << endl << to_string(fi.F_features) << " " << fi.F_features.size() << endl
         << "N" << endl << to_string(fi.N_features) << " " << fi.N_features.size() << endl
         << "A" << endl << to_string(fi.A_features) << " " << fi.A_features.size() << endl
@@ -86,5 +87,7 @@ int main()
         << "ANF" << endl << to_string(fi.ANF_features) << " " << fi.ANF_features.size() << endl
         << "ONF" << endl << to_string(fi.ONF_features) << " " << fi.ONF_features.size() << endl;
    cout << "SYSTEMS" << endl;
-   cout << to_string(fi.m_systems,fi) << endl;
+   cout << to_string(fi.m_systems,fi) << endl;*/
+   ofstream out { "fi4.csv" };
+   fi.print(out);
 }
