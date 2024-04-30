@@ -90,4 +90,6 @@ int main()
    cout << to_string(fi.m_systems,fi) << endl;*/
    ofstream out { "fi4.csv" };
    fi.print(out);
+   out << endl;
+   fi.print_features(out);
 }

@@ -244,7 +244,24 @@ namespace feature_isolation
                return ANF_features.at(id - F - N - A - O - AN - ON);
             }
             return ONF_features.at(id - F - N - A - O - AN - ON - ANF);
-        }
+         }
+         void print_feature(std::ostream& os,const feature_t& feature)
+         {
+            os << to_string(feature);
+         }
+         void print_features(std::ostream& os)
+         {
+            os << "FEATURE ID" << m_separator
+               << "CATEGORY" << m_separator
+               << "DESCRIPTION" << std::endl;
+            for (auto id { zero };const auto& feature:F_features)
+            {
+               os << id << m_separator << "F" << m_separator << '\"';
+               print_feature(os,feature);
+               os <<'\"' << std::endl;
+               ++id;
+            }
+         }
          void print_categories(std::ostream& os) const
          {
            os << '\"'
