@@ -119,6 +119,7 @@ namespace feature_isolation
    }
 
    class feature_isolation_t; // Pending declaration.
+
    std::string to_string(const system_t& s,const feature_isolation_t& fi);
 
    std::string to_string(const systems_t& systems,const feature_isolation_t& fi)
@@ -160,7 +161,8 @@ namespace feature_isolation
       public:
          explicit feature_isolation_t(unsigned_integer f,
                                       unsigned_integer max_rank,
-                                      unsigned_integer feature_categories = ::feature_isolation::ALL)
+                                      unsigned_integer feature_categories = ::feature_isolation::ALL,
+                                      char separator = '\t')
             : F {f },
               S { power2( F ) },
               A { sum_of_combinations( F, two ) },
@@ -182,7 +184,8 @@ namespace feature_isolation
               ON_features { initialize_ON_features() },
               ANF_features { initialize_ANF_features() },
               ONF_features { initialize_ONF_features() },
-              m_systems { initialize_systems() }
+              m_systems { initialize_systems() },
+              m_separator { separator }
          {};
          using cui = const unsigned_integer;
          cui F,
@@ -198,16 +201,19 @@ namespace feature_isolation
              T,
              R,
              C;
-         features_t F_features,
-                    N_features,
-                    A_features,
-                    O_features,
-                    AN_features,
-                    ON_features,
-                    ANF_features,
-                    ONF_features;
-         systems_t m_systems;
+         const features_t F_features,
+                          N_features,
+                          A_features,
+                          O_features,
+                          AN_features,
+                          ON_features,
+                          ANF_features,
+                          ONF_features;
+         const systems_t m_systems;
+         char m_separator;
          [[nodiscard]] feature_t at(unsigned_integer id) const
+         // This method has lots of lines and is potentially inefficient.
+         // Remedies?
          {
             if (id < F)
             {
@@ -239,6 +245,69 @@ namespace feature_isolation
             }
             return ONF_features.at(id - F - N - A - O - AN - ON - ANF);
         }
+         void print_categories(std::ostream& os) const
+         {
+           os << '\"'
+              << ((C & ::feature_isolation::F) ? "F" : "-") << '|'
+              << ((C & ::feature_isolation::N) ? "N" : "-") << '|'
+              << ((C & ::feature_isolation::A) ? "A" : "-") << '|'
+              << ((C & ::feature_isolation::O) ? "O" : "-") << '|'
+              << ((C & ::feature_isolation::AN) ? "AN" : "--") << '|'
+              << ((C & ::feature_isolation::ON) ? "ON" : "--") << '|'
+              << ((C & ::feature_isolation::ANF) ? "ANF" : "---") << '|'
+              << ((C & ::feature_isolation::ONF) ? "ONF" : "---")
+              << '\"';
+         }
+         void print(std::ostream& os) const
+         {
+           os << m_separator
+              << "F" << m_separator
+              << "N" << m_separator
+              << "A" << m_separator
+              << "O" << m_separator
+              << "AN" << m_separator
+              << "ON"<< m_separator
+              << "ANF" << m_separator
+              << "ONF" << m_separator
+              << "DF" << m_separator
+              << "T" << m_separator
+              << "S" << m_separator
+              << "R" << m_separator
+              << "C" << m_separator
+              << "\nIN PRINCIPLE" << m_separator
+              << F << m_separator
+              << N << m_separator
+              << A << m_separator
+              << O << m_separator
+              << AN << m_separator
+              << ON << m_separator
+              << ANF << m_separator
+              << ONF << m_separator
+              << DF << m_separator
+              << T << m_separator
+              << S << m_separator
+              << F << m_separator
+              << "F|N|A|O|AN|ON|ANF|ONF";
+           auto actual_df { N_features.size() + A_features.size() + 
+                            O_features.size() + AN_features.size() +
+                            ON_features.size() + ANF_features.size() +
+                            ONF_features.size() };
+           os << "\nACTUALLY" << m_separator
+              << F_features.size() << m_separator
+              << N_features.size() << m_separator
+              << A_features.size() << m_separator
+              << O_features.size() << m_separator
+              << AN_features.size() << m_separator
+              << ON_features.size() << m_separator
+              << ANF_features.size() << m_separator
+              << ONF_features.size() << m_separator
+              << actual_df << m_separator
+              << (F_features.size() + actual_df) << m_separator
+              << S << m_separator
+              << R << m_separator;
+              print_categories(os);
+              os << std::endl;
+         }
       private:
          [[nodiscard]] features_t initialize_F_features()
          {
@@ -266,7 +335,7 @@ namespace feature_isolation
          [[nodiscard]] features_t initialize_N_features()
          {
            features_t result { F_features };
-           for (auto& feature : F_features)
+           for (auto& feature : result)
            feature.flip();
            return result;
          }
@@ -453,6 +522,8 @@ namespace feature_isolation
            return result;   
          }
          void insert_id(systems_t& systems,const feature_t feature,unsigned_integer feature_id,unsigned_integer category)
+         // This method is potentially inefficient.
+         // Remedies?
          {
            for (auto system_id { zero };auto system : feature)
            {
@@ -474,6 +545,8 @@ namespace feature_isolation
            }
          }
          [[nodiscard]] systems_t initialize_systems()
+         // This method has many lines and is potentially inefficient.
+         // Remedies?
          {
            systems_t result(S,system_t { });
            auto feature_id { zero };
