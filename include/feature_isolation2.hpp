@@ -93,7 +93,7 @@ namespace feature_isolation
               ANF_features { initialize_ANF_features() },
               ONF_features { initialize_ONF_features() },
               F_offset { zero },
-              N_offset { F_offset + F },
+              N_offset { F_offset + F_offset },
               A_offset { N_offset + N },
               O_offset { A_offset + A },
               AN_offset { O_offset + O },
@@ -101,6 +101,7 @@ namespace feature_isolation
               ANF_offset { ON_offset + ON },
               ONF_offset { ANF_offset + ANF },
               feature_offsets { F_offset,N_offset,A_offset,O_offset,AN_offset,ON_offset,ANF_offset,ONF_offset },
+              all_features { &F_features,&N_features,&A_features,&O_features,&AN_features,&ON_features,&ANF_features,&ONF_features },
               m_systems { initialize_systems() },
               m_separator { separator }
          {};
@@ -135,15 +136,18 @@ namespace feature_isolation
              ANF_offset,
              ONF_offset;
          cui feature_offsets[8];
+         const features_t* all_features[8];
          const systems_t m_systems;
          char m_separator;
          [[nodiscard]] feature_t at(unsigned_integer id) const;
          void print_feature(std::ostream& os,const feature_t& feature) const;
          void print_features(std::ostream& os) const;
          void print_categories(std::ostream& os) const;
-         void print_system_feature_ids(std::ostream& os,unsigned_integer category,const feature_ids_t& feature_ids) const;
-         void print_system(std::ostream& os,const system_t& system,unsigned_integer id) const;
-         void print_systems(std::ostream& os) const;
+         // DELETE void print_system_feature_ids(std::ostream& os,unsigned_integer category,const feature_ids_t& feature_ids) const;
+         void print_system_statistics(std::ostream& os,const system_t& system,unsigned_integer id) const;
+         void print_systems_statistics(std::ostream& os) const;
+         void print_system_features(std::ostream& os,const system_t& system,unsigned_integer id) const;
+         void print_systems_features(std::ostream& os) const;
          void print(std::ostream& os) const;
       private:
          [[nodiscard]] features_t initialize_F_features();
@@ -204,13 +208,12 @@ namespace feature_isolation
   // This method has lots of lines and is potentially inefficient.
   // Remedies?
   {
-    const features_t* features[] { &F_features,&N_features,&A_features,&O_features,&AN_features,&ON_features,&ANF_features,&ONF_features };
     auto index { zero };
     while (id < feature_offsets[index])
     {
        ++index;
     }
-    return features[index]->at(feature_offsets[index]);
+    return all_features[index]->at(feature_offsets[index]);
 /*     if (id < F)
      {
         return F_features.at(id);
@@ -247,16 +250,31 @@ namespace feature_isolation
   }
   void feature_isolation_t::print_features(std::ostream& os) const
   {
-     os << "FEATURE ID" << m_separator
+    os << "FEATURE ID" << m_separator
+       << "CATEGORY" << m_separator
+       << "DESCRIPTION" << std::endl;
+    for (auto index { zero }; index < 8; ++index)
+    {
+      if (C & (1 << index))
+      {
+        for (auto id { zero };const auto& feature:*(all_features[index]))
+        {
+          os << (++id + feature_offsets[index]) << m_separator 
+             << feature_categories[index] << m_separator << '\"';
+          print_feature(os,feature);
+          os <<'\"' << std::endl;
+        }
+     }
+   }
+/*     os << "FEATURE ID" << m_separator
         << "CATEGORY" << m_separator
         << "DESCRIPTION" << std::endl;
      for (auto id { zero };const auto& feature:F_features)
      {
-        os << id << m_separator << "F" << m_separator << '\"';
+        os << ++id << m_separator << "F" << m_separator << '\"';
         print_feature(os,feature);
         os <<'\"' << std::endl;
-        ++id;
-     }
+     }*/
   }
   void feature_isolation_t::print_categories(std::ostream& os) const
   {
@@ -271,7 +289,7 @@ namespace feature_isolation
        << ((C & ::feature_isolation::ONF) ? "ONF" : "---")
        << '\"';
   }
-  void feature_isolation_t::print_system_feature_ids(std::ostream& os,unsigned_integer category,const feature_ids_t& feature_ids) const
+/*DELETE  void feature_isolation_t::print_system_feature_ids(std::ostream& os,unsigned_integer category,const feature_ids_t& feature_ids) const
   {
     if (category > ::feature_isolation::ONF)
     {
@@ -287,10 +305,10 @@ namespace feature_isolation
           counter = 0;
        }
     }
-  }
-  void feature_isolation_t::print_system(std::ostream& os,const system_t& system,unsigned_integer id) const
+  }*/
+  void feature_isolation_t::print_system_statistics(std::ostream& os,const system_t& system,unsigned_integer id) const
   {
-    os << "SYSTEM ID" << m_separator << id
+/*DELETE    os << "SYSTEM ID" << m_separator << id
        << "F" << system.F_feature_ids.size() << m_separator
        << "N" << system.N_feature_ids.size() << m_separator
        << "A" << system.A_feature_ids.size() << m_separator
@@ -298,15 +316,58 @@ namespace feature_isolation
        << "AN" << system.AN_feature_ids.size() << m_separator
        << "ON" << system.ON_feature_ids.size() << m_separator
        << "ANF" << system.ANF_feature_ids.size() << m_separator
-       << "ONF" << system.ONF_feature_ids.size() << std::endl;
-    print_system_feature_ids(os,::feature_isolation::F,system.F_feature_ids);
+       << "ONF" << system.ONF_feature_ids.size() << std::endl;*/
+       os << id << m_separator << system.F_feature_ids.size() << m_separator
+          << system.N_feature_ids.size() << m_separator
+          << system.A_feature_ids.size() << m_separator
+          << system.O_feature_ids.size() << m_separator
+          << system.AN_feature_ids.size() << m_separator
+          << system.ON_feature_ids.size() << m_separator
+          << system.ANF_feature_ids.size() << m_separator
+          << system.ONF_feature_ids.size() << m_separator
+          << system.DF() << m_separator
+          << (system.DF() + system.F_feature_ids.size()) << std::endl; ;
+          //DELETE print_system_feature_ids(os,::feature_isolation::F,system.F_feature_ids);
   }
-  void feature_isolation_t::print_systems(std::ostream& os) const
+  void feature_isolation_t::print_systems_statistics(std::ostream& os) const
+  {
+    os << "SYSTEM ID" << m_separator
+       << "F" << m_separator
+       << "N" << m_separator
+       << "A" << m_separator
+       << "O" << m_separator
+       << "AN" << m_separator
+       << "ON" << m_separator
+       << "ANF" << m_separator
+       << "ONF" << m_separator
+       << "DF" << m_separator
+       << "T" << std::endl;
+     for (auto id { zero };const auto& system : m_systems)
+     {
+        print_system_statistics(os,system,++id);
+        //DELETE os << std::endl;
+     }
+  }
+  void feature_isolation_t::print_system_features(std::ostream& os,const system_t& system,unsigned_integer id) const
+  {
+    auto counter { zero };
+    //DELETE os << m_separator;
+    for (auto feature_id : system.all_features())
+    {
+       if (++counter == 10)
+       {
+          os << std::endl << m_separator;
+          counter = 0;
+       }
+       os << m_separator << (feature_id + 1);
+    }
+  }
+  void feature_isolation_t::print_systems_features(std::ostream& os) const
   {
      for (auto id { zero };const auto& system : m_systems)
      {
-        os << std::endl;
-        print_system(os,system,++id);
+        os << "SYSTEM ID" << m_separator << ++id;
+        print_system_features(os,system,id);
         os << std::endl;
      }
   }
@@ -485,7 +546,7 @@ namespace feature_isolation
     {
       throw std::invalid_argument("R > F in feature_isolation_t::initialize_ON_features()");
     }
-    auto result = features_t(sum_of_combinations(F,1,R) - 1,feature_t(S,false));
+    auto result = features_t(sum_of_combinations(F,2,R),feature_t(S,false));
     std::vector<unsigned_integer> feature_indices(F);
     std::iota(feature_indices.begin(),feature_indices.end(),zero);
     auto feature_index { zero };
