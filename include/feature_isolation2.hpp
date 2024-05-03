@@ -47,15 +47,11 @@ namespace feature_isolation
   class feature_isolation_t; // Pending declaration.
 
   std::string to_string(const feature_t& fd);
-/*  unsigned_integer to_unsigned_integer(const feature_t& fd);
-  std::string to_string(const system_t& s,const feature_isolation_t& fi);
-  std::string to_string(const systems_t& systems,const feature_isolation_t& fi);
-  std::string to_string(const features_t& f);*/
 
   static const unsigned_integer F { one };
-  static const unsigned_integer A { feature_isolation::power2( 2 ) };
-  static const unsigned_integer O { feature_isolation::power2( 3 ) };
-  static const unsigned_integer N { feature_isolation::power2( 4 ) };
+  static const unsigned_integer N { feature_isolation::power2( 2 ) };
+  static const unsigned_integer A { feature_isolation::power2( 3 ) };
+  static const unsigned_integer O { feature_isolation::power2( 4 ) };
   static const unsigned_integer FN { F + N };
   static const unsigned_integer AN { feature_isolation::power2( 5 ) };
   static const unsigned_integer ON { feature_isolation::power2( 6 ) };
@@ -66,6 +62,8 @@ namespace feature_isolation
   static const unsigned_integer FAONANON { FAON + AN + ON };
   static const unsigned_integer ALL { FAONANON + ANF + ONF };
 
+  static const std::string feature_categories[] = {"F","N","A","O","AN","ON","ANF","ONF" };
+
    class feature_isolation_t
    {
       public:
@@ -74,10 +72,9 @@ namespace feature_isolation
                                       unsigned_integer feature_categories = ::feature_isolation::ALL,
                                       char separator = '\t')
             : F {f },
-              S { power2( F ) },
+              N { F },
               A { sum_of_combinations( F, two ) },
               O { A },
-              N { F },
               AN { O },
               ON { O },
               ANF { sum_of_combinations( F, 1 ) - 1 },
@@ -86,6 +83,7 @@ namespace feature_isolation
               T { F + DF },
               R { max_rank },
               C { feature_categories },
+              S { power2( F ) },
               F_features { initialize_F_features() },
               N_features { initialize_N_features() },
               A_features { initialize_A_features() },
@@ -94,15 +92,23 @@ namespace feature_isolation
               ON_features { initialize_ON_features() },
               ANF_features { initialize_ANF_features() },
               ONF_features { initialize_ONF_features() },
+              F_offset { zero },
+              N_offset { F_offset + F },
+              A_offset { N_offset + N },
+              O_offset { A_offset + A },
+              AN_offset { O_offset + O },
+              ON_offset { AN_offset + AN },
+              ANF_offset { ON_offset + ON },
+              ONF_offset { ANF_offset + ANF },
+              feature_offsets { F_offset,N_offset,A_offset,O_offset,AN_offset,ON_offset,ANF_offset,ONF_offset },
               m_systems { initialize_systems() },
               m_separator { separator }
          {};
          using cui = const unsigned_integer;
          cui F,
-             S,
+             N,
              A,
              O,
-             N,
              AN,
              ON,
              ANF,
@@ -110,7 +116,8 @@ namespace feature_isolation
              DF,
              T,
              R,
-             C;
+             C,
+             S;
          const features_t F_features,
                           N_features,
                           A_features,
@@ -119,12 +126,24 @@ namespace feature_isolation
                           ON_features,
                           ANF_features,
                           ONF_features;
+         cui F_offset,
+             N_offset,
+             A_offset,
+             O_offset,
+             AN_offset,
+             ON_offset,
+             ANF_offset,
+             ONF_offset;
+         cui feature_offsets[8];
          const systems_t m_systems;
          char m_separator;
          [[nodiscard]] feature_t at(unsigned_integer id) const;
-         void print_feature(std::ostream& os,const feature_t& feature);
-         void print_features(std::ostream& os);
+         void print_feature(std::ostream& os,const feature_t& feature) const;
+         void print_features(std::ostream& os) const;
          void print_categories(std::ostream& os) const;
+         void print_system_feature_ids(std::ostream& os,unsigned_integer category,const feature_ids_t& feature_ids) const;
+         void print_system(std::ostream& os,const system_t& system,unsigned_integer id) const;
+         void print_systems(std::ostream& os) const;
          void print(std::ostream& os) const;
       private:
          [[nodiscard]] features_t initialize_F_features();
@@ -179,12 +198,20 @@ namespace feature_isolation
    {
      return DF() + F_feature_ids.size();
    }
+
 // feature_isolation_t - member functions /////////////////////////////////////   
   [[nodiscard]] feature_t feature_isolation_t::at(unsigned_integer id) const
   // This method has lots of lines and is potentially inefficient.
   // Remedies?
   {
-     if (id < F)
+    const features_t* features[] { &F_features,&N_features,&A_features,&O_features,&AN_features,&ON_features,&ANF_features,&ONF_features };
+    auto index { zero };
+    while (id < feature_offsets[index])
+    {
+       ++index;
+    }
+    return features[index]->at(feature_offsets[index]);
+/*     if (id < F)
      {
         return F_features.at(id);
      }
@@ -212,13 +239,13 @@ namespace feature_isolation
      {
         return ANF_features.at(id - F - N - A - O - AN - ON);
      }
-     return ONF_features.at(id - F - N - A - O - AN - ON - ANF);
+     return ONF_features.at(id - F - N - A - O - AN - ON - ANF);*/
   }
-  void feature_isolation_t::print_feature(std::ostream& os,const feature_t& feature)
+  void feature_isolation_t::print_feature(std::ostream& os,const feature_t& feature) const
   {
      os << to_string(feature);
   }
-  void feature_isolation_t::print_features(std::ostream& os)
+  void feature_isolation_t::print_features(std::ostream& os) const
   {
      os << "FEATURE ID" << m_separator
         << "CATEGORY" << m_separator
@@ -243,6 +270,45 @@ namespace feature_isolation
        << ((C & ::feature_isolation::ANF) ? "ANF" : "---") << '|'
        << ((C & ::feature_isolation::ONF) ? "ONF" : "---")
        << '\"';
+  }
+  void feature_isolation_t::print_system_feature_ids(std::ostream& os,unsigned_integer category,const feature_ids_t& feature_ids) const
+  {
+    if (category > ::feature_isolation::ONF)
+    {
+      throw std::invalid_argument("category > ::feature_isolation::F in feature_isolation_t::print_system_feature_ids()");
+    }
+    os << m_separator << feature_categories[category] << " IDs" << std::endl;
+    for (unsigned counter { 0 };const auto& id : feature_ids)
+    {
+       os << m_separator << (id);
+       if (++counter == 5)
+       {
+          os << std::endl;
+          counter = 0;
+       }
+    }
+  }
+  void feature_isolation_t::print_system(std::ostream& os,const system_t& system,unsigned_integer id) const
+  {
+    os << "SYSTEM ID" << m_separator << id
+       << "F" << system.F_feature_ids.size() << m_separator
+       << "N" << system.N_feature_ids.size() << m_separator
+       << "A" << system.A_feature_ids.size() << m_separator
+       << "O" << system.O_feature_ids.size() << m_separator
+       << "AN" << system.AN_feature_ids.size() << m_separator
+       << "ON" << system.ON_feature_ids.size() << m_separator
+       << "ANF" << system.ANF_feature_ids.size() << m_separator
+       << "ONF" << system.ONF_feature_ids.size() << std::endl;
+    print_system_feature_ids(os,::feature_isolation::F,system.F_feature_ids);
+  }
+  void feature_isolation_t::print_systems(std::ostream& os) const
+  {
+     for (auto id { zero };const auto& system : m_systems)
+     {
+        os << std::endl;
+        print_system(os,system,++id);
+        os << std::endl;
+     }
   }
   void feature_isolation_t::print(std::ostream& os) const
   {
@@ -353,253 +419,253 @@ namespace feature_isolation
         }
         ++feature_index;
       } while (selection.next());
-           }
-           return result;   
-         }
-         void feature_isolation_t::or_combine(feature_t& f1,const feature_t& f2)
-         {
-           for (auto index { zero }; index < f1.size(); ++index)
-           {
-             f1.at(index) = f1.at(index) || f2.at(index);
-           }
-         }
-         [[nodiscard]] features_t feature_isolation_t::initialize_O_features()
-         {
-           if (R > F)
-           {
-             throw std::invalid_argument("R > F in feature_isolation_t::initialize_O_features()");
-           }
-           auto result = features_t(sum_of_combinations(F,2,R),feature_t(S,false));
-           std::vector<unsigned_integer> feature_indices(F);
-           std::iota(feature_indices.begin(),feature_indices.end(),zero);
-           auto feature_index { zero };
-           for (auto drawing_size { two }; drawing_size <= R; ++drawing_size)
-           {
-             combination selection { feature_indices,drawing_size };
-             do
-             {
-               auto indices { selection() };
-               for (auto index { zero };index < indices.size(); ++index)
-               {
-                  or_combine(result.at(feature_index),F_features.at(indices.at(index)));
-               }
-               ++feature_index;
-             } while (selection.next());
-           }
-           return result;   
-         }
-         [[nodiscard]] features_t feature_isolation_t::initialize_AN_features()
-         {
-           if (R > F)
-           {
-             throw std::invalid_argument("R > F in feature_isolation_t::initialize_AN_features()");
-           }
-           auto result = features_t(sum_of_combinations(F,2,R),feature_t(S,true));
-           std::vector<unsigned_integer> feature_indices(F);
-           std::iota(feature_indices.begin(),feature_indices.end(),zero);
-           auto feature_index { zero };
-           for (auto drawing_size { two }; drawing_size <= R; ++drawing_size)
-           {
-             combination selection { feature_indices,drawing_size };
-             do
-             {
-               auto indices { selection() };
-               for (auto index { zero };index < indices.size(); ++index)
-               {
-                  and_combine(result.at(feature_index),N_features.at(indices.at(index)));
-               }
-               ++feature_index;
-             } while (selection.next());
-           }
-           return result;   
-         }
-         [[nodiscard]] features_t feature_isolation_t::initialize_ON_features()
-         {
-           if (R > F)
-           {
-             throw std::invalid_argument("R > F in feature_isolation_t::initialize_ON_features()");
-           }
-           auto result = features_t(sum_of_combinations(F,1,R) - 1,feature_t(S,false));
-           std::vector<unsigned_integer> feature_indices(F);
-           std::iota(feature_indices.begin(),feature_indices.end(),zero);
-           auto feature_index { zero };
-           for (auto drawing_size { two }; drawing_size <= R; ++drawing_size)
-           {
-             combination selection { feature_indices,drawing_size };
-             do
-             {
-               auto indices { selection() };
-               for (auto index { zero };index < indices.size(); ++index)
-               {
-                  or_combine(result.at(feature_index),N_features.at(indices.at(index)));
-               }
-               ++feature_index;
-             } while (selection.next());
-           }
-           return result;   
-         }
-         [[nodiscard]] features_t feature_isolation_t::initialize_ANF_features()
-         {
-           if (R > F)
-           {
-             throw std::invalid_argument("R > F in feature_isolation_t::initialize_ANF_features()");
-           }
-           auto result = features_t(sum_of_combinations(F,1) - 1,feature_t(S,false));
-           std::vector<unsigned_integer> feature_indices(F);
-           std::iota(feature_indices.begin(),feature_indices.end(),zero);
-           auto feature_index { zero };
-           for (auto drawing_size { one }; drawing_size < F; ++drawing_size)
-           {
-             combination selection { feature_indices,drawing_size };
-             do
-             {
-               auto indices { selection() };
-               for (auto index { zero };index < indices.size(); ++index)
-               {
-                 or_combine(result.at(feature_index),F_features.at(indices.at(index)));
-               }
-               feature_t not_features(S,false);
-               for (auto index { zero }; index < F; ++index)
-               {
-                 if (std::find(indices.begin(),indices.end(),index) == indices.end())
-                 {
-                   or_combine(not_features,N_features.at(index));
-                 }
-               }
-               and_combine(result.at(feature_index),not_features);
-               ++feature_index;
-             } while (selection.next());
-           }
-           return result;   
-         }
-         [[nodiscard]] features_t feature_isolation_t::initialize_ONF_features()
-         {
-           if (R > F)
-           {
-             throw std::invalid_argument("R > F in feature_isolation_t::initialize_ANF_features()");
-           }
-           auto result = features_t(sum_of_combinations(F,1) - 1,feature_t(S,false));
-           std::vector<unsigned_integer> feature_indices(F);
-           std::iota(feature_indices.begin(),feature_indices.end(),zero);
-           auto feature_index { zero };
-           for (auto drawing_size { one }; drawing_size < F; ++drawing_size)
-           {
-             combination selection { feature_indices,drawing_size };
-             do
-             {
-               auto indices { selection() };
-               for (auto index { zero };index < indices.size(); ++index)
-               {
-                 or_combine(result.at(feature_index),F_features.at(indices.at(index)));
-               }
-               feature_t not_features(S,false);
-               for (auto index { zero }; index < F; ++index)
-               {
-                 if (std::find(indices.begin(),indices.end(),index) == indices.end())
-                 {
-                   or_combine(not_features,N_features.at(index));
-                 }
-               }
-               or_combine(result.at(feature_index),not_features);
-               ++feature_index;
-             } while (selection.next());
-           }
-           return result;   
-         }
-         void feature_isolation_t::insert_id(systems_t& systems,const feature_t feature,unsigned_integer feature_id,unsigned_integer category)
-         // This method is potentially inefficient.
-         // Remedies?
-         {
-           for (auto system_id { zero };auto system : feature)
-           {
-             if (system)
-             {
-               switch (category)
-               {
-                 case ::feature_isolation::F : systems.at(system_id).F_feature_ids.insert(feature_id);break; 
-                 case ::feature_isolation::N : systems.at(system_id).N_feature_ids.insert(feature_id);break; 
-                 case ::feature_isolation::A : systems.at(system_id).A_feature_ids.insert(feature_id);break; 
-                 case ::feature_isolation::O : systems.at(system_id).O_feature_ids.insert(feature_id);break; 
-                 case ::feature_isolation::AN : systems.at(system_id).AN_feature_ids.insert(feature_id);break; 
-                 case ::feature_isolation::ON : systems.at(system_id).ON_feature_ids.insert(feature_id);break; 
-                 case ::feature_isolation::ANF : systems.at(system_id).ANF_feature_ids.insert(feature_id);break; 
-                 case ::feature_isolation::ONF : systems.at(system_id).ONF_feature_ids.insert(feature_id);break; 
-               }
-             }
-             ++system_id;
-           }
-         }
-         [[nodiscard]] systems_t feature_isolation_t::initialize_systems()
-         // This method has many lines and is potentially inefficient.
-         // Remedies?
-         {
-           systems_t result(S,system_t { });
-           auto feature_id { zero };
-           if (C & feature_isolation::F)
-           {
-             for (const auto& feature : F_features)
-             {
-               insert_id(result,feature,feature_id++,::feature_isolation::F);
-             }
-           }
-           feature_id = F;
-           if (C & feature_isolation::N)
-           {
-             for (const auto& feature : N_features)
-             {
-               insert_id(result,feature,feature_id++,::feature_isolation::N);
-             }
-           }
-           feature_id = F + N;
-           if (C & feature_isolation::A)
-           {
-             for (const auto& feature : A_features)
-             {
-               insert_id(result,feature,feature_id++,::feature_isolation::A);
-             }
-           }
-           feature_id = F + N + A;
-           if (C & feature_isolation::O)
-           {
-             for (const auto& feature : O_features)
-             {
-               insert_id(result,feature,feature_id++,::feature_isolation::O);
-             }
-           }
-           feature_id = F + N + A + O;
-           if (C & feature_isolation::AN)
-           {
-             for (const auto& feature : AN_features)
-             {
-               insert_id(result,feature,feature_id++,::feature_isolation::AN);
-             }
-           }
-           feature_id = F + N + A + O + AN;
-           if (C & feature_isolation::ON)
-           {
-             for (const auto& feature : ON_features)
-             {
-               insert_id(result,feature,feature_id++,::feature_isolation::ON);
-             }
-           }
-           feature_id = F + N + A + O + AN + ON;
-           if (C & feature_isolation::ANF)
-           {
-             for (const auto& feature : ANF_features)
-             {
-               insert_id(result,feature,feature_id++,::feature_isolation::ANF);
-             }
-           }
-           feature_id = F + N + A + O + AN + ON + ANF;
-           if (C & feature_isolation::ONF)
-           {
-             for (const auto& feature : ONF_features)
-             {
-               insert_id(result,feature,feature_id++,::feature_isolation::ONF);
-             }
-           }
-           return result;
-         }
+    }
+    return result;   
+  }
+  void feature_isolation_t::or_combine(feature_t& f1,const feature_t& f2)
+  {
+    for (auto index { zero }; index < f1.size(); ++index)
+    {
+      f1.at(index) = f1.at(index) || f2.at(index);
+    }
+  }
+  [[nodiscard]] features_t feature_isolation_t::initialize_O_features()
+  {
+    if (R > F)
+    {
+      throw std::invalid_argument("R > F in feature_isolation_t::initialize_O_features()");
+    }
+    auto result = features_t(sum_of_combinations(F,2,R),feature_t(S,false));
+    std::vector<unsigned_integer> feature_indices(F);
+    std::iota(feature_indices.begin(),feature_indices.end(),zero);
+    auto feature_index { zero };
+    for (auto drawing_size { two }; drawing_size <= R; ++drawing_size)
+    {
+      combination selection { feature_indices,drawing_size };
+      do
+      {
+        auto indices { selection() };
+        for (auto index { zero };index < indices.size(); ++index)
+        {
+           or_combine(result.at(feature_index),F_features.at(indices.at(index)));
+        }
+        ++feature_index;
+      } while (selection.next());
+    }
+    return result;   
+  }
+  [[nodiscard]] features_t feature_isolation_t::initialize_AN_features()
+  {
+    if (R > F)
+    {
+      throw std::invalid_argument("R > F in feature_isolation_t::initialize_AN_features()");
+    }
+    auto result = features_t(sum_of_combinations(F,2,R),feature_t(S,true));
+    std::vector<unsigned_integer> feature_indices(F);
+    std::iota(feature_indices.begin(),feature_indices.end(),zero);
+    auto feature_index { zero };
+    for (auto drawing_size { two }; drawing_size <= R; ++drawing_size)
+    {
+      combination selection { feature_indices,drawing_size };
+      do
+      {
+        auto indices { selection() };
+        for (auto index { zero };index < indices.size(); ++index)
+        {
+           and_combine(result.at(feature_index),N_features.at(indices.at(index)));
+        }
+        ++feature_index;
+      } while (selection.next());
+    }
+    return result;   
+  }
+  [[nodiscard]] features_t feature_isolation_t::initialize_ON_features()
+  {
+    if (R > F)
+    {
+      throw std::invalid_argument("R > F in feature_isolation_t::initialize_ON_features()");
+    }
+    auto result = features_t(sum_of_combinations(F,1,R) - 1,feature_t(S,false));
+    std::vector<unsigned_integer> feature_indices(F);
+    std::iota(feature_indices.begin(),feature_indices.end(),zero);
+    auto feature_index { zero };
+    for (auto drawing_size { two }; drawing_size <= R; ++drawing_size)
+    {
+      combination selection { feature_indices,drawing_size };
+      do
+      {
+        auto indices { selection() };
+        for (auto index { zero };index < indices.size(); ++index)
+        {
+           or_combine(result.at(feature_index),N_features.at(indices.at(index)));
+        }
+        ++feature_index;
+      } while (selection.next());
+    }
+    return result;   
+  }
+  [[nodiscard]] features_t feature_isolation_t::initialize_ANF_features()
+  {
+    if (R > F)
+    {
+      throw std::invalid_argument("R > F in feature_isolation_t::initialize_ANF_features()");
+    }
+    auto result = features_t(sum_of_combinations(F,1) - 1,feature_t(S,false));
+    std::vector<unsigned_integer> feature_indices(F);
+    std::iota(feature_indices.begin(),feature_indices.end(),zero);
+    auto feature_index { zero };
+    for (auto drawing_size { one }; drawing_size < F; ++drawing_size)
+    {
+      combination selection { feature_indices,drawing_size };
+      do
+      {
+        auto indices { selection() };
+        for (auto index { zero };index < indices.size(); ++index)
+        {
+          or_combine(result.at(feature_index),F_features.at(indices.at(index)));
+        }
+        feature_t not_features(S,false);
+        for (auto index { zero }; index < F; ++index)
+        {
+          if (std::find(indices.begin(),indices.end(),index) == indices.end())
+          {
+            or_combine(not_features,N_features.at(index));
+          }
+        }
+        and_combine(result.at(feature_index),not_features);
+        ++feature_index;
+      } while (selection.next());
+    }
+    return result;   
+  }
+  [[nodiscard]] features_t feature_isolation_t::initialize_ONF_features()
+  {
+    if (R > F)
+    {
+      throw std::invalid_argument("R > F in feature_isolation_t::initialize_ANF_features()");
+    }
+    auto result = features_t(sum_of_combinations(F,1) - 1,feature_t(S,false));
+    std::vector<unsigned_integer> feature_indices(F);
+    std::iota(feature_indices.begin(),feature_indices.end(),zero);
+    auto feature_index { zero };
+    for (auto drawing_size { one }; drawing_size < F; ++drawing_size)
+    {
+      combination selection { feature_indices,drawing_size };
+      do
+      {
+        auto indices { selection() };
+        for (auto index { zero };index < indices.size(); ++index)
+        {
+          or_combine(result.at(feature_index),F_features.at(indices.at(index)));
+        }
+        feature_t not_features(S,false);
+        for (auto index { zero }; index < F; ++index)
+        {
+          if (std::find(indices.begin(),indices.end(),index) == indices.end())
+          {
+            or_combine(not_features,N_features.at(index));
+          }
+        }
+        or_combine(result.at(feature_index),not_features);
+        ++feature_index;
+      } while (selection.next());
+    }
+    return result;   
+  }
+  void feature_isolation_t::insert_id(systems_t& systems,const feature_t feature,unsigned_integer feature_id,unsigned_integer category)
+  // This method is potentially inefficient.
+  // Remedies?
+  {
+    for (auto system_id { zero };auto system : feature)
+    {
+      if (system)
+      {
+        switch (category)
+        {
+          case ::feature_isolation::F : systems.at(system_id).F_feature_ids.insert(feature_id);break; 
+          case ::feature_isolation::N : systems.at(system_id).N_feature_ids.insert(feature_id);break; 
+          case ::feature_isolation::A : systems.at(system_id).A_feature_ids.insert(feature_id);break; 
+          case ::feature_isolation::O : systems.at(system_id).O_feature_ids.insert(feature_id);break; 
+          case ::feature_isolation::AN : systems.at(system_id).AN_feature_ids.insert(feature_id);break; 
+          case ::feature_isolation::ON : systems.at(system_id).ON_feature_ids.insert(feature_id);break; 
+          case ::feature_isolation::ANF : systems.at(system_id).ANF_feature_ids.insert(feature_id);break; 
+          case ::feature_isolation::ONF : systems.at(system_id).ONF_feature_ids.insert(feature_id);break; 
+        }
+      }
+      ++system_id;
+    }
+  }
+  [[nodiscard]] systems_t feature_isolation_t::initialize_systems()
+  // This method has many lines and is potentially inefficient.
+  // Remedies?
+  {
+    systems_t result(S,system_t { });
+    auto feature_id { zero };
+    if (C & feature_isolation::F)
+    {
+      for (const auto& feature : F_features)
+      {
+        insert_id(result,feature,feature_id++,::feature_isolation::F);
+      }
+    }
+    feature_id = F;
+    if (C & feature_isolation::N)
+    {
+      for (const auto& feature : N_features)
+      {
+        insert_id(result,feature,feature_id++,::feature_isolation::N);
+      }
+    }
+    feature_id = F + N;
+    if (C & feature_isolation::A)
+    {
+      for (const auto& feature : A_features)
+      {
+        insert_id(result,feature,feature_id++,::feature_isolation::A);
+      }
+    }
+    feature_id = F + N + A;
+    if (C & feature_isolation::O)
+    {
+      for (const auto& feature : O_features)
+      {
+        insert_id(result,feature,feature_id++,::feature_isolation::O);
+      }
+    }
+    feature_id = F + N + A + O;
+    if (C & feature_isolation::AN)
+    {
+      for (const auto& feature : AN_features)
+      {
+        insert_id(result,feature,feature_id++,::feature_isolation::AN);
+      }
+    }
+    feature_id = F + N + A + O + AN;
+    if (C & feature_isolation::ON)
+    {
+      for (const auto& feature : ON_features)
+      {
+        insert_id(result,feature,feature_id++,::feature_isolation::ON);
+      }
+    }
+    feature_id = F + N + A + O + AN + ON;
+    if (C & feature_isolation::ANF)
+    {
+      for (const auto& feature : ANF_features)
+      {
+        insert_id(result,feature,feature_id++,::feature_isolation::ANF);
+      }
+    }
+    feature_id = F + N + A + O + AN + ON + ANF;
+    if (C & feature_isolation::ONF)
+    {
+      for (const auto& feature : ONF_features)
+      {
+        insert_id(result,feature,feature_id++,::feature_isolation::ONF);
+      }
+    }
+    return result;
+  }
 
 // free functions /////////////////////////////////////////////////////////////
   std::string to_string(const feature_t& fd)
@@ -619,61 +685,5 @@ namespace feature_isolation
      }
      return result;
   }
-
-/*  unsigned_integer to_unsigned_integer(const feature_t& fd)
-  {
-     auto result { zero };
-     for (auto exponent { zero };const auto& b : fd)
-     {
-        arithmetic::add_assign(result,(b ? power2(exponent) : 0));
-        ++exponent;
-     }
-     return result;
-  }
-
-  std::string to_string(const systems_t& systems,const feature_isolation_t& fi)
-  {
-     std::string result { };
-     for (const auto& system: systems)
-     {
-        result += to_string(system,fi) + "\n";
-     }
-     return result;
-  }
-
-  std::string to_string(const features_t& f)
-  {
-     std::string result { };
-     for(const auto& feature : f)
-     {
-        result += to_string(feature) + "\n";
-     }
-     return result;
-  }
-
-  std::string to_string(const feature_isolation_t& fi)
-  {
-    std::ostringstream os;
-    os << "F = " << fi.F << " S = " << fi.S 
-       << " A = " << fi.A << " O = " << fi.O 
-       << " N = " << fi.N << " AN = " << fi.AN << " ON = " << fi.ON
-       << " ANF = " << fi.ANF << " ONF = " << fi.ONF
-       << " DF = " << fi.DF << " T = " << fi.T
-       << " R = " << fi.R << " C = " << fi.C << std::endl;
-    return os.str();
-  }
-
-  std::string to_string(const system_t& s,const feature_isolation_t& fi)
-  {
-    std::string result { "{ " };
-    for (const auto& feature_index : s.all_features())
-    {
-      //result += std::to_string(feature_index) + " ";
-      result += std::to_string(to_unsigned_integer(fi.at(feature_index))) + " ";
-      //result += to_string(fi.at(feature_index)) + " ";
-    }
-    result += "}";
-    return result;
-  }*/
 }
 #endif // FEATURE_ISOLATION
