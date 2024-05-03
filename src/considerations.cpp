@@ -92,4 +92,5 @@ int main()
    fi.print(out);
    out << endl;
    fi.print_features(out);
+   fi.print_systems(out);
 }
