@@ -5,6 +5,7 @@
 .clang-format
 .DS_Store
 .editorconfig
+.vscode
 
 # -----------------
 # Test Files

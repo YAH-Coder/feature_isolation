@@ -34,7 +34,7 @@ namespace feature_isolation
                     ONF_feature_ids;
      [[nodiscard]] auto DF() const
      {
-       return N_feature_ids.size() + 
+       return N_feature_ids.size() +
               A_feature_ids.size() + O_feature_ids.size() +
               AN_feature_ids.size() + ON_feature_ids.size() +
               ANF_feature_ids.size() + ONF_feature_ids.size();
@@ -48,6 +48,8 @@ namespace feature_isolation
 
   std::string to_string(const feature_t& fd);
 
+  //These constants are used as bit masks for feature categories.
+  // Make these constexpr or is there a reason not to?
   static const unsigned_integer F { one };
   static const unsigned_integer N { feature_isolation::power2( 2 ) };
   static const unsigned_integer A { feature_isolation::power2( 3 ) };
@@ -62,6 +64,8 @@ namespace feature_isolation
   static const unsigned_integer FAONANON { FAON + AN + ON };
   static const unsigned_integer ALL { FAONANON + ANF + ONF };
 
+  //This array holds the names of feature categories.
+  // But why is it a raw array instead of a std::array or std::vector?
   static const std::string feature_categories[] = {"F","N","A","O","AN","ON","ANF","ONF" };
 
    class feature_isolation_t
@@ -71,7 +75,7 @@ namespace feature_isolation
                                       unsigned_integer max_rank,
                                       unsigned_integer feature_categories = ::feature_isolation::ALL,
                                       char separator = '\t')
-            : F {f },
+            : F { f },
               N { F },
               A { sum_of_combinations( F, two ) },
               O { A },
@@ -164,7 +168,7 @@ namespace feature_isolation
          [[nodiscard]] systems_t initialize_systems();
   };
 
-// system_t - member functions ////////////////////////////////////////////////
+// ====================== system_t - member functions ====================== //
    auto system_t::all_features() const
    {
      auto result { F_feature_ids };
@@ -179,23 +183,23 @@ namespace feature_isolation
      for (auto f : O_feature_ids)
      {
        result.insert(f);
-     }   
+     }
      for (auto f : AN_feature_ids)
      {
        result.insert(f);
-     }   
+     }
      for (auto f : ON_feature_ids)
      {
        result.insert(f);
-     }   
+     }
      for (auto f : ANF_feature_ids)
      {
        result.insert(f);
-     }   
+     }
      for (auto f : ONF_feature_ids)
      {
        result.insert(f);
-     }   
+     }
      return result;
    }
    [[nodiscard]] auto system_t::T() const
@@ -203,10 +207,17 @@ namespace feature_isolation
      return DF() + F_feature_ids.size();
    }
 
-// feature_isolation_t - member functions /////////////////////////////////////   
+// ====================== feature_isolation_t - member functions ====================== //
   [[nodiscard]] feature_t feature_isolation_t::at(unsigned_integer id) const
   // This method has lots of lines and is potentially inefficient.
   // Remedies?
+
+  //No remedies, just the question if this description is right:
+  // The function feature_isolation_t::at is used to retrieve a feature based on a given id.
+  // It starts with an index of zero and iterates through the feature_offsets array.
+  // During each iteration, it checks if the id is less than the feature offset at the current index.
+  // If it is, it increments the index and continues to the next iteration.
+  // If it isn't, it breaks out of the loop and returns the feature at the corresponding index in the all_features array.
   {
     auto index { zero };
     while (id < feature_offsets[index])
@@ -259,7 +270,7 @@ namespace feature_isolation
       {
         for (auto id { zero };const auto& feature:*(all_features[index]))
         {
-          os << (++id + feature_offsets[index]) << m_separator 
+          os << (++id + feature_offsets[index]) << m_separator
              << feature_categories[index] << m_separator << '\"';
           print_feature(os,feature);
           os <<'\"' << std::endl;
@@ -401,7 +412,7 @@ namespace feature_isolation
        << S << m_separator
        << F << m_separator
        << "F|N|A|O|AN|ON|ANF|ONF";
-    auto actual_df { N_features.size() + A_features.size() + 
+    auto actual_df { N_features.size() + A_features.size() +
                      O_features.size() + AN_features.size() +
                      ON_features.size() + ANF_features.size() +
                      ONF_features.size() };
@@ -427,7 +438,7 @@ namespace feature_isolation
     result = features_t(F,feature_t(S,false));
     auto stride { one };
     for (auto feature_index { zero };feature_index < F;++feature_index)
-    {  
+    {
        bool value { true };
        auto counter { zero };
        for (auto system_index { zero };system_index < S;++system_index)
@@ -481,7 +492,7 @@ namespace feature_isolation
         ++feature_index;
       } while (selection.next());
     }
-    return result;   
+    return result;
   }
   void feature_isolation_t::or_combine(feature_t& f1,const feature_t& f2)
   {
@@ -513,7 +524,7 @@ namespace feature_isolation
         ++feature_index;
       } while (selection.next());
     }
-    return result;   
+    return result;
   }
   [[nodiscard]] features_t feature_isolation_t::initialize_AN_features()
   {
@@ -538,7 +549,7 @@ namespace feature_isolation
         ++feature_index;
       } while (selection.next());
     }
-    return result;   
+    return result;
   }
   [[nodiscard]] features_t feature_isolation_t::initialize_ON_features()
   {
@@ -563,7 +574,7 @@ namespace feature_isolation
         ++feature_index;
       } while (selection.next());
     }
-    return result;   
+    return result;
   }
   [[nodiscard]] features_t feature_isolation_t::initialize_ANF_features()
   {
@@ -597,7 +608,7 @@ namespace feature_isolation
         ++feature_index;
       } while (selection.next());
     }
-    return result;   
+    return result;
   }
   [[nodiscard]] features_t feature_isolation_t::initialize_ONF_features()
   {
@@ -631,11 +642,13 @@ namespace feature_isolation
         ++feature_index;
       } while (selection.next());
     }
-    return result;   
+    return result;
   }
   void feature_isolation_t::insert_id(systems_t& systems,const feature_t feature,unsigned_integer feature_id,unsigned_integer category)
   // This method is potentially inefficient.
   // Remedies?
+
+  // Only Idea would be to use a map instead of the switch case statement
   {
     for (auto system_id { zero };auto system : feature)
     {
@@ -643,14 +656,14 @@ namespace feature_isolation
       {
         switch (category)
         {
-          case ::feature_isolation::F : systems.at(system_id).F_feature_ids.insert(feature_id);break; 
-          case ::feature_isolation::N : systems.at(system_id).N_feature_ids.insert(feature_id);break; 
-          case ::feature_isolation::A : systems.at(system_id).A_feature_ids.insert(feature_id);break; 
-          case ::feature_isolation::O : systems.at(system_id).O_feature_ids.insert(feature_id);break; 
-          case ::feature_isolation::AN : systems.at(system_id).AN_feature_ids.insert(feature_id);break; 
-          case ::feature_isolation::ON : systems.at(system_id).ON_feature_ids.insert(feature_id);break; 
-          case ::feature_isolation::ANF : systems.at(system_id).ANF_feature_ids.insert(feature_id);break; 
-          case ::feature_isolation::ONF : systems.at(system_id).ONF_feature_ids.insert(feature_id);break; 
+          case ::feature_isolation::F : systems.at(system_id).F_feature_ids.insert(feature_id);break;
+          case ::feature_isolation::N : systems.at(system_id).N_feature_ids.insert(feature_id);break;
+          case ::feature_isolation::A : systems.at(system_id).A_feature_ids.insert(feature_id);break;
+          case ::feature_isolation::O : systems.at(system_id).O_feature_ids.insert(feature_id);break;
+          case ::feature_isolation::AN : systems.at(system_id).AN_feature_ids.insert(feature_id);break;
+          case ::feature_isolation::ON : systems.at(system_id).ON_feature_ids.insert(feature_id);break;
+          case ::feature_isolation::ANF : systems.at(system_id).ANF_feature_ids.insert(feature_id);break;
+          case ::feature_isolation::ONF : systems.at(system_id).ONF_feature_ids.insert(feature_id);break;
         }
       }
       ++system_id;
@@ -659,6 +672,36 @@ namespace feature_isolation
   [[nodiscard]] systems_t feature_isolation_t::initialize_systems()
   // This method has many lines and is potentially inefficient.
   // Remedies?
+
+  // Could we define a vector of pairs, where each pair contains a feature set and its corresponding feature type
+  // Then we could loop over that and could check for each pair if it is included in C and then add it to result?
+  /*Something like this:
+  [[nodiscard]] systems_t feature_isolation_t::initialize_systems() {
+    systems_t result(S,system_t { });
+
+    std::vector<std::pair<std::vector<feature_t>, feature_isolation>> feature_sets = {
+        {F_features, feature_isolation::F},
+        {N_features, feature_isolation::N},
+        {A_features, feature_isolation::A},
+        {O_features, feature_isolation::O},
+        {AN_features, feature_isolation::AN},
+        {ON_features, feature_isolation::ON},
+        {ANF_features, feature_isolation::ANF},
+        {ONF_features, feature_isolation::ONF}
+    };
+
+    auto feature_id { zero };
+
+    for (const auto& [features, feature_type] : feature_sets) {
+        if (C & feature_type) {
+            for (const auto& feature : features) {
+                insert_id(result, feature, feature_id++, feature_type);
+            }
+        }
+    }
+
+    return result;
+    }*/
   {
     systems_t result(S,system_t { });
     auto feature_id { zero };
@@ -728,7 +771,7 @@ namespace feature_isolation
     return result;
   }
 
-// free functions /////////////////////////////////////////////////////////////
+// ====================== free functions ====================== //
   std::string to_string(const feature_t& fd)
   {
     std::string result { };
@@ -742,7 +785,7 @@ namespace feature_isolation
         {
            result += std::to_string(b); // LSB left most place, MSB right most place
         }
-    
+
      }
      return result;
   }
