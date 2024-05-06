@@ -77,17 +77,6 @@ int main()
       memory_representation(F);
    }
    feature_isolation_t fi { 4,4,ALL };
-/*   cout << to_string(fi) << endl;
-   cout << "F" << endl << to_string(fi.F_features) << " " << fi.F_features.size() << endl
-        << "N" << endl << to_string(fi.N_features) << " " << fi.N_features.size() << endl
-        << "A" << endl << to_string(fi.A_features) << " " << fi.A_features.size() << endl
-        << "O" << endl << to_string(fi.O_features) << " " << fi.O_features.size() << endl
-        << "AN" << endl << to_string(fi.AN_features) << " " << fi.AN_features.size() << endl
-        << "ON" << endl << to_string(fi.ON_features) << " " << fi.ON_features.size() << endl
-        << "ANF" << endl << to_string(fi.ANF_features) << " " << fi.ANF_features.size() << endl
-        << "ONF" << endl << to_string(fi.ONF_features) << " " << fi.ONF_features.size() << endl;
-   cout << "SYSTEMS" << endl;
-   cout << to_string(fi.m_systems,fi) << endl;*/
    ofstream out { "fi4.csv" };
    fi.print(out);
    out << endl;
