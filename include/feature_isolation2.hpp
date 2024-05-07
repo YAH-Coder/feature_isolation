@@ -149,6 +149,8 @@ namespace feature_isolation
       void print_system_features(std::ostream& os,const system_t& system,unsigned_integer id) const;
       void print_systems_features(std::ostream& os) const;
       void print(std::ostream& os) const;
+      [[nodiscard]] char separator() const { return m_separator; }
+      void separator(char separator) { m_separator = separator; }
     private:
        [[nodiscard]] features_t initialize_F_features() const;
        [[nodiscard]] features_t initialize_N_features() const;
