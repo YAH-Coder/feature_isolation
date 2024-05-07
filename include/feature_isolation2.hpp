@@ -128,7 +128,7 @@ namespace feature_isolation
                        ON_features,
                        ANF_features,
                        ONF_features;
-      cui F_offset,
+/*      cui F_offset,
           N_offset,
           A_offset,
           O_offset,
@@ -139,7 +139,7 @@ namespace feature_isolation
       cui feature_offsets[8];
       const features_t* all_features[8];
       const systems_t m_systems;
-      char m_separator;
+      char m_separator;*/
       [[nodiscard]] feature_t at(unsigned_integer id) const;
       void print_feature(std::ostream& os,const feature_t& feature) const;
       void print_features(std::ostream& os) const;
@@ -152,6 +152,20 @@ namespace feature_isolation
       [[nodiscard]] char separator() const { return m_separator; }
       void separator(char separator) { m_separator = separator; }
     private:
+      cui F_offset,
+          N_offset,
+          A_offset,
+          O_offset,
+          AN_offset,
+          ON_offset,
+          ANF_offset,
+          ONF_offset;
+      cui feature_offsets[8];
+      const features_t* all_features[8];
+   public:
+      const systems_t m_systems;
+   private:
+      char m_separator;
        [[nodiscard]] features_t initialize_F_features() const;
        [[nodiscard]] features_t initialize_N_features() const;
        void and_combine(feature_t& f1,const feature_t& f2) const;
