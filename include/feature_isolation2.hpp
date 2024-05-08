@@ -33,6 +33,18 @@ namespace feature_isolation
                     ON_feature_ids,
                     ANF_feature_ids,
                     ONF_feature_ids;
+      /*Idea for the array:
+      std::array<feature_ids_t*, 8> category_sets = {
+        &F_feature_ids,
+        &N_feature_ids,
+        &A_feature_ids,
+        &O_feature_ids,
+        &AN_feature_ids,
+        &ON_feature_ids,
+        &ANF_feature_ids,
+        &ONF_feature_ids
+      };
+      */
      [[nodiscard]] auto DF() const;
      [[nodiscard]] auto T() const;
      auto all_features() const;
@@ -157,8 +169,8 @@ namespace feature_isolation
           ONF_offset;
       //DELETE cui feature_offsets[8];
       //DELTET const features_t* all_features[8];
-      std::vector<cui> feature_offsets;
-      std::vector<const features_t*> all_features;
+      std::array<cui,8> feature_offsets;
+      std::array<const features_t,8> all_features;
 
    public:
       const systems_t m_systems;
@@ -186,6 +198,19 @@ namespace feature_isolation
             AN_feature_ids.size() + ON_feature_ids.size() +
             ANF_feature_ids.size() + ONF_feature_ids.size();
    }
+   /*Shouldnt this also work? So we save the overhead of the for loops and the different function calls.
+   auto system_t::all_features() const
+  {
+    auto result { F_feature_ids };
+    result.insert(N_feature_ids.begin(), N_feature_ids.end());
+    result.insert(A_feature_ids.begin(), A_feature_ids.end());
+    result.insert(O_feature_ids.begin(), O_feature_ids.end());
+    result.insert(AN_feature_ids.begin(), AN_feature_ids.end());
+    result.insert(ON_feature_ids.begin(), ON_feature_ids.end());
+    result.insert(ANF_feature_ids.begin(), ANF_feature_ids.end());
+    result.insert(ONF_feature_ids.begin(), ONF_feature_ids.end());
+    return result;
+  }*/
    auto system_t::all_features() const
    {
      auto result { F_feature_ids };
@@ -585,16 +610,19 @@ namespace feature_isolation
     }
     return result;
   }
+  /*Implementation Idea for insert_id() function:
+  void feature_analysis_t::insert_id(systems_t& systems, const feature_t feature, unsigned_integer feature_id, unsigned_integer category) const
+  {
+      for (auto system_id { zero }; auto system : feature)
+      {
+          if (system)
+          {
+              systems.at(system_id).category_sets[category]->insert(feature_id);
+          }
+          ++system_id;
+      }
+  }*/
   void feature_analysis_t::insert_id(systems_t& systems,const feature_t feature,unsigned_integer feature_id,unsigned_integer category) const
-  // This method is potentially inefficient.
-  // Remedies?
-
-  // Only Idea would be to use a map instead of the switch case statement
-  // A MAP IS POTENTIALLY MORE EXPENSIVE THAN A CASE STATEMENT.
-  // BUT IF EACH SYSTEM DID ALSO MAMAGE A VECTOR WITH POINTERS TO THE DIFFERENT
-  // FEATURE CATEGORIES, THE SAME TRICK COULD BE APPLIED AS DESCRIBED BELOW.
-  // INSTEAD OF THE VECTOR WICH IS MORE EXPENSIVE IT COULD BE ALSO POSSIBLE TO
-  // USE AN ARRAY.
   {
     for (auto system_id { zero };auto system : feature)
     {
