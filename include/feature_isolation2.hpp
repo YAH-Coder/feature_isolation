@@ -39,13 +39,10 @@ namespace feature_isolation
   };
   using systems_t = std::vector<system_t>;
 
-  class feature_isolation_t; // Pending declaration.
+  class feature_analysis_t; // Pending declaration.
 
   std::string to_string(const feature_t& fd);
 
-  //These constants are used as bit masks for feature categories.
-  // Make these constexpr or is there a reason not to?
-  // GOOD POINT, DONE!
   constexpr unsigned_integer F { one };
   constexpr unsigned_integer N { feature_isolation::power2( 2 ) };
   constexpr unsigned_integer A { feature_isolation::power2( 3 ) };
@@ -60,15 +57,13 @@ namespace feature_isolation
   constexpr unsigned_integer FAONANON { FAON + AN + ON };
   constexpr unsigned_integer ALL { FAONANON + ANF + ONF };
 
-  //This array holds the names of feature categories.
-  // But why is it a raw array instead of a std::array or std::vector?
-  // GOOD POINT, DONE!
+
   static const std::array<std::string,8> feature_categories = {"F","N","A","O","AN","ON","ANF","ONF" };
 
-  class feature_isolation_t
+  class feature_analysis_t
   {
     public:
-      explicit feature_isolation_t(unsigned_integer f,
+      explicit feature_analysis_t(unsigned_integer f,
                                   unsigned_integer max_rank,
                                   unsigned_integer feature_categories = ::feature_isolation::ALL,
                                   char separator = '\t')
@@ -160,8 +155,11 @@ namespace feature_isolation
           ON_offset,
           ANF_offset,
           ONF_offset;
-      cui feature_offsets[8];
-      const features_t* all_features[8];
+      //DELETE cui feature_offsets[8];
+      //DELTET const features_t* all_features[8];
+      std::vector<cui> feature_offsets;
+      std::vector<const features_t*> all_features;
+
    public:
       const systems_t m_systems;
    private:
@@ -226,19 +224,8 @@ namespace feature_isolation
      return DF() + F_feature_ids.size();
    }
 
-// ====================== feature_isolation_t - member functions ====================== //
-  [[nodiscard]] feature_t feature_isolation_t::at(unsigned_integer id) const
-  //No remedies, 
-  // THE LONG METHOD WAS REPLACED BY THE SHORTER IMPLEMENTATION BELOW. THUS, THE
-  // REMARL WAS NO IONGER VALID.
-  // just the question if this description is right:
-  // The function feature_isolation_t::at is used to retrieve a feature based on a given id.
-  // It starts with an index of zero and iterates through the feature_offsets array.
-  // During each iteration, it checks if the id is less than the feature offset at the current index.
-  // If it is, it increments the index and continues to the next iteration.
-  // If it isn't, it breaks out of the loop and returns the feature at the corresponding index in the all_features array.
-  // EXACTLY. THE GOAL WAS TO KEEP THE IDS IN DIFFERENT CONTAINERS, BUT TO TREAT
-  // ALL CONTAINERS HERE AS IF IT WERE ONLY ONE CONTAINER.
+// ====================== feature_analysis_t - member functions ====================== //
+  [[nodiscard]] feature_t feature_analysis_t::at(unsigned_integer id) const
   {
     auto index { zero };
     while (id < feature_offsets[index])
@@ -247,11 +234,11 @@ namespace feature_isolation
     }
     return all_features[index]->at(feature_offsets[index]);
   }
-  void feature_isolation_t::print_feature(std::ostream& os,const feature_t& feature) const
+  void feature_analysis_t::print_feature(std::ostream& os,const feature_t& feature) const
   {
      os << to_string(feature);
   }
-  void feature_isolation_t::print_features(std::ostream& os) const
+  void feature_analysis_t::print_features(std::ostream& os) const
   {
     os << "FEATURE ID" << m_separator
        << "CATEGORY" << m_separator
@@ -270,7 +257,7 @@ namespace feature_isolation
      }
    }
   }
-  void feature_isolation_t::print_categories(std::ostream& os) const
+  void feature_analysis_t::print_categories(std::ostream& os) const
   {
     os << '\"'
        << ((C & ::feature_isolation::F) ? "F" : "-") << '|'
@@ -283,7 +270,7 @@ namespace feature_isolation
        << ((C & ::feature_isolation::ONF) ? "ONF" : "---")
        << '\"';
   }
-  void feature_isolation_t::print_system_statistics(std::ostream& os,const system_t& system,unsigned_integer id) const
+  void feature_analysis_t::print_system_statistics(std::ostream& os,const system_t& system,unsigned_integer id) const
   {
     os << id << m_separator << system.F_feature_ids.size() << m_separator
        << system.N_feature_ids.size() << m_separator
@@ -296,7 +283,7 @@ namespace feature_isolation
        << system.DF() << m_separator
        << (system.DF() + system.F_feature_ids.size()) << std::endl; ;
   }
-  void feature_isolation_t::print_systems_statistics(std::ostream& os) const
+  void feature_analysis_t::print_systems_statistics(std::ostream& os) const
   {
     os << "SYSTEM ID" << m_separator
        << "F" << m_separator
@@ -314,7 +301,7 @@ namespace feature_isolation
         print_system_statistics(os,system,++id);
      }
   }
-  void feature_isolation_t::print_system_features(std::ostream& os,const system_t& system,unsigned_integer id) const
+  void feature_analysis_t::print_system_features(std::ostream& os,const system_t& system,unsigned_integer id) const
   {
     auto counter { zero };
     for (auto feature_id : system.all_features())
@@ -327,7 +314,7 @@ namespace feature_isolation
        os << m_separator << (feature_id + 1);
     }
   }
-  void feature_isolation_t::print_systems_features(std::ostream& os) const
+  void feature_analysis_t::print_systems_features(std::ostream& os) const
   {
      for (auto id { zero };const auto& system : m_systems)
      {
@@ -336,7 +323,7 @@ namespace feature_isolation
         os << std::endl;
      }
   }
-  void feature_isolation_t::print(std::ostream& os) const
+  void feature_analysis_t::print(std::ostream& os) const
   {
     os << m_separator
        << "F" << m_separator
@@ -386,7 +373,7 @@ namespace feature_isolation
        print_categories(os);
        os << std::endl;
   }
-  [[nodiscard]] features_t feature_isolation_t::initialize_F_features() const
+  [[nodiscard]] features_t feature_analysis_t::initialize_F_features() const
   {
     features_t result;
     result = features_t(F,feature_t(S,false));
@@ -409,25 +396,25 @@ namespace feature_isolation
     }
     return result;
   }
-  [[nodiscard]] features_t feature_isolation_t::initialize_N_features() const
+  [[nodiscard]] features_t feature_analysis_t::initialize_N_features() const
   {
     features_t result { F_features };
     for (auto& feature : result)
     feature.flip();
     return result;
   }
-  void feature_isolation_t::and_combine(feature_t& f1,const feature_t& f2) const
+  void feature_analysis_t::and_combine(feature_t& f1,const feature_t& f2) const
   {
     for (auto index { zero }; index < f1.size(); ++index)
     {
       f1.at(index) = f1.at(index) && f2.at(index);
     }
   }
-  [[nodiscard]] features_t feature_isolation_t::initialize_A_features() const
+  [[nodiscard]] features_t feature_analysis_t::initialize_A_features() const
   {
     if (R > F)
     {
-      throw std::invalid_argument("R > F in feature_isolation_t::initialize_A_features()");
+      throw std::invalid_argument("R > F in feature_analysis_t::initialize_A_features()");
     }
     auto result = features_t(sum_of_combinations(F,2,R),feature_t(S,true));
     std::vector<unsigned_integer> feature_indices(F);
@@ -448,18 +435,18 @@ namespace feature_isolation
     }
     return result;
   }
-  void feature_isolation_t::or_combine(feature_t& f1,const feature_t& f2) const
+  void feature_analysis_t::or_combine(feature_t& f1,const feature_t& f2) const
   {
     for (auto index { zero }; index < f1.size(); ++index)
     {
       f1.at(index) = f1.at(index) || f2.at(index);
     }
   }
-  [[nodiscard]] features_t feature_isolation_t::initialize_O_features() const
+  [[nodiscard]] features_t feature_analysis_t::initialize_O_features() const
   {
     if (R > F)
     {
-      throw std::invalid_argument("R > F in feature_isolation_t::initialize_O_features()");
+      throw std::invalid_argument("R > F in feature_analysis_t::initialize_O_features()");
     }
     auto result = features_t(sum_of_combinations(F,2,R),feature_t(S,false));
     std::vector<unsigned_integer> feature_indices(F);
@@ -480,11 +467,11 @@ namespace feature_isolation
     }
     return result;
   }
-  [[nodiscard]] features_t feature_isolation_t::initialize_AN_features() const
+  [[nodiscard]] features_t feature_analysis_t::initialize_AN_features() const
   {
     if (R > F)
     {
-      throw std::invalid_argument("R > F in feature_isolation_t::initialize_AN_features()");
+      throw std::invalid_argument("R > F in feature_analysis_t::initialize_AN_features()");
     }
     auto result = features_t(sum_of_combinations(F,2,R),feature_t(S,true));
     std::vector<unsigned_integer> feature_indices(F);
@@ -505,11 +492,11 @@ namespace feature_isolation
     }
     return result;
   }
-  [[nodiscard]] features_t feature_isolation_t::initialize_ON_features() const
+  [[nodiscard]] features_t feature_analysis_t::initialize_ON_features() const
   {
     if (R > F)
     {
-      throw std::invalid_argument("R > F in feature_isolation_t::initialize_ON_features()");
+      throw std::invalid_argument("R > F in feature_analysis_t::initialize_ON_features()");
     }
     auto result = features_t(sum_of_combinations(F,2,R),feature_t(S,false));
     std::vector<unsigned_integer> feature_indices(F);
@@ -530,11 +517,11 @@ namespace feature_isolation
     }
     return result;
   }
-  [[nodiscard]] features_t feature_isolation_t::initialize_ANF_features() const
+  [[nodiscard]] features_t feature_analysis_t::initialize_ANF_features() const
   {
     if (R > F)
     {
-      throw std::invalid_argument("R > F in feature_isolation_t::initialize_ANF_features()");
+      throw std::invalid_argument("R > F in feature_analysis_t::initialize_ANF_features()");
     }
     auto result = features_t(sum_of_combinations(F,1) - 1,feature_t(S,false));
     std::vector<unsigned_integer> feature_indices(F);
@@ -564,11 +551,11 @@ namespace feature_isolation
     }
     return result;
   }
-  [[nodiscard]] features_t feature_isolation_t::initialize_ONF_features() const
+  [[nodiscard]] features_t feature_analysis_t::initialize_ONF_features() const
   {
     if (R > F)
     {
-      throw std::invalid_argument("R > F in feature_isolation_t::initialize_ANF_features()");
+      throw std::invalid_argument("R > F in feature_analysis_t::initialize_ANF_features()");
     }
     auto result = features_t(sum_of_combinations(F,1) - 1,feature_t(S,false));
     std::vector<unsigned_integer> feature_indices(F);
@@ -598,7 +585,7 @@ namespace feature_isolation
     }
     return result;
   }
-  void feature_isolation_t::insert_id(systems_t& systems,const feature_t feature,unsigned_integer feature_id,unsigned_integer category) const
+  void feature_analysis_t::insert_id(systems_t& systems,const feature_t feature,unsigned_integer feature_id,unsigned_integer category) const
   // This method is potentially inefficient.
   // Remedies?
 
@@ -628,46 +615,41 @@ namespace feature_isolation
       ++system_id;
     }
   }
-  [[nodiscard]] systems_t feature_isolation_t::initialize_systems() const
-  // This method has many lines and is potentially inefficient.
-  // Remedies?
-
-  // Could we define a vector of pairs, where each pair contains a feature set and its corresponding feature type
-  // Then we could loop over that and could check for each pair if it is included in C and then add it to result?
-  // TO SOME EXTENT THIS IS A GOOD PROPOSAL. WHAT DO YOU THINK ABOUT COPYING AND
-  // ADAPTING THE IMPLEMENTATION USED IN [[nodiscard]] feature_t
-  // feature_isolation_t::at(unsigned_integer id) const ?
-  // AND: IN ADITION: YOUR PROPOSAL TO USE VECTOR<> INSTEAD OF A RAW ARRAY COULD
-  // ALSO BE APPLIED TO feature_isolation_t members cui feature_offsets[8]; AND
-  // const features_t* all_features[8];
-  // WOULD YOU TR TO IMPLEMENT THIS?
-  /*Something like this:
-  [[nodiscard]] systems_t feature_isolation_t::initialize_systems() {
-    systems_t result(S,system_t { });
-
-    std::vector<std::pair<std::vector<feature_t>, feature_isolation>> feature_sets = {
-        {F_features, feature_isolation::F},
-        {N_features, feature_isolation::N},
-        {A_features, feature_isolation::A},
-        {O_features, feature_isolation::O},
-        {AN_features, feature_isolation::AN},
-        {ON_features, feature_isolation::ON},
-        {ANF_features, feature_isolation::ANF},
-        {ONF_features, feature_isolation::ONF}
-    };
-
+  //Here how I would implement it:
+  [[nodiscard]] systems_t feature_analysis_t::initialize_systems() const
+{
+    systems_t result(S, system_t { });
     auto feature_id { zero };
 
-    for (const auto& [features, feature_type] : feature_sets) {
-        if (C & feature_type) {
-            for (const auto& feature : features) {
-                insert_id(result, feature, feature_id++, feature_type);
+    struct feature_info_t {
+        unsigned_integer mask;
+        const std::vector<feature_t>& features;
+        unsigned_integer offset;
+    };
+
+    std::vector<feature_info_t> feature_info = {
+        {::feature_isolation::F, F_features, F},
+        {::feature_isolation::N, N_features, F + N},
+        {::feature_isolation::A, A_features, F + N + A},
+        {::feature_isolation::O, O_features, F + N + A + O},
+        {::feature_isolation::AN, AN_features, F + N + A + O + AN},
+        {::feature_isolation::ON, ON_features, F + N + A + O + AN + ON},
+        {::feature_isolation::ANF, ANF_features, F + N + A + O + AN + ON + ANF},
+        {::feature_isolation::ONF, ONF_features, F + N + A + O + AN + ON + ANF + ONF}
+    };
+
+    for (const auto& info : feature_info) {
+        if (C & info.mask) {
+            for (const auto& feature : info.features) {
+                insert_id(result, feature, feature_id++, info.mask);
             }
         }
+        feature_id = info.offset;
     }
 
     return result;
-    }*/
+}
+  /*[[nodiscard]] systems_t feature_analysis_t::initialize_systems() const
   {
     systems_t result(S,system_t { });
     auto feature_id { zero };
@@ -735,7 +717,7 @@ namespace feature_isolation
       }
     }
     return result;
-  }
+  }*/
 
 // ====================== free functions ====================== //
   std::string to_string(const feature_t& fd)
