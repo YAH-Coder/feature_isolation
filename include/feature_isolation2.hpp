@@ -44,7 +44,7 @@ namespace feature_isolation
         &ANF_feature_ids,
         &ONF_feature_ids
       };
-      */
+      */ // <-- looks good!
      [[nodiscard]] auto DF() const;
      [[nodiscard]] auto T() const;
      auto all_features() const;
@@ -135,18 +135,6 @@ namespace feature_isolation
                        ON_features,
                        ANF_features,
                        ONF_features;
-/*      cui F_offset,
-          N_offset,
-          A_offset,
-          O_offset,
-          AN_offset,
-          ON_offset,
-          ANF_offset,
-          ONF_offset;
-      cui feature_offsets[8];
-      const features_t* all_features[8];
-      const systems_t m_systems;
-      char m_separator;*/
       [[nodiscard]] feature_t at(unsigned_integer id) const;
       void print_feature(std::ostream& os,const feature_t& feature) const;
       void print_features(std::ostream& os) const;
@@ -167,8 +155,6 @@ namespace feature_isolation
           ON_offset,
           ANF_offset,
           ONF_offset;
-      //DELETE cui feature_offsets[8];
-      //DELTET const features_t* all_features[8];
       std::array<cui,8> feature_offsets;
       std::array<const features_t,8> all_features;
 
@@ -210,7 +196,7 @@ namespace feature_isolation
     result.insert(ANF_feature_ids.begin(), ANF_feature_ids.end());
     result.insert(ONF_feature_ids.begin(), ONF_feature_ids.end());
     return result;
-  }*/
+  }*/ // <-- Great idea! Yes, much better!!!
    auto system_t::all_features() const
    {
      auto result { F_feature_ids };
@@ -621,7 +607,7 @@ namespace feature_isolation
           }
           ++system_id;
       }
-  }*/
+  }*/ // <-- also looks great!
   void feature_analysis_t::insert_id(systems_t& systems,const feature_t feature,unsigned_integer feature_id,unsigned_integer category) const
   {
     for (auto system_id { zero };auto system : feature)
@@ -643,7 +629,8 @@ namespace feature_isolation
       ++system_id;
     }
   }
-  //Here how I would implement it:
+  //Here how I would implement it: <-- Looks great as well. Since feature_info_t
+  //is not required elsewhere, its local definition is acceptable!
   [[nodiscard]] systems_t feature_analysis_t::initialize_systems() const
 {
     systems_t result(S, system_t { });
