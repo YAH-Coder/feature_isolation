@@ -4,6 +4,7 @@
 #include "../include/fi_mathhelper.hpp"
 #include <algorithm> // Because of iota() and find().
 #include <array>
+#include <climits>
 #include <iostream>
 #include <numeric> // Because of CHAR_BIT.
 #include <set>
