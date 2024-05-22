@@ -2,7 +2,9 @@
 #define FI_MATHHELPER_HPP
 
 #include <bitset>
+#include <climits>
 #include <cstdint>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -166,7 +168,7 @@ namespace feature_isolation {
     return result;
   }
 
-constexpr unsigned_integer sum_of_combinations( unsigned_integer n,
+  constexpr unsigned_integer sum_of_combinations( unsigned_integer n,
                                                   unsigned_integer k ) {
     unsigned_integer result { zero };
     for ( unsigned_integer i = k; i <= n; arithmetic::add_assign( i, one ) ) {
