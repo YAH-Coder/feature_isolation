@@ -520,14 +520,15 @@ namespace feature_isolation {
         { ::feature_isolation::ON, ON_features, F + N + A + O + AN + ON },
         { ::feature_isolation::ANF, ANF_features, F + N + A + O + AN + ON + ANF },
         { ::feature_isolation::ONF, ONF_features, F + N + A + O + AN + ON + ANF + ONF } };
-
+    unsigned_integer category { zero };
     for ( const auto& info : feature_info ) {
       if ( C & info.mask ) {
         for ( const auto& feature : info.features ) {
-          insert_id( result, feature, feature_id++, info.mask );
+          insert_id( result, feature, feature_id++, category );
         }
       }
       feature_id = info.offset;
+      category++;
     }
 
     return result;
