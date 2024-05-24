@@ -533,75 +533,6 @@ namespace feature_isolation {
 
     return result;
   }
-  /*[[nodiscard]] systems_t feature_analysis_t::initialize_systems() const
-  {
-    systems_t result(S,system_t { });
-    auto feature_id { zero };
-    if (C & feature_isolation::F)
-    {
-      for (const auto& feature : F_features)
-      {
-        insert_id(result,feature,feature_id++,::feature_isolation::F);
-      }
-    }
-    feature_id = F;
-    if (C & feature_isolation::N)
-    {
-      for (const auto& feature : N_features)
-      {
-        insert_id(result,feature,feature_id++,::feature_isolation::N);
-      }
-    }
-    feature_id = F + N;
-    if (C & feature_isolation::A)
-    {
-      for (const auto& feature : A_features)
-      {
-        insert_id(result,feature,feature_id++,::feature_isolation::A);
-      }
-    }
-    feature_id = F + N + A;
-    if (C & feature_isolation::O)
-    {
-      for (const auto& feature : O_features)
-      {
-        insert_id(result,feature,feature_id++,::feature_isolation::O);
-      }
-    }
-    feature_id = F + N + A + O;
-    if (C & feature_isolation::AN)
-    {
-      for (const auto& feature : AN_features)
-      {
-        insert_id(result,feature,feature_id++,::feature_isolation::AN);
-      }
-    }
-    feature_id = F + N + A + O + AN;
-    if (C & feature_isolation::ON)
-    {
-      for (const auto& feature : ON_features)
-      {
-        insert_id(result,feature,feature_id++,::feature_isolation::ON);
-      }
-    }
-    feature_id = F + N + A + O + AN + ON;
-    if (C & feature_isolation::ANF)
-    {
-      for (const auto& feature : ANF_features)
-      {
-        insert_id(result,feature,feature_id++,::feature_isolation::ANF);
-      }
-    }
-    feature_id = F + N + A + O + AN + ON + ANF;
-    if (C & feature_isolation::ONF)
-    {
-      for (const auto& feature : ONF_features)
-      {
-        insert_id(result,feature,feature_id++,::feature_isolation::ONF);
-      }
-    }
-    return result;
-  }*/
 
   // ====================== free functions ====================== //
   std::string to_string( const feature_t& fd ) {
@@ -615,5 +546,6 @@ namespace feature_isolation {
     }
     return result;
   }
+#include "spl.hpp" // Either integrate or redesign as a separate header file.
 } // namespace feature_isolation
 #endif // FEATURE_ISOLATION
