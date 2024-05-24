@@ -13,6 +13,12 @@
 #include <string>
 #include <vector>
 
+// The following includes are required for spl.hpp
+#include <string_view>
+#include <fstream>
+#include <source_location>
+// end
+
 namespace feature_isolation {
   constexpr bool MSB_LSB { true }; // Customization point for MSB at
                                    // left-most position.
