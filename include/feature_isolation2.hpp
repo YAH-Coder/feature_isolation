@@ -17,6 +17,9 @@
 #include <string_view>
 #include <fstream>
 #include <source_location>
+#include <cctype>
+#include <limits>
+#include <map>
 // end
 
 namespace feature_isolation {
