@@ -67,8 +67,12 @@ class spl_specification_t final
                      m_is_excluded_by;
       systems_t m_missing_systems,
                 m_available_systems;
-      bool m_missing_specified { false },
-           m_available_specified { false };
+      bool m_spl_specified { false },
+           m_feature_names_specified { false },
+           m_categories_specified { false },
+           m_explicit_dependencies_specified { false },
+           m_missing_systems_specified { false },
+           m_available_systems_specified { false }; 
 };
 
 spl_specification_t::spl_specification_t(const std::string& filename):
@@ -175,6 +179,13 @@ void spl_specification_t::parse_comment()
 
 void spl_specification_t::parse_spl()
 {
+   if (m_spl_specified)
+   {
+      throw std::runtime_error { std::string { } + "Name of SPL specified more than once in file " + 
+                                 m_filename + " in " + std::source_location::current().function_name() +
+                                 " (" + std::source_location::current().file_name() + ")."
+                               };
+   }
    std::string token { };
    m_file >> token;
    if (!m_file)
@@ -185,10 +196,18 @@ void spl_specification_t::parse_spl()
                                };
    }
    m_spl = token;
+   m_spl_specified = true;
 }
 
 void spl_specification_t::parse_features()
 {
+   if (m_feature_names_specified)
+   {
+      throw std::runtime_error { std::string { } + "Features specified more than once in file " + 
+                                 m_filename + " in " + std::source_location::current().function_name() +
+                                 " (" + std::source_location::current().file_name() + ")."
+                               };
+   }
    unsigned_integer f;
    m_file >> f;
    if (!m_file)
@@ -236,10 +255,18 @@ void spl_specification_t::parse_features()
       }
       feature = token;
    }
+   m_feature_names_specified = true;
 }
 
 void spl_specification_t::parse_categories()
 {
+   if (m_categories_specified)
+   {
+      throw std::runtime_error { std::string { } + "Feature categories specified more than once in file " + 
+                                 m_filename + " in " + std::source_location::current().function_name() +
+                                 " (" + std::source_location::current().file_name() + ")."
+                               };
+   }
    std::string token;
    do
    {
@@ -364,10 +391,18 @@ void spl_specification_t::parse_categories()
       }
    }
    while (token != kw::END);
+   m_categories_specified = true;
 }
 
 void spl_specification_t::parse_explicit_dependencies()
 {
+   if (m_explicit_dependencies_specified)
+   {
+      throw std::runtime_error { std::string { } + "Explicit dependencies specified more than once in file " + 
+                                 m_filename + " in " + std::source_location::current().function_name() +
+                                 " (" + std::source_location::current().file_name() + ")."
+                               };
+   }
    std::string feature1,dependency,feature2,keyword;
    do
    {
@@ -418,14 +453,147 @@ void spl_specification_t::parse_explicit_dependencies()
          parse_dependency(feature1,dependency,feature2);
       }
    } while (keyword != kw::END);
+   m_explicit_dependencies_specified = true;
 }
 
 void spl_specification_t::parse_missing_systems()
 {
+   if (m_missing_systems_specified)
+   {
+      throw std::runtime_error { std::string { } + "Missing systems specified more than once in file " + 
+                                 m_filename + " in " + std::source_location::current().function_name() +
+                                 " (" + std::source_location::current().file_name() + ")."
+                               };
+   }
+   if (m_available_systems_specified)
+   {
+      throw std::runtime_error { std::string { } + "Missing systems cannot be specified if " +
+                                 "available systems have been specified before in file " + 
+                                 m_filename + " in " + std::source_location::current().function_name() +
+                                 " (" + std::source_location::current().file_name() + ")."
+                               };
+   }
+   if (!m_feature_names_specified)
+   {
+      throw std::runtime_error { std::string { } + "Features must be specified before missing systems in file " + 
+                                 m_filename + " in " + std::source_location::current().function_name() +
+                                 " (" + std::source_location::current().file_name() + ")."
+                               };
+   }
+   auto systems { power2(power2(F)) };
+   std::string token;
+   do
+   {
+      m_file >> token;
+      if (!m_file)
+      {
+         throw std::runtime_error { std::string { } + 
+                                    "Error occured when reading missing systems in file " +
+                                    m_filename + " in " + std::source_location::current().function_name() +
+                                    " (" + std::source_location::current().file_name() + ")."
+                                  };
+      }
+      token = to_upper(token);
+      if (token == kw::COMMENT)
+      {
+         parse_skip_line();
+      }
+      else
+      if (token != kw::END)
+      {
+         unsigned_integer id { std::stoull(token) };
+         if (id > systems)
+         {
+            throw std::runtime_error { std::string { } + 
+                                       "Missing system with ID " + token + 
+                                       "cannot exist in file " +
+                                       m_filename + " in " + std::source_location::current().function_name() +
+                                       " (" + std::source_location::current().file_name() + ")."
+                                     };
+         }
+         if (m_missing_systems.contains(id))
+         {
+            throw std::runtime_error { std::string { } + 
+                                       "Missing system with ID " + token + 
+                                       " has been already specified in file " +
+                                       m_filename + " in " + std::source_location::current().function_name() +
+                                       " (" + std::source_location::current().file_name() + ")."
+                                     };
+         }
+         m_missing_systems.insert(id);
+      }
+   } while (token != kw::END);
+   m_missing_systems_specified = true;
 }
 
 void spl_specification_t::parse_available_systems()
 {
+   if (m_available_systems_specified)
+   {
+      throw std::runtime_error { std::string { } + "Available systems specified more than once in file " + 
+                                 m_filename + " in " + std::source_location::current().function_name() +
+                                 " (" + std::source_location::current().file_name() + ")."
+                               };
+   }
+   if (m_missing_systems_specified)
+   {
+      throw std::runtime_error { std::string { } + "Available systems cannot be specified if " +
+                                 "mising systems have been specified before in file " + 
+                                 m_filename + " in " + std::source_location::current().function_name() +
+                                 " (" + std::source_location::current().file_name() + ")."
+                               };
+   }
+   if (!m_feature_names_specified)
+   {
+      throw std::runtime_error { std::string { } + "Features must be specified before missing systems in file " + 
+                                 m_filename + " in " + std::source_location::current().function_name() +
+                                 " (" + std::source_location::current().file_name() + ")."
+                               };
+   }
+   auto systems { power2(power2(F)) };
+   std::string token;
+   do
+   {
+      m_file >> token;
+      if (!m_file)
+      {
+         throw std::runtime_error { std::string { } + 
+                                    "Error occured when reading available systems in file " +
+                                    m_filename + " in " + std::source_location::current().function_name() +
+                                    " (" + std::source_location::current().file_name() + ")."
+                                  };
+      }
+      token = to_upper(token);
+      if (token == kw::COMMENT)
+      {
+         parse_skip_line();
+      }
+      else
+      if (token != kw::END)
+      {
+         unsigned_integer id { std::stoull(token) };
+         if (id > systems)
+         {
+            throw std::runtime_error { std::string { } + 
+                                       "Available system with ID " + token + 
+                                       "cannot exist in file " +
+                                       m_filename + " in " + std::source_location::current().function_name() +
+                                       " (" + std::source_location::current().file_name() + ")."
+                                     };
+         }
+         if (m_available_systems.contains(id))
+         {
+            throw std::runtime_error { std::string { } + 
+                                       "Available system with ID " + token + 
+                                       " has been already specified in file " +
+                                       m_filename + " in " + std::source_location::current().function_name() +
+                                       " (" + std::source_location::current().file_name() + ")."
+                                     };
+         }
+         m_available_systems.insert(id);
+      }
+   } while (token != kw::END);
+   m_available_systems_specified = true;
 }
 
 void spl_specification_t::parse_skip_line()
