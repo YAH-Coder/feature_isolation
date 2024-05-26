@@ -56,7 +56,6 @@ class spl_specification_t final
       const std::string m_filename;
       std::ifstream m_file;
       const bool m_success_open_file;
-      const bool m_success_parse;
       std::string m_spl { };
       unsigned_integer m_F { };
       feature_names_t m_feature_names;
@@ -73,6 +72,7 @@ class spl_specification_t final
            m_explicit_dependencies_specified { false },
            m_missing_systems_specified { false },
            m_available_systems_specified { false }; 
+      const bool m_success_parse;
 };
 
 spl_specification_t::spl_specification_t(const std::string& filename):
@@ -190,7 +190,7 @@ void spl_specification_t::parse_spl()
    m_file >> token;
    if (!m_file)
    {
-      throw std::runtime_error { std::string { } + "Error occured when reading name of SPL in file " +
+     throw std::runtime_error { std::string { } + "Error occured when reading name of SPL in file " +
                                  m_filename + " in " + std::source_location::current().function_name() +
                                  " (" + std::source_location::current().file_name() + ")."
                                };
@@ -287,7 +287,7 @@ void spl_specification_t::parse_categories()
       else
       if (token == kw::A)
       {
-         if (m_categories && A)
+         if (m_categories & A)
          {
             throw std::runtime_error { std::string { } + 
                                        "Multiple inclusion of feature category A in file " +
@@ -300,7 +300,7 @@ void spl_specification_t::parse_categories()
       else 
       if (token == kw::O)
       {
-         if (m_categories && O)
+         if (m_categories & O)
          {
             throw std::runtime_error { std::string { } + 
                                        "Multiple inclusion of feature category O in file " +
@@ -313,7 +313,7 @@ void spl_specification_t::parse_categories()
       else 
       if (token == kw::N)
       {
-         if (m_categories && N)
+         if (m_categories & N)
          {
             throw std::runtime_error { std::string { } + 
                                        "Multiple inclusion of feature category N in file " +
@@ -326,7 +326,7 @@ void spl_specification_t::parse_categories()
       else 
       if (token == kw::AN)
       {
-         if (m_categories && AN)
+         if (m_categories & AN)
          {
             throw std::runtime_error { std::string { } + 
                                        "Multiple inclusion of feature category AN in file " +
@@ -339,7 +339,7 @@ void spl_specification_t::parse_categories()
       else 
       if (token == kw::ON)
       {
-         if (m_categories && ON)
+         if (m_categories & ON)
          {
             throw std::runtime_error { std::string { } + 
                                        "Multiple inclusion of feature category ON in file " +
@@ -352,7 +352,7 @@ void spl_specification_t::parse_categories()
       else 
       if (token == kw::ANF)
       {
-         if (m_categories && ANF)
+         if (m_categories & ANF)
          {
             throw std::runtime_error { std::string { } + 
                                        "Multiple inclusion of feature category ANF in file " +
@@ -365,7 +365,7 @@ void spl_specification_t::parse_categories()
       else 
       if (token == kw::ONF)
       {
-         if (m_categories && ONF)
+         if (m_categories & ONF)
          {
             throw std::runtime_error { std::string { } + 
                                        "Multiple inclusion of feature category ONF in file " +
@@ -440,7 +440,7 @@ void spl_specification_t::parse_explicit_dependencies()
                                      };
          }
          dependency = to_upper(dependency);
-         if (dependency != kw::REQUIRES || dependency != kw::EXCLUDES)
+         if (dependency != kw::REQUIRES && dependency != kw::EXCLUDES)
          {
             throw std::runtime_error { std::string { } + 
                                        "Dependency is specified as " + dependency + " in file " +
@@ -606,6 +606,9 @@ void spl_specification_t::parse_available_systems()
 void spl_specification_t::parse_skip_line()
 {
    m_file.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+   /*std::string s;
+   getline(m_file,s,'\n');
+   std::cout << "*** " << s << " ***" << std::endl;*/
 }
 
 void spl_specification_t::parse_dependency(const std::string& f1,const std::string& dependency, const std::string& f2)
