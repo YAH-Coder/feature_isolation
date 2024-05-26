@@ -403,6 +403,13 @@ void spl_specification_t::parse_explicit_dependencies()
                                  " (" + std::source_location::current().file_name() + ")."
                                };
    }
+   if (!m_feature_names_specified)
+   {
+      throw std::runtime_error { std::string { } + "Features must be specified before explicit dependencies in file " + 
+                                 m_filename + " in " + std::source_location::current().function_name() +
+                                 " (" + std::source_location::current().file_name() + ")."
+                               };
+   }
    std::string feature1,dependency,feature2,keyword;
    do
    {
