@@ -73,4 +73,6 @@ int main() {
   fi.print_systems_statistics( out );
   out << endl;
   fi.print_systems_features( out );
+
+  spl_specification_t samplee_spl { "sample_spl_spec.csv" };
 }
