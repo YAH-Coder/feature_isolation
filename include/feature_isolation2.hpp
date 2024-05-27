@@ -16,10 +16,12 @@
 // The following includes are required for spl.hpp
 #include <cctype>
 #include <fstream>
+#include <functional>
 #include <limits>
 #include <map>
 #include <source_location>
 #include <string_view>
+#include <unordered_map>
 // end
 
 namespace feature_isolation {
