@@ -64,6 +64,7 @@ int main() {
   for ( unsigned_integer F = 2; F <= 20; ++F ) {
     memory_representation( F );
   }
+  /*
   feature_analysis_t fi { 4, 4, ALL };
   ofstream out { "fi4.csv" };
   fi.print( out );
@@ -73,6 +74,10 @@ int main() {
   fi.print_systems_statistics( out );
   out << endl;
   fi.print_systems_features( out );
+  */
 
-  spl_specification_t samplee_spl { "sample_spl_spec.csv" };
+  spl_specification_t samplee_spl_one { "sample_spl_spec.csv" };
+  samplee_spl_one.output_to_csv( "output_spl.csv" );
+  spl_specification_t sample_spl_two { "output_spl.csv" };
+  sample_spl_two.output_to_csv( "output_spl_final.csv" );
 }
