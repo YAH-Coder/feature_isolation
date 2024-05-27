@@ -14,12 +14,12 @@
 #include <vector>
 
 // The following includes are required for spl.hpp
-#include <string_view>
-#include <fstream>
-#include <source_location>
 #include <cctype>
+#include <fstream>
 #include <limits>
 #include <map>
+#include <source_location>
+#include <string_view>
 // end
 
 namespace feature_isolation {
