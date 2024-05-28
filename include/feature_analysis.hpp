@@ -1,5 +1,5 @@
-#ifndef FEATURE_ISOLATION_HPP
-#define FEATURE_ISOLATION_HPP
+#ifndef FEATURE_ANALYSIS_HPP
+#define FEATURE_ANALYSIS_HPP
 
 #include "../include/fi_mathhelper.hpp"
 #include <algorithm>
@@ -780,4 +780,4 @@ namespace feature_isolation {
     }
   };
 } // namespace feature_isolation
-#endif // FEATURE_ISOLATION_HPP
+#endif // FEATURE_ANALYSIS_HPP

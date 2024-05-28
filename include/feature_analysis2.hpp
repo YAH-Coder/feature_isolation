@@ -1,5 +1,5 @@
-#ifndef FEATURE_ISOLATION_HPP
-#define FEATURE_ISOLATION_HPP
+#ifndef FEATURE_ANALYSIS_HPP
+#define FEATURE_ANALYSIS_HPP
 
 #include "../include/fi_mathhelper.hpp"
 #include <algorithm> // Because of iota() and find().
@@ -12,17 +12,6 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-
-// The following includes are required for spl.hpp
-#include <cctype>
-#include <fstream>
-#include <functional>
-#include <limits>
-#include <map>
-#include <source_location>
-#include <string_view>
-#include <unordered_map>
-// end
 
 namespace feature_isolation {
   constexpr bool MSB_LSB { true }; // Customization point for MSB at
@@ -557,6 +546,5 @@ namespace feature_isolation {
     }
     return result;
   }
-#include "spl.hpp" // Either integrate or redesign as a separate header file.
 } // namespace feature_isolation
-#endif // FEATURE_ISOLATION
+#endif // FEATURE_ANALYSIS_HPP
