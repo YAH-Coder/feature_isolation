@@ -357,9 +357,8 @@ namespace feature_isolation {
 
   void spl_specification_t::validate_constraints() const {
     // ALL THIS NEEDS TBD IFF m_explicit_dependencies_specified == true
-    if (!m_explicit_dependencies_specified)
-    {
-       return;
+    if ( !m_explicit_dependencies_specified ) {
+      return;
     }
     // Create a MiniSat solver instance
     Minisat::Solver solver;
@@ -368,8 +367,8 @@ namespace feature_isolation {
     std::vector<Minisat::Var> feature_vars( m_feature_names.size() );
     // Why not a range-based for-loop? featre_vars is initialized correctly to
     // m_feature_names.size() elements ...
-    for ( size_t i = 0; i < m_feature_names.size(); ++i ) {
-      feature_vars[i] = solver.newVar();
+    for ( auto& var : feature_vars ) {
+      var = solver.newVar();
     }
 
     // Encode requires constraints
@@ -391,11 +390,26 @@ namespace feature_isolation {
       }
     }
 
-    // I guess the following check should be performed iff
-    // m_available_systems_specified == true.
-    // Maybe I understand somethin not fully.
-    // Add clauses to ensure that no available system is partially excluded or required inconsistently
-    for ( const auto& system : m_available_systems ) {
+    // ASSUME ALL SYSTEMS ARE AVAILABLE IF NEITHER AVAILABLE SYSTEMS NOR MISSING SYSTEMS ARE SPECIFIED
+    systems_t effective_available_systems;
+    if ( m_available_systems_specified ) {
+      effective_available_systems = m_available_systems;
+    } else if ( m_missing_systems_specified ) {
+      auto systems = power2( power2( m_F ) );
+      for ( unsigned_integer id = 0; id < systems; ++id ) {
+        if ( !m_missing_systems.contains( id ) ) {
+          effective_available_systems.insert( id );
+        }
+      }
+    } else {
+      auto systems = power2( power2( m_F ) );
+      for ( unsigned_integer id = 0; id < systems; ++id ) {
+        effective_available_systems.insert( id );
+      }
+    }
+
+    // VALIDATE EFFECTIVE AVAILABLE SYSTEMS AGAINST CONSTRAINTS
+    for ( const auto& system : effective_available_systems ) {
       for ( const auto& [f1, f2] : m_excludes ) {
         if ( ( system & ( 1 << ( f1 - 1 ) ) ) && ( system & ( 1 << ( f2 - 1 ) ) ) ) {
           throw_error( "Available system " + std::to_string( system ) + " inconsistently excludes both features " + m_feature_names[f1 - 1] + " and " + m_feature_names[f2 - 1] );
@@ -408,6 +422,7 @@ namespace feature_isolation {
       }
     }
 
+    // Check if the constraints are consistent
     bool result = solver.solve();
     if ( !result ) {
       throw_error( "Constraints are inconsistent." );
