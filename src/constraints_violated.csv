@@ -1,0 +1,23 @@
+SPL	CONSTRAINT_PROBLEM	
+		
+FEATURES	3	
+A		
+B		
+C		
+		
+EXPLICIT_DEPENDENCIES		
+A	requires	B
+A	requires	C
+B	excludes	A
+C	excludes	A
+END		
+		
+AVAILABLE_SYSTEMS		
+1		
+2		
+3		
+4		
+5		
+6		
+7		
+8		
