@@ -356,17 +356,24 @@ namespace feature_isolation {
   }
 
   void spl_specification_t::validate_constraints() const {
+    // ALL THIS NEEDS TBD IFF m_explicit_dependencies_specified == true
+    if (!m_explicit_dependencies_specified)
+    {
+       return;
+    }
     // Create a MiniSat solver instance
     Minisat::Solver solver;
 
     // Create variables for each feature
     std::vector<Minisat::Var> feature_vars( m_feature_names.size() );
+    // Why not a range-based for-loop? featre_vars is initialized correctly to
+    // m_feature_names.size() elements ...
     for ( size_t i = 0; i < m_feature_names.size(); ++i ) {
       feature_vars[i] = solver.newVar();
     }
 
     // Encode requires constraints
-    for ( const auto& [f1, f2] : m_requires ) {
+    for ( const auto& [f1, f2] : m_requires ) { // Wow, structured binding!
       // f1 -> f2 is equivalent to !f1 or f2
       solver.addClause( ~Minisat::mkLit( feature_vars[f1 - 1] ), Minisat::mkLit( feature_vars[f2 - 1] ) );
     }
@@ -384,6 +391,9 @@ namespace feature_isolation {
       }
     }
 
+    // I guess the following check should be performed iff
+    // m_available_systems_specified == true.
+    // Maybe I understand somethin not fully.
     // Add clauses to ensure that no available system is partially excluded or required inconsistently
     for ( const auto& system : m_available_systems ) {
       for ( const auto& [f1, f2] : m_excludes ) {
