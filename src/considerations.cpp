@@ -1,5 +1,6 @@
-#include "../include/feature_isolation2.hpp"
+#include "../include/feature_analysis2.hpp"
 #include "../include/fi_mathhelper.hpp"
+#include "../include/spl.hpp"
 using namespace feature_isolation;
 #include <climits>
 #include <fstream>
@@ -64,8 +65,8 @@ int main() {
   for ( unsigned_integer F = 2; F <= 20; ++F ) {
     memory_representation( F );
   }
-  /*
-  feature_analysis_t fi { 4, 4, ALL };
+
+  feature_isolation::feature_analysis_t fi { 4, 4, ALL };
   ofstream out { "fi4.csv" };
   fi.print( out );
   out << endl;
@@ -74,10 +75,9 @@ int main() {
   fi.print_systems_statistics( out );
   out << endl;
   fi.print_systems_features( out );
-  */
 
-  spl_specification_t samplee_spl_one { "sample_spl_spec.csv" };
+  feature_isolation::spl_specification_t sample_spl_one { "sample_spl_spec.csv" };
   samplee_spl_one.output_to_csv( "output_spl.csv" );
-  spl_specification_t sample_spl_two { "output_spl.csv" };
+  feature_isolation::spl_specification_t sample_spl_two { "output_spl.csv" };
   sample_spl_two.output_to_csv( "output_spl_final.csv" );
 }
