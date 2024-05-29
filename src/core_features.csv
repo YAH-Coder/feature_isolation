@@ -1,0 +1,24 @@
+SPL	CORE-FEATURES_#1	
+		
+FEATURES	5	
+A	// Core feature	
+B	// Core feature	
+C	// Core feature	
+D		
+E		
+		
+EXPLICIT_DEPENDENCIES		
+D	requires	A
+D	requires	B
+D	requires	C
+E	requires	A
+E	requires	B
+E	requires	C
+END		
+		
+AVAILABLE_SYSTEMS		
+1	// 00000 This is an invalid system, but we cannot specify an appropriate constraint	
+9	// 00111 This is the first legal system	
+10	// 01111	
+11	// 10111	
+12	// 11111	
