@@ -13,11 +13,11 @@ C	excludes	A
 END		
 		
 AVAILABLE_SYSTEMS		
-1	// 000	
-2	// 001	
-3	// 010	
-4	// 011	
-5	// 100	
-6	// 101	
-7	// 110	
-8	// 111	
+1	// 000 legal	
+2	// 001 illegal, C1 not satisfied	
+3	// 010 legal	
+4	// 011 illegal, C1 and C3 are in conflict	
+5	// 100 legal	
+6	// 101 illegal, C1 not satisfied, C4 not satisfied	
+7	// 110 legal	
+8	// 111, illegal, C3 not satiesfied, C4 not satisfied	
