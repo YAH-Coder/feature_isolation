@@ -1,3 +1,4 @@
+// Diese CSV bringt die Fehlermeldung: libc++abi: terminating due to uncaught exception of type std::runtime_error: Missing system with ID 12 cannot exist in file sample_spl_spec.csv in void feature_isolation::spl_specification_t::throw_error(const std::string &) const (./../include/spl.hpp).			
 // This is a comment. There must be a whitespace between // and the optional following text.			
 //	The comment extends until the end of the line.		
 //			
@@ -25,17 +26,18 @@ END		// Keyword END ends the enumeration of categories.
 // Now the maximum rank of possible interactions is specified; this must occur after the specification of FEATURES			
 MAX_RANK	4	// MAX_RANK must not exceed the number of independent features.	
 			
-EXPLICIT_DEPENDENCIES		// Keyword EXPLICIT_DEPENDENCIES followed by individual dependencies.	
-Feature_A	requires	F_3	// The name of independent feature followed by keyword REQUIRES 
-Feature_no_4	excludes	F_3	// or by keyword EXCLUDES followed by the name of an
-END			// independent feature. Keyword END ends the list.
+// EXPLICIT_DEPENDENCIES		// Keyword EXPLICIT_DEPENDENCIES followed by individual dependencies.	
+// Feature_A	// requires	// F_3	// The name of independent feature followed by keyword REQUIRES 
+// Feature_no_4	// excludes	// F_3	// or by keyword EXCLUDES followed by the name of an
+// END			// independent feature. Keyword END ends the list.
 		// Keyword MISSING_SYSTEMS is followed by a list	
 			
 MISSING_SYSTEMS		// of ordinal numbers of systems that are not available.	
-1			
-2			
-3			
-9			
+1	// 0000		
+2	// 0001		
+4	// 0011		
+12	// 1100		
+9	// 1001		
 END		// Keyword END ends the list of missing systems.	
 			
 // AVAILABLE_SYSTEMS		// Keyword AVAILABLE_SYSTEMS is followed by a list	

@@ -89,13 +89,22 @@ namespace feature_isolation {
     const bool m_success_parse;
 
   private:
-    unsigned int m_line_number { 1 };
-    void throw_error( const std::string& message ) const;
-    void validate_constraints() const;
+    //    void throw_error( const std::string& message ) const;
+    void throw_error( const std::string& message,
+                      const std::string& fu = std::source_location::current().function_name(),
+                      const std::string& fi = std::source_location::current().file_name() ) const;
+    void validate_constraints() const; // New function to validate constraints
   };
 
-  void spl_specification_t::throw_error( const std::string& message ) const {
-    throw std::runtime_error { message + " at line " + std::to_string( m_line_number ) + " in file " + m_filename + " in function " + std::source_location::current().function_name() + " (" + std::source_location::current().file_name() + ")." };
+  /*  void spl_specification_t::throw_error( const std::string& message ) const {
+      throw std::runtime_error { message + " in " +
+                                  + std::source_location::current().function_name()
+                                 " (" + std::source_location::current().file_name() + ")." };
+    } */
+  void spl_specification_t::throw_error( const std::string& message,
+                                         const std::string& fu,
+                                         const std::string& fi ) const {
+    throw std::runtime_error { message + " in " + fu + " (" + fi + ")." };
   }
 
   spl_specification_t::spl_specification_t( const std::string& filename )
