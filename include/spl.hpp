@@ -50,6 +50,7 @@ namespace feature_isolation {
     using feature_names_t = std::vector<std::string>;
     using dependencies_t = std::multimap<unsigned_integer, unsigned_integer>;
     using systems_t = std::set<unsigned_integer>;
+
     explicit spl_specification_t( const std::string& filename );
     ~spl_specification_t();
     [[nodiscard]] bool setup();
@@ -72,16 +73,12 @@ namespace feature_isolation {
     std::ifstream m_file;
     const bool m_success_open_file;
     std::string m_spl { "NOT_SPECIFIED" };
-    unsigned_integer m_F { };
+    unsigned_integer m_F {};
     feature_names_t m_feature_names;
     unsigned_integer m_categories { F };
-    unsigned_integer m_max_rank { };
-    dependencies_t m_requires,
-        m_is_required_by,
-        m_excludes,
-        m_is_excluded_by;
-    systems_t m_missing_systems,
-        m_available_systems;
+    unsigned_integer m_max_rank {};
+    dependencies_t m_requires, m_is_required_by, m_excludes, m_is_excluded_by;
+    systems_t m_missing_systems, m_available_systems;
     bool m_spl_specified { false },
         m_feature_names_specified { false },
         m_categories_specified { false },
@@ -92,20 +89,19 @@ namespace feature_isolation {
     const bool m_success_parse;
 
   private:
+    unsigned int m_line_number { 1 };
     void throw_error( const std::string& message ) const;
-    void validate_constraints() const; // New function to validate constraints
+    void validate_constraints() const;
   };
 
   void spl_specification_t::throw_error( const std::string& message ) const {
-    throw std::runtime_error { message + " in " +
-                               std::source_location::current().function_name() +
-                               " (" + std::source_location::current().file_name() + ")." };
+    throw std::runtime_error { message + " at line " + std::to_string( m_line_number ) + " in file " + m_filename + " in function " + std::source_location::current().function_name() + " (" + std::source_location::current().file_name() + ")." };
   }
 
   spl_specification_t::spl_specification_t( const std::string& filename )
       : m_filename { filename }, m_success_open_file { setup() },
         m_success_parse { parse() } {
-    validate_constraints(); // Validate constraints after parsing
+    validate_constraints();
   }
 
   spl_specification_t::~spl_specification_t() {
@@ -113,6 +109,7 @@ namespace feature_isolation {
   }
 
   bool spl_specification_t::setup() {
+    m_line_number = 1;
     m_file.open( m_filename );
     if ( !m_file ) {
       throw_error( "Cannot open file named " + m_filename );
@@ -128,7 +125,7 @@ namespace feature_isolation {
         { kw::CATEGORIES.data(), &spl_specification_t::parse_categories },
         { kw::EXPLICIT_DEPENDENCIES.data(), &spl_specification_t::parse_explicit_dependencies },
         { kw::MISSING_SYSTEMS.data(), &spl_specification_t::parse_missing_systems },
-        { kw::AVAILABLE_SYSTEMS.data(), &spl_specification_t::parse_available_systems, },
+        { kw::AVAILABLE_SYSTEMS.data(), &spl_specification_t::parse_available_systems },
         { kw::MAX_RANK.data(), &spl_specification_t::parse_max_rank } };
 
     std::string token;
@@ -142,10 +139,9 @@ namespace feature_isolation {
       }
     }
     // Still need to set default values for items that have not been specified.
-    // That's obviosly only one, namely m_max_rank.
-    if (!m_max_rank_specified)
-    { 
-       m_max_rank = m_F;
+    // That's obviously only one, namely m_max_rank.
+    if ( !m_max_rank_specified ) {
+      m_max_rank = m_F;
     }
     return true;
   }
@@ -160,6 +156,7 @@ namespace feature_isolation {
     }
     std::string token;
     m_file >> token;
+    m_line_number++;
     if ( !m_file ) {
       throw_error( "Error occurred when reading name of SPL in file " + m_filename );
     }
@@ -173,20 +170,23 @@ namespace feature_isolation {
     }
     unsigned_integer f;
     m_file >> f;
+    m_line_number++;
     if ( !m_file || f == 0u ) {
       throw_error( "Error occurred when reading number of independent features in file " + m_filename );
     }
     m_F = f;
-    m_feature_names = feature_names_t( f ); // Adjusted to create the correct number of elements
+    m_feature_names = feature_names_t( f );
     for ( auto& feature : m_feature_names ) {
       std::string token;
       m_file >> token;
+      m_line_number++;
       if ( !m_file ) {
         throw_error( "Error occurred when reading name of independent feature in file " + m_filename );
       }
       while ( to_upper( token ) == kw::COMMENT ) {
         parse_skip_line();
         m_file >> token;
+        m_line_number++;
         if ( !m_file ) {
           throw_error( "Error occurred when reading name of independent feature in file " + m_filename );
         }
@@ -203,6 +203,7 @@ namespace feature_isolation {
     std::string token;
     do {
       m_file >> token;
+      m_line_number++;
       if ( !m_file ) {
         throw_error( "Error occurred when reading feature category in file " + m_filename );
       }
@@ -242,6 +243,7 @@ namespace feature_isolation {
     std::string feature1, dependency, feature2, keyword;
     do {
       m_file >> feature1;
+      m_line_number++;
       if ( !m_file ) {
         throw_error( "Error occurred when reading 1st feature of dependency in file " + m_filename );
       }
@@ -277,7 +279,9 @@ namespace feature_isolation {
     if ( !m_feature_names_specified ) {
       throw_error( "Features must be specified before missing systems in file " + m_filename );
     }
-    auto systems { power2( power2( F ) ) };
+
+    unsigned_integer total_systems = 1 << m_F;
+
     std::string token;
     do {
       m_file >> token;
@@ -289,13 +293,14 @@ namespace feature_isolation {
         parse_skip_line();
       } else if ( token != kw::END ) {
         unsigned_integer id { std::stoull( token ) };
-        if ( id > systems ) {
+        if ( id < 1 || id > total_systems ) {
           throw_error( "Missing system with ID " + token + " cannot exist in file " + m_filename );
         }
         if ( m_missing_systems.contains( id ) ) {
           throw_error( "Missing system with ID " + token + " has been already specified in file " + m_filename );
         }
         m_missing_systems.insert( id );
+        m_line_number++;
       }
     } while ( token != kw::END );
     m_missing_systems_specified = true;
@@ -303,33 +308,35 @@ namespace feature_isolation {
 
   void spl_specification_t::parse_available_systems() {
     if ( m_available_systems_specified ) {
-      throw_error( "Available systems specified more than once in file " + m_filename );
+      throw_error( "Available systems specified more than once" );
     }
     if ( m_missing_systems_specified ) {
-      throw_error( "Available systems cannot be specified if missing systems have been specified before in file " + m_filename );
+      throw_error( "Available systems cannot be specified if missing systems have been specified before" );
     }
     if ( !m_feature_names_specified ) {
-      throw_error( "Features must be specified before missing systems in file " + m_filename );
+      throw_error( "Features must be specified before available systems" );
     }
-    auto systems { power2( power2( F ) ) };
+
+    unsigned_integer total_systems = 1 << m_F;
     std::string token;
     do {
       m_file >> token;
       if ( !m_file ) {
-        throw_error( "Error occurred when reading available systems in file " + m_filename );
+        throw_error( "Error occurred when reading available systems" );
       }
       token = to_upper( token );
       if ( token == kw::COMMENT ) {
         parse_skip_line();
       } else if ( token != kw::END ) {
         unsigned_integer id { std::stoull( token ) };
-        if ( id > systems ) {
-          throw_error( "Available system with ID " + token + " cannot exist in file " + m_filename );
+        if ( id < 1 || id > total_systems ) {
+          throw_error( "Available system with ID " + token + " cannot exist" );
         }
         if ( m_available_systems.contains( id ) ) {
-          throw_error( "Available system with ID " + token + " has been already specified in file " + m_filename );
+          throw_error( "Available system with ID " + token + " has been already specified" );
         }
         m_available_systems.insert( id );
+        m_line_number++;
       }
     } while ( token != kw::END );
     m_available_systems_specified = true;
@@ -341,6 +348,7 @@ namespace feature_isolation {
     }
     unsigned_integer rank;
     m_file >> rank;
+    m_line_number++;
     if ( !m_file ) {
       throw_error( "Error occurred when reading max rank of interaction in file " + m_filename );
     }
@@ -350,6 +358,7 @@ namespace feature_isolation {
     m_max_rank = rank;
     m_max_rank_specified = true;
   }
+
   void spl_specification_t::parse_skip_line() {
     m_file.ignore( std::numeric_limits<std::streamsize>::max(), '\n' );
   }
@@ -382,23 +391,21 @@ namespace feature_isolation {
   }
 
   void spl_specification_t::validate_constraints() const {
-    // ALL THIS NEEDS TBD IFF m_explicit_dependencies_specified == true
     if ( !m_explicit_dependencies_specified ) {
       return;
     }
+
     // Create a MiniSat solver instance
     Minisat::Solver solver;
 
     // Create variables for each feature
     std::vector<Minisat::Var> feature_vars( m_feature_names.size() );
-    // Why not a range-based for-loop? featre_vars is initialized correctly to
-    // m_feature_names.size() elements ...
     for ( auto& var : feature_vars ) {
       var = solver.newVar();
     }
 
     // Encode requires constraints
-    for ( const auto& [f1, f2] : m_requires ) { // Wow, structured binding!
+    for ( const auto& [f1, f2] : m_requires ) {
       // f1 -> f2 is equivalent to !f1 or f2
       solver.addClause( ~Minisat::mkLit( feature_vars[f1 - 1] ), Minisat::mkLit( feature_vars[f2 - 1] ) );
     }
@@ -409,27 +416,34 @@ namespace feature_isolation {
       solver.addClause( ~Minisat::mkLit( feature_vars[f1 - 1] ), ~Minisat::mkLit( feature_vars[f2 - 1] ) );
     }
 
-    // Check for self-exclusion
-    for ( const auto& [f1, f2] : m_excludes ) {
-      if ( f1 == f2 ) {
-        throw_error( "Feature " + m_feature_names[f1 - 1] + " excludes itself." );
-      }
-    }
+    // Calculate the total number of systems
+    unsigned_integer total_systems = 1 << m_F; // 2^F systems
 
     // ASSUME ALL SYSTEMS ARE AVAILABLE IF NEITHER AVAILABLE SYSTEMS NOR MISSING SYSTEMS ARE SPECIFIED
     systems_t effective_available_systems;
     if ( m_available_systems_specified ) {
       effective_available_systems = m_available_systems;
     } else if ( m_missing_systems_specified ) {
-      auto systems = power2( power2( m_F ) );
-      for ( unsigned_integer id = 0; id < systems; ++id ) {
-        if ( !m_missing_systems.contains( id ) ) {
+      for ( unsigned_integer id = 1; id <= total_systems; ++id ) {
+        bool valid = true;
+        for ( const auto& [f1, f2] : m_excludes ) {
+          if ( ( id & ( 1 << ( f1 - 1 ) ) ) && ( id & ( 1 << ( f2 - 1 ) ) ) ) {
+            valid = false;
+            break;
+          }
+        }
+        for ( const auto& [f1, f2] : m_requires ) {
+          if ( ( id & ( 1 << ( f1 - 1 ) ) ) && !( id & ( 1 << ( f2 - 1 ) ) ) ) {
+            valid = false;
+            break;
+          }
+        }
+        if ( valid && !m_missing_systems.contains( id ) ) {
           effective_available_systems.insert( id );
         }
       }
     } else {
-      auto systems = power2( power2( m_F ) );
-      for ( unsigned_integer id = 0; id < systems; ++id ) {
+      for ( unsigned_integer id = 1; id <= total_systems; ++id ) {
         effective_available_systems.insert( id );
       }
     }
@@ -437,18 +451,28 @@ namespace feature_isolation {
     // VALIDATE EFFECTIVE AVAILABLE SYSTEMS AGAINST CONSTRAINTS
     for ( const auto& system : effective_available_systems ) {
       for ( const auto& [f1, f2] : m_excludes ) {
-        if ( ( system & ( 1 << ( f1 - 1 ) ) ) && ( system & ( 1 << ( f2 - 1 ) ) ) ) {
-          throw_error( "Available system " + std::to_string( system ) + " inconsistently excludes both features " + m_feature_names[f1 - 1] + " and " + m_feature_names[f2 - 1] );
+        if ( f1 == f2 ) {
+          // Self-exclusion: ensure the feature is not in the system
+          if ( system & ( 1 << ( f1 - 1 ) ) ) {
+            throw_error( "Available system " + std::to_string( system ) + " includes feature " + m_feature_names[f1 - 1] + " which excludes itself." );
+          }
+        } else {
+          if ( ( system & ( 1 << ( f1 - 1 ) ) ) && ( system & ( 1 << ( f2 - 1 ) ) ) ) {
+            throw_error( "Available system " + std::to_string( system ) + " inconsistently excludes both features " + m_feature_names[f1 - 1] + " and " + m_feature_names[f2 - 1] );
+          }
         }
       }
       for ( const auto& [f1, f2] : m_requires ) {
         if ( ( system & ( 1 << ( f1 - 1 ) ) ) && !( system & ( 1 << ( f2 - 1 ) ) ) ) {
           throw_error( "Available system " + std::to_string( system ) + " inconsistently requires feature " + m_feature_names[f1 - 1] + " but does not include " + m_feature_names[f2 - 1] );
         }
+
+        if ( f1 == f2 && !( system & ( 1 << ( f1 - 1 ) ) ) ) {
+          throw_error( "Available system " + std::to_string( system ) + " does not include feature " + m_feature_names[f1 - 1] + " which requires itself." );
+        }
       }
     }
 
-    // Check if the constraints are consistent
     bool result = solver.solve();
     if ( !result ) {
       throw_error( "Constraints are inconsistent." );
@@ -459,7 +483,7 @@ namespace feature_isolation {
     std::ostringstream oss;
 
     if ( m_spl_specified ) {
-      oss << kw::SPL << separator() << m_spl << "\n";
+      oss << kw::SPL << separator() << m_spl << "\n\n";
     }
 
     if ( m_feature_names_specified ) {
@@ -467,23 +491,23 @@ namespace feature_isolation {
       for ( const auto& feature : m_feature_names ) {
         oss << feature << "\n";
       }
+      oss << "\n";
     }
 
-    if (m_max_rank_specified)
-    {
-       oss << kw::MAX_RANK << separator() << m_max_rank << '\n';
+    if ( m_max_rank_specified ) {
+      oss << kw::MAX_RANK << separator() << m_max_rank << "\n\n";
     }
 
     if ( m_categories_specified ) {
       oss << kw::CATEGORIES << "\n";
-      std::unordered_map<unsigned_integer, std::string_view> category_map = {
+      std::vector<std::pair<unsigned_integer, std::string_view>> ordered_categories = {
           { F, kw::F }, { A, kw::A }, { O, kw::O }, { N, kw::N }, { AN, kw::AN }, { ON, kw::ON }, { ANF, kw::ANF }, { ONF, kw::ONF } };
-      for ( const auto& [bit, name] : category_map ) {
+      for ( const auto& [bit, name] : ordered_categories ) {
         if ( m_categories & bit ) {
           oss << name << "\n";
         }
       }
-      oss << kw::END << "\n";
+      oss << kw::END << "\n\n";
     }
 
     if ( m_explicit_dependencies_specified ) {
@@ -494,7 +518,7 @@ namespace feature_isolation {
       for ( const auto& [key, value] : m_excludes ) {
         oss << m_feature_names[key - 1] << separator() << kw::EXCLUDES << separator() << m_feature_names[value - 1] << "\n";
       }
-      oss << kw::END << "\n";
+      oss << kw::END << "\n\n";
     }
 
     if ( m_missing_systems_specified ) {
@@ -502,7 +526,7 @@ namespace feature_isolation {
       for ( const auto& system : m_missing_systems ) {
         oss << system << "\n";
       }
-      oss << kw::END << "\n";
+      oss << kw::END << "\n\n";
     }
 
     if ( m_available_systems_specified ) {
@@ -510,7 +534,7 @@ namespace feature_isolation {
       for ( const auto& system : m_available_systems ) {
         oss << system << "\n";
       }
-      oss << kw::END << "\n";
+      oss << kw::END << "\n\n";
     }
 
     return oss.str();
