@@ -76,7 +76,7 @@ int main() {
   out << endl;
   fi.print_systems_features( out );
 
-  feature_isolation::spl_specification_t sample_spl_one { "constraints_violated.csv" };
+  feature_isolation::spl_specification_t sample_spl_one { "sample_spl_spec.csv" };
   sample_spl_one.output_to_csv( "output_spl.csv" );
   feature_isolation::spl_specification_t sample_spl_two { "output_spl.csv" };
   sample_spl_two.output_to_csv( "output_spl_final.csv" );
