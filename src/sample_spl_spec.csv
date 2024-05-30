@@ -22,6 +22,8 @@ ONF
 END		// Keyword END ends the enumeration of categories.	
 		// Categories that have not been mentioned are not included	
 		// (with the exception of F).	
+// Now the maximum rank of possible interactions is specified; this must occur after the specification of FEATURES			
+MAX_RANK	4	// MAX_RANK must not exceed the number of independent features.	
 			
 EXPLICIT_DEPENDENCIES		// Keyword EXPLICIT_DEPENDENCIES followed by individual dependencies.	
 Feature_A	requires	F_3	// The name of independent feature followed by keyword REQUIRES 
@@ -33,6 +35,7 @@ MISSING_SYSTEMS		// of ordinal numbers of systems that are not available.
 1			
 2			
 3			
+9			
 END		// Keyword END ends the list of missing systems.	
 			
 // AVAILABLE_SYSTEMS		// Keyword AVAILABLE_SYSTEMS is followed by a list	

@@ -36,7 +36,8 @@ namespace feature_isolation {
         REQUIRES { "REQUIRES" },
         EXCLUDES { "EXCLUDES" },
         MISSING_SYSTEMS { "MISSING_SYSTEMS" },
-        AVAILABLE_SYSTEMS { "AVAILABLE_SYSTEMS" };
+        AVAILABLE_SYSTEMS { "AVAILABLE_SYSTEMS" },
+        MAX_RANK { "MAX_RANK" };
   }
 
   [[nodiscard]] std::string to_upper( std::string s ) {
@@ -63,16 +64,18 @@ namespace feature_isolation {
     void parse_skip_line();
     void parse_feature();
     void parse_dependency( const std::string& f1, const std::string& dependency, const std::string& f2 );
+    void parse_max_rank();
     std::string format_parsed_data() const;
     void output_to_csv( const std::string& output_filename ) const;
     unsigned_integer feature_index( const std::string& f );
     const std::string m_filename;
     std::ifstream m_file;
     const bool m_success_open_file;
-    std::string m_spl {};
-    unsigned_integer m_F {};
+    std::string m_spl { "NOT_SPECIFIED" };
+    unsigned_integer m_F { };
     feature_names_t m_feature_names;
     unsigned_integer m_categories { F };
+    unsigned_integer m_max_rank { };
     dependencies_t m_requires,
         m_is_required_by,
         m_excludes,
@@ -84,7 +87,8 @@ namespace feature_isolation {
         m_categories_specified { false },
         m_explicit_dependencies_specified { false },
         m_missing_systems_specified { false },
-        m_available_systems_specified { false };
+        m_available_systems_specified { false },
+        m_max_rank_specified { false };
     const bool m_success_parse;
 
   private:
@@ -124,7 +128,8 @@ namespace feature_isolation {
         { kw::CATEGORIES.data(), &spl_specification_t::parse_categories },
         { kw::EXPLICIT_DEPENDENCIES.data(), &spl_specification_t::parse_explicit_dependencies },
         { kw::MISSING_SYSTEMS.data(), &spl_specification_t::parse_missing_systems },
-        { kw::AVAILABLE_SYSTEMS.data(), &spl_specification_t::parse_available_systems } };
+        { kw::AVAILABLE_SYSTEMS.data(), &spl_specification_t::parse_available_systems, },
+        { kw::MAX_RANK.data(), &spl_specification_t::parse_max_rank } };
 
     std::string token;
     while ( m_file >> token ) {
@@ -135,6 +140,12 @@ namespace feature_isolation {
       } else {
         throw_error( "Unexpected token " + token );
       }
+    }
+    // Still need to set default values for items that have not been specified.
+    // That's obviosly only one, namely m_max_rank.
+    if (!m_max_rank_specified)
+    { 
+       m_max_rank = m_F;
     }
     return true;
   }
@@ -324,6 +335,21 @@ namespace feature_isolation {
     m_available_systems_specified = true;
   }
 
+  void spl_specification_t::parse_max_rank() {
+    if ( m_max_rank_specified ) {
+      throw_error( "Max rank of interaction specified more than once in file " + m_filename );
+    }
+    unsigned_integer rank;
+    m_file >> rank;
+    if ( !m_file ) {
+      throw_error( "Error occurred when reading max rank of interaction in file " + m_filename );
+    }
+    if ( rank > m_F ) {
+      throw_error( "Max rank of interaction exceeds number of independent features in file " + m_filename );
+    }
+    m_max_rank = rank;
+    m_max_rank_specified = true;
+  }
   void spl_specification_t::parse_skip_line() {
     m_file.ignore( std::numeric_limits<std::streamsize>::max(), '\n' );
   }
@@ -433,18 +459,23 @@ namespace feature_isolation {
     std::ostringstream oss;
 
     if ( m_spl_specified ) {
-      oss << "SPL\t" << m_spl << "\n";
+      oss << kw::SPL << separator() << m_spl << "\n";
     }
 
     if ( m_feature_names_specified ) {
-      oss << "FEATURES\t" << m_F << "\n";
+      oss << kw::FEATURES << separator() << m_F << "\n";
       for ( const auto& feature : m_feature_names ) {
         oss << feature << "\n";
       }
     }
 
+    if (m_max_rank_specified)
+    {
+       oss << kw::MAX_RANK << separator() << m_max_rank << '\n';
+    }
+
     if ( m_categories_specified ) {
-      oss << "CATEGORIES\n";
+      oss << kw::CATEGORIES << "\n";
       std::unordered_map<unsigned_integer, std::string_view> category_map = {
           { F, kw::F }, { A, kw::A }, { O, kw::O }, { N, kw::N }, { AN, kw::AN }, { ON, kw::ON }, { ANF, kw::ANF }, { ONF, kw::ONF } };
       for ( const auto& [bit, name] : category_map ) {
@@ -452,34 +483,34 @@ namespace feature_isolation {
           oss << name << "\n";
         }
       }
-      oss << "END\n";
+      oss << kw::END << "\n";
     }
 
     if ( m_explicit_dependencies_specified ) {
-      oss << "EXPLICIT_DEPENDENCIES\n";
+      oss << kw::EXPLICIT_DEPENDENCIES << "\n";
       for ( const auto& [key, value] : m_requires ) {
-        oss << m_feature_names[key - 1] << "\trequires\t" << m_feature_names[value - 1] << "\n";
+        oss << m_feature_names[key - 1] << separator() << kw::REQUIRES << separator() << m_feature_names[value - 1] << "\n";
       }
       for ( const auto& [key, value] : m_excludes ) {
-        oss << m_feature_names[key - 1] << "\texcludes\t" << m_feature_names[value - 1] << "\n";
+        oss << m_feature_names[key - 1] << separator() << kw::EXCLUDES << separator() << m_feature_names[value - 1] << "\n";
       }
-      oss << "END\n";
+      oss << kw::END << "\n";
     }
 
     if ( m_missing_systems_specified ) {
-      oss << "MISSING_SYSTEMS\n";
+      oss << kw::MISSING_SYSTEMS << "\n";
       for ( const auto& system : m_missing_systems ) {
         oss << system << "\n";
       }
-      oss << "END\n";
+      oss << kw::END << "\n";
     }
 
     if ( m_available_systems_specified ) {
-      oss << "AVAILABLE_SYSTEMS\n";
+      oss << kw::AVAILABLE_SYSTEMS << "\n";
       for ( const auto& system : m_available_systems ) {
         oss << system << "\n";
       }
-      oss << "END\n";
+      oss << kw::END << "\n";
     }
 
     return oss.str();
