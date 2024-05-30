@@ -118,7 +118,6 @@ namespace feature_isolation {
   }
 
   bool spl_specification_t::setup() {
-    m_line_number = 1;
     m_file.open( m_filename );
     if ( !m_file ) {
       throw_error( "Cannot open file named " + m_filename );
@@ -165,7 +164,6 @@ namespace feature_isolation {
     }
     std::string token;
     m_file >> token;
-    m_line_number++;
     if ( !m_file ) {
       throw_error( "Error occurred when reading name of SPL in file " + m_filename );
     }
@@ -179,7 +177,6 @@ namespace feature_isolation {
     }
     unsigned_integer f;
     m_file >> f;
-    m_line_number++;
     if ( !m_file || f == 0u ) {
       throw_error( "Error occurred when reading number of independent features in file " + m_filename );
     }
@@ -188,14 +185,12 @@ namespace feature_isolation {
     for ( auto& feature : m_feature_names ) {
       std::string token;
       m_file >> token;
-      m_line_number++;
       if ( !m_file ) {
         throw_error( "Error occurred when reading name of independent feature in file " + m_filename );
       }
       while ( to_upper( token ) == kw::COMMENT ) {
         parse_skip_line();
         m_file >> token;
-        m_line_number++;
         if ( !m_file ) {
           throw_error( "Error occurred when reading name of independent feature in file " + m_filename );
         }
@@ -212,7 +207,6 @@ namespace feature_isolation {
     std::string token;
     do {
       m_file >> token;
-      m_line_number++;
       if ( !m_file ) {
         throw_error( "Error occurred when reading feature category in file " + m_filename );
       }
@@ -252,7 +246,6 @@ namespace feature_isolation {
     std::string feature1, dependency, feature2, keyword;
     do {
       m_file >> feature1;
-      m_line_number++;
       if ( !m_file ) {
         throw_error( "Error occurred when reading 1st feature of dependency in file " + m_filename );
       }
@@ -309,7 +302,6 @@ namespace feature_isolation {
           throw_error( "Missing system with ID " + token + " has been already specified in file " + m_filename );
         }
         m_missing_systems.insert( id );
-        m_line_number++;
       }
     } while ( token != kw::END );
     m_missing_systems_specified = true;
@@ -345,7 +337,6 @@ namespace feature_isolation {
           throw_error( "Available system with ID " + token + " has been already specified" );
         }
         m_available_systems.insert( id );
-        m_line_number++;
       }
     } while ( token != kw::END );
     m_available_systems_specified = true;
@@ -357,7 +348,6 @@ namespace feature_isolation {
     }
     unsigned_integer rank;
     m_file >> rank;
-    m_line_number++;
     if ( !m_file ) {
       throw_error( "Error occurred when reading max rank of interaction in file " + m_filename );
     }
