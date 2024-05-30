@@ -45,7 +45,7 @@ namespace feature_isolation {
     return s;
   }
 
-  class spl_specification_t final {
+class spl_specification_t final {
   public:
     using feature_names_t = std::vector<std::string>;
     using dependencies_t = std::multimap<unsigned_integer, unsigned_integer>;
@@ -92,15 +92,23 @@ namespace feature_isolation {
     const bool m_success_parse;
 
   private:
-    void throw_error( const std::string& message ) const;
+//    void throw_error( const std::string& message ) const;
+    void throw_error( const std::string& message,
+                      const std::string& fu = std::source_location::current().function_name(),
+                      const std::string& fi = std::source_location::current().file_name()) const;
     void validate_constraints() const; // New function to validate constraints
   };
 
-  void spl_specification_t::throw_error( const std::string& message ) const {
+/*  void spl_specification_t::throw_error( const std::string& message ) const {
     throw std::runtime_error { message + " in " +
-                               std::source_location::current().function_name() +
+                                + std::source_location::current().function_name()
                                " (" + std::source_location::current().file_name() + ")." };
-  }
+  } */
+  void spl_specification_t::throw_error( const std::string& message,
+                                         const std::string& fu,
+                                         const std::string& fi) const {
+    throw std::runtime_error { message + " in " + fu + " (" + fi + ")." };
+  } 
 
   spl_specification_t::spl_specification_t( const std::string& filename )
       : m_filename { filename }, m_success_open_file { setup() },
