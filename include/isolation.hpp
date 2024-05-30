@@ -11,7 +11,7 @@ namespace feature_isolation {
       public:
          explicit feature_isoation_t(const std::string& filename):
             m_spl { filename },
-            m_features { m_spl.m_f,m_max_rank }
+            m_features { m_spl.m_f,m_spl.m_max_rank,m_spl.m_feature_categories }
          {
          }
          const spl_specification_t m_spl;
