@@ -89,18 +89,12 @@ namespace feature_isolation {
     const bool m_success_parse;
 
   private:
-    //    void throw_error( const std::string& message ) const;
     void throw_error( const std::string& message,
                       const std::string& fu = std::source_location::current().function_name(),
                       const std::string& fi = std::source_location::current().file_name() ) const;
     void validate_constraints() const; // New function to validate constraints
   };
 
-  /*  void spl_specification_t::throw_error( const std::string& message ) const {
-      throw std::runtime_error { message + " in " +
-                                  + std::source_location::current().function_name()
-                                 " (" + std::source_location::current().file_name() + ")." };
-    } */
   void spl_specification_t::throw_error( const std::string& message,
                                          const std::string& fu,
                                          const std::string& fi ) const {
@@ -147,7 +141,6 @@ namespace feature_isolation {
       }
     }
     // Still need to set default values for items that have not been specified.
-    // That's obviously only one, namely m_max_rank.
     if ( !m_max_rank_specified ) {
       m_max_rank = m_F;
     }
@@ -230,7 +223,7 @@ namespace feature_isolation {
       } else if ( token == kw::COMMENT ) {
         parse_skip_line();
       } else if ( token != kw::END ) {
-        throw_error( "Error occurred when reading feature category in file " + m_filename );
+        throw_error( "Missing END keyword at the end of CATEGORIES section in file " + m_filename );
       }
     } while ( token != kw::END );
     m_categories_specified = true;
@@ -247,7 +240,10 @@ namespace feature_isolation {
     do {
       m_file >> feature1;
       if ( !m_file ) {
-        throw_error( "Error occurred when reading 1st feature of dependency in file " + m_filename );
+        if ( m_requires.empty() && m_excludes.empty() ) {
+          throw_error( "Error occurred when reading 1st feature of dependency in file " + m_filename );
+        }
+        throw_error( "Missing END keyword at the end of EXPLICIT_DEPENDENCIES section in file " + m_filename );
       }
       keyword = to_upper( feature1 );
       if ( keyword == kw::COMMENT ) {
@@ -288,7 +284,12 @@ namespace feature_isolation {
     do {
       m_file >> token;
       if ( !m_file ) {
-        throw_error( "Error occurred when reading missing systems in file " + m_filename );
+        if ( m_missing_systems.empty() ) {
+
+          throw_error( "Error occurred when reading missing systems in file " + m_filename );
+        }
+
+        throw_error( "Missing END keyword at the end of MISSING_SYSTEMS section in file " + m_filename );
       }
       token = to_upper( token );
       if ( token == kw::COMMENT ) {
@@ -323,7 +324,10 @@ namespace feature_isolation {
     do {
       m_file >> token;
       if ( !m_file ) {
-        throw_error( "Error occurred when reading available systems" );
+        if ( m_available_systems.empty() ) {
+          throw_error( "Error occurred when reading available systems" );
+        }
+        throw_error( "Missing END keyword at the end of AVAILABLE_SYSTEMS section in file " + m_filename );
       }
       token = to_upper( token );
       if ( token == kw::COMMENT ) {
@@ -369,7 +373,7 @@ namespace feature_isolation {
       throw_error( "Unknown feature " + f1 + " in dependency in file " + m_filename );
     }
     if ( f2_index == zero ) {
-      throw_error( "Unknown feature " + f2 + " in dependency in file " + m_filename );
+      return;
     }
     if ( dependency == kw::REQUIRES ) {
       m_requires.insert( std::make_pair( f1_index, f2_index ) );
@@ -394,31 +398,22 @@ namespace feature_isolation {
       return;
     }
 
-    // Create a MiniSat solver instance
     Minisat::Solver solver;
-
-    // Create variables for each feature
     std::vector<Minisat::Var> feature_vars( m_feature_names.size() );
     for ( auto& var : feature_vars ) {
       var = solver.newVar();
     }
 
-    // Encode requires constraints
     for ( const auto& [f1, f2] : m_requires ) {
-      // f1 -> f2 is equivalent to !f1 or f2
       solver.addClause( ~Minisat::mkLit( feature_vars[f1 - 1] ), Minisat::mkLit( feature_vars[f2 - 1] ) );
     }
 
-    // Encode excludes constraints
     for ( const auto& [f1, f2] : m_excludes ) {
-      // f1 excludes f2 is equivalent to !f1 or !f2
       solver.addClause( ~Minisat::mkLit( feature_vars[f1 - 1] ), ~Minisat::mkLit( feature_vars[f2 - 1] ) );
     }
 
-    // Calculate the total number of systems
-    unsigned_integer total_systems = 1 << m_F; // 2^F systems
+    unsigned_integer total_systems = 1 << m_F;
 
-    // ASSUME ALL SYSTEMS ARE AVAILABLE IF NEITHER AVAILABLE SYSTEMS NOR MISSING SYSTEMS ARE SPECIFIED
     systems_t effective_available_systems;
     if ( m_available_systems_specified ) {
       effective_available_systems = m_available_systems;
@@ -449,7 +444,6 @@ namespace feature_isolation {
 
     std::vector<std::string> error_messages;
 
-    // VALIDATE EFFECTIVE AVAILABLE SYSTEMS AGAINST CONSTRAINTS
     for ( const auto& system : effective_available_systems ) {
       for ( const auto& [f1, f2] : m_excludes ) {
         if ( ( system & ( 1 << ( f1 - 1 ) ) ) && ( system & ( 1 << ( f2 - 1 ) ) ) ) {
