@@ -1,6 +1,7 @@
 #include "../include/feature_analysis2.hpp"
 #include "../include/fi_mathhelper.hpp"
 #include "../include/spl.hpp"
+#include "../include/isolation.hpp"
 using namespace feature_isolation;
 #include <climits>
 #include <fstream>
@@ -80,4 +81,29 @@ int main() {
   sample_spl_one.output_to_csv( "output_spl.csv" );
   feature_isolation::spl_specification_t sample_spl_two { "output_spl.csv" };
   sample_spl_two.output_to_csv( "output_spl_final.csv" );
+
+{
+   // Playing with feature_isolation_t
+   feature_isolation_t isolation {"spl_isolation.csv" };
+   auto filename { isolation.m_spl.m_filename };
+   filename = filename.erase(filename.find(".csv"),4) + "_result.csv";
+   ofstream o { filename };
+   for (unsigned_integer id { 1 }; id <= 3; ++id )
+   {
+      auto decomposed_ids { isolation.decompose(id) };
+      o << "Feature" << separator() << id << '\n'
+        << "Present in system(s)";
+        for (auto s : decomposed_ids.i)
+        {
+           o << separator() << s;
+        }
+        o << '\n';
+        o << "Absent in system(s)";
+        for (auto s : decomposed_ids.u)
+        {
+           o << separator() << s;
+        }
+        o << '\n' << endl;
+   }
+}
 }
