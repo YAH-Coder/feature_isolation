@@ -447,29 +447,28 @@ namespace feature_isolation {
       }
     }
 
+    std::vector<std::string> error_messages;
+
     // VALIDATE EFFECTIVE AVAILABLE SYSTEMS AGAINST CONSTRAINTS
     for ( const auto& system : effective_available_systems ) {
       for ( const auto& [f1, f2] : m_excludes ) {
-        if ( f1 == f2 ) {
-          // Self-exclusion: ensure the feature is not in the system
-          if ( system & ( 1 << ( f1 - 1 ) ) ) {
-            throw_error( "Available system " + std::to_string( system ) + " includes feature " + m_feature_names[f1 - 1] + " which excludes itself." );
-          }
-        } else {
-          if ( ( system & ( 1 << ( f1 - 1 ) ) ) && ( system & ( 1 << ( f2 - 1 ) ) ) ) {
-            throw_error( "Available system " + std::to_string( system ) + " inconsistently excludes both features " + m_feature_names[f1 - 1] + " and " + m_feature_names[f2 - 1] );
-          }
+        if ( ( system & ( 1 << ( f1 - 1 ) ) ) && ( system & ( 1 << ( f2 - 1 ) ) ) ) {
+          error_messages.emplace_back( "Available system " + std::to_string( ( system + 1 ) ) + " is illegal, because of Constraint " + m_feature_names[f1 - 1] + " excludes " + m_feature_names[f2 - 1] );
         }
       }
       for ( const auto& [f1, f2] : m_requires ) {
         if ( ( system & ( 1 << ( f1 - 1 ) ) ) && !( system & ( 1 << ( f2 - 1 ) ) ) ) {
-          throw_error( "Available system " + std::to_string( system ) + " inconsistently requires feature " + m_feature_names[f1 - 1] + " but does not include " + m_feature_names[f2 - 1] );
-        }
-
-        if ( f1 == f2 && !( system & ( 1 << ( f1 - 1 ) ) ) ) {
-          throw_error( "Available system " + std::to_string( system ) + " does not include feature " + m_feature_names[f1 - 1] + " which requires itself." );
+          error_messages.emplace_back( "Available system " + std::to_string( ( system + 1 ) ) + " is illegal, because of Constraint " + m_feature_names[f1 - 1] + " requires " + m_feature_names[f2 - 1] );
         }
       }
+    }
+
+    if ( !error_messages.empty() ) {
+      std::ostringstream oss;
+      for ( const auto& message : error_messages ) {
+        oss << message << "\n";
+      }
+      throw std::runtime_error( oss.str() );
     }
 
     bool result = solver.solve();
