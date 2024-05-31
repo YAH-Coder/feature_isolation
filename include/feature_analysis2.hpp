@@ -237,6 +237,10 @@ namespace feature_isolation {
        << ( ( C & ::feature_isolation::ONF ) ? "ONF" : "---" )
        << '\"';
   }
+  // Die folgende Methode liefert nicht die erwarteten Ergebnisse.
+  // system.all_features() scheint leer zu sein. Dies gilt offenbar
+  // auch für die anderen Mengen. Habe das aber noch nicht 
+  // abschliessend ueberprueft.
   void feature_analysis_t::print_system_statistics( std::ostream& os, const system_t& system, unsigned_integer id ) const {
     os << id << separator() << system.F_feature_ids.size() << separator()
        << system.N_feature_ids.size() << separator()
@@ -331,6 +335,9 @@ namespace feature_isolation {
        << S << separator()
        << R << separator();
     print_categories( os );
+    os << std::endl;
+    /**/os << "HIER SOLLTEN FEATURE IDs KOMMEN ";
+    print_systems_features( os );
     os << std::endl;
   }
   [[nodiscard]] features_t feature_analysis_t::initialize_F_features() const {

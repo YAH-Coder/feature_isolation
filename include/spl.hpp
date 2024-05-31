@@ -105,6 +105,27 @@ namespace feature_isolation {
       : m_filename { filename }, m_success_open_file { setup() },
         m_success_parse { parse() } {
     validate_constraints();
+    if (!m_explicit_dependencies_specified)
+    {
+       auto S { power2(m_F) };
+       if (!m_available_systems_specified && !m_missing_systems_specified)
+       {
+          for (unsigned_integer id { 1 };id <= S; ++id)
+          {
+             m_available_systems.insert(id);
+          }
+       }
+       if (m_missing_systems_specified)
+       {
+          for (unsigned_integer id { 1 };id <= S; ++id)
+          {
+             if (!m_missing_systems.contains(id))
+             {
+                m_available_systems.insert(id);
+             }
+          }          
+       }
+    }
   }
 
   spl_specification_t::~spl_specification_t() {
