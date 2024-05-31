@@ -62,7 +62,7 @@ void memory_representation( unsigned_integer F ) {
 }
 
 int main() {
-  cout << "F\tS\tT\tF1\tF2\tF3\tS1\tS2" << endl;
+/*  cout << "F\tS\tT\tF1\tF2\tF3\tS1\tS2" << endl;
   for ( unsigned_integer F = 2; F <= 20; ++F ) {
     memory_representation( F );
   }
@@ -83,7 +83,7 @@ int main() {
   sample_spl_one.output_to_csv( "output_spl.csv" );
   feature_isolation::spl_specification_t sample_spl_two { "output_spl.csv" };
   sample_spl_two.output_to_csv( "output_spl_final.csv" );
-
+*/
 {
    // Playing with feature_isolation_t
    feature_isolation_t isolation {"spl_isolation.csv" };
