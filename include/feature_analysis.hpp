@@ -41,12 +41,20 @@ namespace feature_isolation {
   static const std::array<std::string, 8> feature_categories = { "F", "N", "A", "O", "AN", "ON", "ANF", "ONF" };
 
   [[nodiscard]] char separator( const char s = 0 );
-  class system_t {
-  public:
-    feature_ids_t F_feature_ids, N_feature_ids, A_feature_ids, O_feature_ids, AN_feature_ids, ON_feature_ids, ANF_feature_ids, ONF_feature_ids;
-    std::array<feature_ids_t, 8> category_sets;
-    [[nodiscard]] auto DF() const;
-    auto all_features() const;
+    class system_t
+  {
+    public:
+      feature_ids_t F_feature_ids,
+                    N_feature_ids,
+                    A_feature_ids,
+                    O_feature_ids,
+                    AN_feature_ids,
+                    ON_feature_ids,
+                    ANF_feature_ids,
+                    ONF_feature_ids;
+     [[nodiscard]] auto DF() const;
+     [[nodiscard]] auto T() const;
+     auto all_features() const;
   };
 
   using systems_t = std::vector<system_t>;

@@ -64,27 +64,17 @@ namespace feature_isolation {
   }
 
   void feature_analysis_t::print_system_statistics( std::ostream& os, const system_t& system, unsigned_integer id ) const {
-    unsigned_integer f_count = system.category_sets[0].size();
-    unsigned_integer n_count = system.category_sets[1].size();
-    unsigned_integer a_count = system.category_sets[2].size();
-    unsigned_integer o_count = system.category_sets[3].size();
-    unsigned_integer an_count = system.category_sets[4].size();
-    unsigned_integer on_count = system.category_sets[5].size();
-    unsigned_integer anf_count = system.category_sets[6].size();
-    unsigned_integer onf_count = system.category_sets[7].size();
-    unsigned_integer df_count = f_count + n_count + a_count + o_count + an_count + on_count + anf_count + onf_count;
-    unsigned_integer t_count = df_count + f_count;
-
-    os << id << separator() << f_count << separator()
-       << n_count << separator()
-       << a_count << separator()
-       << o_count << separator()
-       << an_count << separator()
-       << on_count << separator()
-       << anf_count << separator()
-       << onf_count << separator()
-       << df_count << separator()
-       << t_count << std::endl;
+    os << id << separator() << system.F_feature_ids.size() << separator()
+       << system.N_feature_ids.size() << separator()
+       << system.A_feature_ids.size() << separator()
+       << system.O_feature_ids.size() << separator()
+       << system.AN_feature_ids.size() << separator()
+       << system.ON_feature_ids.size() << separator()
+       << system.ANF_feature_ids.size() << separator()
+       << system.ONF_feature_ids.size() << separator()
+       << system.DF() << separator()
+       << ( system.DF() + system.F_feature_ids.size() ) << std::endl;
+    ;
   }
 
   void feature_analysis_t::print_systems_statistics( std::ostream& os ) const {
@@ -104,18 +94,53 @@ namespace feature_isolation {
     }
   }
 
-  void feature_analysis_t::print_system_features( std::ostream& os, const system_t& system, unsigned_integer id ) const {
+ void feature_analysis_t::print_system_features(std::ostream& os, const system_t& system, unsigned_integer id) const {
     os << "SYSTEM ID" << separator() << id << separator();
 
-    // Calculate the bitstring for (id - 1)
-    unsigned_integer value = id - 1;
-    std::string bitstring;
-    for ( unsigned_integer i = 0; i < F; ++i ) {
-      bitstring = ( ( value % 2 ) ? '1' : '0' ) + bitstring;
-      value /= 2;
+    // Print all feature IDs for this system
+    os << "F: ";
+    for (const auto& feature_id : system.F_feature_ids) {
+        os << feature_id << " ";
     }
-    os << bitstring;
-  }
+
+    os << "| N: ";
+    for (const auto& feature_id : system.N_feature_ids) {
+        os << feature_id << " ";
+    }
+
+    os << "| A: ";
+    for (const auto& feature_id : system.A_feature_ids) {
+        os << feature_id << " ";
+    }
+
+    os << "| O: ";
+    for (const auto& feature_id : system.O_feature_ids) {
+        os << feature_id << " ";
+    }
+
+    os << "| AN: ";
+    for (const auto& feature_id : system.AN_feature_ids) {
+        os << feature_id << " ";
+    }
+
+    os << "| ON: ";
+    for (const auto& feature_id : system.ON_feature_ids) {
+        os << feature_id << " ";
+    }
+
+    os << "| ANF: ";
+    for (const auto& feature_id : system.ANF_feature_ids) {
+        os << feature_id << " ";
+    }
+
+    os << "| ONF: ";
+    for (const auto& feature_id : system.ONF_feature_ids) {
+        os << feature_id << " ";
+    }
+
+    os << std::endl;
+}
+
 
   void feature_analysis_t::print_systems_features( std::ostream& os ) const {
     for ( auto id { zero }; const auto& system : m_systems ) {
@@ -354,103 +379,88 @@ namespace feature_isolation {
   }
 
   void feature_analysis_t::insert_id( systems_t& systems, const feature_t& feature, unsigned_integer feature_id, unsigned_integer category ) const {
-    for ( unsigned_integer system_id = 0; system_id < systems.size(); ++system_id ) {
-      if ( feature[system_id] ) {
-        systems[system_id].category_sets[category].insert( feature_id );
+    for ( auto system_id { zero }; auto system : feature ) {
+      if ( system ) {
+        switch ( category ) {
+        case ::feature_isolation::F:
+          systems.at( system_id ).F_feature_ids.insert( feature_id );
+          break;
+        case ::feature_isolation::N:
+          systems.at( system_id ).N_feature_ids.insert( feature_id );
+          break;
+        case ::feature_isolation::A:
+          systems.at( system_id ).A_feature_ids.insert( feature_id );
+          break;
+        case ::feature_isolation::O:
+          systems.at( system_id ).O_feature_ids.insert( feature_id );
+          break;
+        case ::feature_isolation::AN:
+          systems.at( system_id ).AN_feature_ids.insert( feature_id );
+          break;
+        case ::feature_isolation::ON:
+          systems.at( system_id ).ON_feature_ids.insert( feature_id );
+          break;
+        case ::feature_isolation::ANF:
+          systems.at( system_id ).ANF_feature_ids.insert( feature_id );
+          break;
+        case ::feature_isolation::ONF:
+          systems.at( system_id ).ONF_feature_ids.insert( feature_id );
+          break;
+        }
       }
+      ++system_id;
     }
   }
 
   systems_t feature_analysis_t::initialize_systems() const {
-    systems_t systems( S );
+    systems_t result( S, system_t {} );
+    auto feature_id { zero };
 
-    // Define the size of the bitsets based on the number of systems
-    constexpr size_t bitset_size = sizeof( unsigned_integer ) * 8;
-
-    // Initialize bitstrings for each system
-    for ( unsigned_integer system_id = 0; system_id < S; ++system_id ) {
-      std::vector<std::bitset<bitset_size>> bitstrings( 8 ); // 0: Independent, 1: Not, 2: Or, 3: And, 4: Or-Not, 5: And-Not, 6: ANF, 7: ONF
-
-      // Local sets to store feature IDs for each category
-      std::array<std::set<unsigned_integer>, 8> local_category_sets;
-
-      // Independent Features
-      bitstrings[0] = std::bitset<bitset_size>( system_id );
-
-      // Not-Features
-      bitstrings[1] = ~bitstrings[0];
-
-      // Or-Features
-      for ( unsigned_integer i = 0; i < F; ++i ) {
-        for ( unsigned_integer j = i + 1; j < F; ++j ) {
-          bitstrings[2][i] = bitstrings[2][i] || ( bitstrings[0][i] || bitstrings[0][j] );
+    // Lambda function to reverse the system IDs in the features
+    auto reverse_feature = [&]( const features_t& features, unsigned_integer offset, unsigned_integer category ) {
+      auto reversed_features = features;
+      for ( const auto& feature : reversed_features ) {
+        feature_t reversed_feature( S );
+        for ( auto system_id { zero }; system_id < S; ++system_id ) {
+          reversed_feature[S - system_id - 1] = feature[system_id];
         }
+        insert_id( result, reversed_feature, feature_id++, category );
       }
+    };
 
-      // And-Features
-      for ( unsigned_integer i = 0; i < F; ++i ) {
-        for ( unsigned_integer j = i + 1; j < F; ++j ) {
-          bitstrings[3][i] = bitstrings[3][i] && ( bitstrings[0][i] && bitstrings[0][j] );
-        }
-      }
-
-      // Or-Not-Features
-      for ( unsigned_integer i = 0; i < F; ++i ) {
-        for ( unsigned_integer j = i + 1; j < F; ++j ) {
-          bitstrings[4][i] = bitstrings[4][i] || ( bitstrings[1][i] || bitstrings[1][j] );
-        }
-      }
-
-      // And-Not-Features
-      for ( unsigned_integer i = 0; i < F; ++i ) {
-        for ( unsigned_integer j = i + 1; j < F; ++j ) {
-          bitstrings[5][i] = bitstrings[5][i] && ( bitstrings[1][i] && bitstrings[1][j] );
-        }
-      }
-
-      // ANF-Features
-      for ( unsigned_integer i = 0; i < F; ++i ) {
-        bitstrings[6][i] = bitstrings[0][i] && bitstrings[5][i];
-      }
-
-      // ONF-Features
-      for ( unsigned_integer i = 0; i < F; ++i ) {
-        bitstrings[7][i] = bitstrings[0][i] || bitstrings[4][i];
-      }
-
-      // Insert feature IDs into local sets based on bitstrings
-      auto insert_features = [&]( const std::bitset<bitset_size>& bitstring, unsigned_integer start_id, unsigned_integer category ) {
-        for ( unsigned_integer feature_id = 0; feature_id < F; ++feature_id ) {
-          if ( bitstring[feature_id] ) {
-            local_category_sets[category].insert( start_id + feature_id );
-          }
-        }
-      };
-
-      insert_features( bitstrings[0], 1, 0 );                                 // Independent Features
-      insert_features( bitstrings[1], F + 1, 1 );                             // Not-Features
-      insert_features( bitstrings[2], F + N + 1, 2 );                         // Or-Features
-      insert_features( bitstrings[3], F + N + A + 1, 3 );                     // And-Features
-      insert_features( bitstrings[4], F + N + A + O + 1, 4 );                 // Or-Not-Features
-      insert_features( bitstrings[5], F + N + A + O + AN + 1, 5 );            // And-Not-Features
-      insert_features( bitstrings[6], F + N + A + O + AN + ON + 1, 6 );       // ANF-Features
-      insert_features( bitstrings[7], F + N + A + O + AN + ON + ANF + 1, 7 ); // ONF-Features
-
-      // Assign local sets to the current system's category sets
-      systems[system_id].category_sets = std::move( local_category_sets );
-
-      // Debug print all the contents of the sets for the current system
-      std::cout << "System " << system_id << ":\n";
-      for ( unsigned_integer category = 0; category < 8; ++category ) {
-        std::cout << "  Category " << category << ": ";
-        for ( const auto& feature_id : systems[system_id].category_sets[category] ) {
-          std::cout << feature_id << " ";
-        }
-        std::cout << "\n";
-      }
+    if ( C & feature_isolation::F ) {
+      reverse_feature( F_features, zero, ::feature_isolation::F );
+    }
+    if ( C & feature_isolation::N ) {
+      feature_id = F;
+      reverse_feature( N_features, F, ::feature_isolation::N );
+    }
+    if ( C & feature_isolation::A ) {
+      feature_id = F + N;
+      reverse_feature( A_features, F + N, ::feature_isolation::A );
+    }
+    if ( C & feature_isolation::O ) {
+      feature_id = F + N + A;
+      reverse_feature( O_features, F + N + A, ::feature_isolation::O );
+    }
+    if ( C & feature_isolation::AN ) {
+      feature_id = F + N + A + O;
+      reverse_feature( AN_features, F + N + A + O, ::feature_isolation::AN );
+    }
+    if ( C & feature_isolation::ON ) {
+      feature_id = F + N + A + O + AN;
+      reverse_feature( ON_features, F + N + A + O + AN, ::feature_isolation::ON );
+    }
+    if ( C & feature_isolation::ANF ) {
+      feature_id = F + N + A + O + AN + ON;
+      reverse_feature( ANF_features, F + N + A + O + AN + ON, ::feature_isolation::ANF );
+    }
+    if ( C & feature_isolation::ONF ) {
+      feature_id = F + N + A + O + AN + ON + ANF;
+      reverse_feature( ONF_features, F + N + A + O + AN + ON + ANF, ::feature_isolation::ONF );
     }
 
-    return systems;
+    return result;
   }
 
   [[nodiscard]] char separator( const char s ) {
