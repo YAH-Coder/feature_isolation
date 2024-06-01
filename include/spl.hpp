@@ -371,6 +371,9 @@ namespace feature_isolation {
     if ( m_max_rank_specified ) {
       throw_error( "Max rank of interaction specified more than once in file " + m_filename );
     }
+    if ( !m_feature_names_specified ) {
+      throw_error( "Features must be specified before max rank of interaction in file " + m_filename );
+    }
     unsigned_integer rank;
     m_file >> rank;
     if ( !m_file ) {
