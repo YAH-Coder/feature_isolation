@@ -1,132 +1,142 @@
-// This document describes the DSL for the specification of an SPL.	
-// Version 1.0, June 1, 2024, by Yannis Hübenthal & Ulrich Eisenecker	
-	
-// A comment begins with // and must be followed by a whitespace (space, tab).	
-// It extends to the next newline character.	
-	
-// Keywords are	
-// SPL, FEATURES, CATEGORIES, END, MAX_RANK, 	
-// EXPLICIT_DEPENDENCIES, MISSING_SYSTEMS and 	
-// AVAILABLE_SYSTEMS.	
-// A keyword must be terminated with a whitespace. 	
-// Keywords are NOT case sensitive.	
-	
-// SPL has the cardinality 0..1. 	
-// It enables the specification of a name for a DSL. 	
-// The name must not contain any whitespaces. 	
-// A name is terminated by a whitespace.	
-	
-SPL	This_is_the_name_of_an_SPL
-	
-// FEATURES has the cardinality 1. 	
-// It specifies the number of independent features of an SPL, 	
-// followed by the names of the independent features. 	
-// There must be exactly as many feature names as the number of features specified. 	
-// A number is terminated by any character that cannot be part of an integer, 	
-// e.g. a whitespace. 	
-// IMPORTANT: The list of feature names is NOT terminated with END.	
-// Currently, there is no check for duplicate feature names.	
-	
-FEATURES	4
-Iterative_Factorial_Calculation	
-Recursive_Factorial_Calculation	
-Logging	
-Arithmetic_Checking	
-	
-// CATEGORIES has the cardinality 0..1. 	
-// CATEGORIES is used to define which feature categories are 	
-// to be included in the feature analysis and feature isolation.	
-// Valid category values are F, A, O, AN, ON, ANF and ONF. 	
-// If CATEGORY is not explicitly specified, F is implicitly assumed 	
-// to be the only category. The category values can be specified 	
-// in any order. If a category value is specified more than once, 	
-// CATEGORY can appear anywhere in the SPL specification.	
-	
-CATEGORIES	
-F	
-A	
-O	
-N	
-AN	
-ON	
-ANF	
-ONF	
-END	
-	
-// MAX_RANK has the cardinality 0..1. 	
-// It specifies the maximum number of feature interactions 	
-// in relation to the categories A, O, AN, ON, ANF and ONF 	
-// that are taken into account. MAX_RANK must be equal to 	
-// or less than the number of independent features. 	
-// FEATURES must be specified before MAX_RANK.	
-	
-MAX_RANK	4
-	
-// EXPLICIT_DEPENDENCIES has the cardinality 0..1. 	
-// It is used to explicitly specify dependent features. 	
-// Possible dependencies are REQUIRES and EXCLUDES. 	
-// A feature must be specified by its name introduced in the 	
-// FEATURES specification, which must precede it for this 	
-// reason. It is only possible to specify a dependency 	
-// between exactly two features, with one exception. 	
-// If a feature is specified as requiring itself, 	
-// e.g. feature_a requires feature_a, 	
-// this means that this feature must be contained in 	
-// every system of an SPL, i.e. it becomes a so-called 	
-// core feature. After the parsing of the SPL specification 	
-// is completed, a SAT solver is executed to check the 	
-// specified dependencies for consistency, also with 	
-// regard to any specified available or missing systems. 	
-// The list of explicit dependencies must be concluded with	
-//  END. If EXPLICIT_DEPENDENCIES is missing, 	
-// there are no explicitly dependent features.	
-	
-// EXPLICIT_DEPENDENCIES	
-// END	
-	
-// MISSING_SYSTEMS has a cardinality of 0..1 and 	
-// specifies all systems that are not available. 	
-// It must occur after FEATURES. Each missing system 	
-// is specified by its ID. The ID of the first system is 1, 	
-// the ID of the last system is 2 to the power of F. 	
-// In the system with ID 1 every feature is not available, 	
-// in the system with the highest ID every feature is 	
-// available. The list of system IDs must be terminated 	
-// with END. If EXPLICIT_DEPENDENCIES is also 	
-// specified, no system ID may be specified that does 	
-// not exist due to the constraints. It is permissible to 	
-// specify missing systems that would exist if the 	
-// constraints were applied. The specification of 	
-// MISSING_SYSTEMS can be omitted. 	
-// If MISSING_SYSTEMS occurs, AVAILABLE_SYSTEMS 	
-// may no longer be specified and vice versa. If neither 	
-// MISSING_SYSTEMS nor AVAILABLE_SYSTEMS 	
-// are specified, it is assumed that all systems that 	
-// can occur according to the constraints are present.	
-	
-// MISSING_SYSTEMS	
-// END	
-	
-// AVAILABLE_SYSTEMS has a cardinality of 0..1 	
-// and specifies all systems that are available. 	
-// It must occur after FEATURES. Each available 	
-// system is specified by its ID. The ID of the first 	
-// system is 1, the ID of the last system is 2 to the 	
-// power of F. In the system with ID 1 every feature 	
-// is not available, in the system with the highest ID 	
-// every feature is available. The list of system IDs 	
-// must be terminated with END. 	
-// If EXPLICIT_DEPENDENCIES is also specified, 	
-// no system ID may be specified that does not exist 	
-// due to the constraints. It is permissible not to specify 	
-// existing systems that would exist if the constraints 	
-// were applied. The specification of AVAILABLE_SYSTEMS 	
-// can be omitted. If AVAILABLE_SYSTEMS occurs, 	
-// MISSING_SYSTEMS may no longer be specified 	
-// and vice versa. If neither MISSING_SYSTEMS nor 	
-// AVAILABLE_SYSTEMS are specified, it is assumed 	
-// that all systems that can occur according to the 	
-// constraints are present.	
-	
-// AVAILABLE_SYSTEMS	
-// END	
+// This document describes the DSL for the specification of an SPL.		
+// Version 1.0, June 1, 2024, by Yannis Hübenthal & Ulrich Eisenecker		
+		
+// A comment begins with // and must be followed by a whitespace (space, tab).		
+// It extends to the next newline character.		
+		
+// Keywords are		
+// SPL, FEATURES, CATEGORIES, END, MAX_RANK, 		
+// EXPLICIT_DEPENDENCIES, MISSING_SYSTEMS and 		
+// AVAILABLE_SYSTEMS.		
+// A keyword must be terminated with a whitespace. 		
+// Keywords are NOT case sensitive.		
+		
+// SPL has the cardinality 0..1. 		
+// It enables the specification of a name for a DSL. 		
+// The name must not contain any whitespaces. 		
+// A name is terminated by a whitespace.		
+		
+SPL	This_is_the_name_of_an_SPL	
+		
+// FEATURES has the cardinality 1. 		
+// It specifies the number of independent features of an SPL, 		
+// followed by the names of the independent features. 		
+// There must be exactly as many feature names as the number of features specified. 		
+// A number is terminated by any character that cannot be part of an integer, 		
+// e.g. a whitespace. 		
+// IMPORTANT: The list of feature names is NOT terminated with END.		
+// Currently, there is no check for duplicate feature names.		
+		
+FEATURES	4	
+Iterative_Factorial_Calculation		
+Recursive_Factorial_Calculation		
+Logging		
+Arithmetic_Checking		
+		
+// CATEGORIES has the cardinality 0..1. 		
+// CATEGORIES is used to define which feature categories are 		
+// to be included in the feature analysis and feature isolation.		
+// Valid category values are F, A, O, AN, ON, ANF and ONF. 		
+// If CATEGORY is not explicitly specified, F is implicitly assumed 		
+// to be the only category. The category values can be specified 		
+// in any order. If a category value is specified more than once, 		
+// CATEGORY can appear anywhere in the SPL specification.		
+		
+CATEGORIES		
+F		
+A		
+O		
+N		
+AN		
+ON		
+ANF		
+ONF		
+END		
+		
+// MAX_RANK has the cardinality 0..1. 		
+// It specifies the maximum number of feature interactions 		
+// in relation to the categories A, O, AN, ON, ANF and ONF 		
+// that are taken into account. MAX_RANK must be equal to 		
+// or less than the number of independent features. 		
+// FEATURES must be specified before MAX_RANK.		
+		
+MAX_RANK	4	
+		
+// EXPLICIT_DEPENDENCIES has the cardinality 0..1. 		
+// It is used to explicitly specify dependent features. 		
+// Possible dependencies are REQUIRES,EXCLUDES,		
+// IMPLIES_OR and IMPLIES_XOR.		
+// A feature must be specified by its name introduced in the 		
+// FEATURES specification, which must precede it for this 		
+// reason. With REQUIRES AND EXCLUDES a dependency 		
+// between exactly two features, with one exception. 		
+// If a feature is specified as requiring itself, 		
+// e.g. feature_a requires feature_a, 		
+// this means that this feature must be contained in 		
+// every system of an SPL, i.e. it becomes a so-called 		
+// core feature. 		
+		
+		
+		
+		
+		
+		
+// After the parsing of the SPL specification 		
+// is completed, a SAT solver is executed to check the 		
+// specified dependencies for consistency, also with 		
+// regard to any specified available or missing systems. 		
+A	IMPLIES_OR	( B C D E )
+D	IMPLIES_XOR	( F G H I )
+// The list of explicit dependencies must be concluded with		
+//  END. If EXPLICIT_DEPENDENCIES is missing, 		
+// there are no explicitly dependent features.		
+		
+// EXPLICIT_DEPENDENCIES		
+// END		
+		
+// MISSING_SYSTEMS has a cardinality of 0..1 and 		
+// specifies all systems that are not available. 		
+// It must occur after FEATURES. Each missing system 		
+// is specified by its ID. The ID of the first system is 1, 		
+// the ID of the last system is 2 to the power of F. 		
+// In the system with ID 1 every feature is not available, 		
+// in the system with the highest ID every feature is 		
+// available. The list of system IDs must be terminated 		
+// with END. If EXPLICIT_DEPENDENCIES is also 		
+// specified, no system ID may be specified that does 		
+// not exist due to the constraints. It is permissible to 		
+// specify missing systems that would exist if the 		
+// constraints were applied. The specification of 		
+// MISSING_SYSTEMS can be omitted. 		
+// If MISSING_SYSTEMS occurs, AVAILABLE_SYSTEMS 		
+// may no longer be specified and vice versa. If neither 		
+// MISSING_SYSTEMS nor AVAILABLE_SYSTEMS 		
+// are specified, it is assumed that all systems that 		
+// can occur according to the constraints are present.		
+		
+// MISSING_SYSTEMS		
+// END		
+		
+// AVAILABLE_SYSTEMS has a cardinality of 0..1 		
+// and specifies all systems that are available. 		
+// It must occur after FEATURES. Each available 		
+// system is specified by its ID. The ID of the first 		
+// system is 1, the ID of the last system is 2 to the 		
+// power of F. In the system with ID 1 every feature 		
+// is not available, in the system with the highest ID 		
+// every feature is available. The list of system IDs 		
+// must be terminated with END. 		
+// If EXPLICIT_DEPENDENCIES is also specified, 		
+// no system ID may be specified that does not exist 		
+// due to the constraints. It is permissible not to specify 		
+// existing systems that would exist if the constraints 		
+// were applied. The specification of AVAILABLE_SYSTEMS 		
+// can be omitted. If AVAILABLE_SYSTEMS occurs, 		
+// MISSING_SYSTEMS may no longer be specified 		
+// and vice versa. If neither MISSING_SYSTEMS nor 		
+// AVAILABLE_SYSTEMS are specified, it is assumed 		
+// that all systems that can occur according to the 		
+// constraints are present.		
+		
+// AVAILABLE_SYSTEMS		
+// END		
