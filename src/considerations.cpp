@@ -1,4 +1,4 @@
-#include "../include/feature_analysis2.hpp"
+#include "../include/feature_analysis.hpp"
 #include "../include/fi_mathhelper.hpp"
 #include "../include/spl.hpp"
 #include "../include/isolation.hpp"
