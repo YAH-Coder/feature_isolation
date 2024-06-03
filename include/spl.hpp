@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace feature_isolation {
@@ -105,26 +106,20 @@ namespace feature_isolation {
       : m_filename { filename }, m_success_open_file { setup() },
         m_success_parse { parse() } {
     validate_constraints();
-    if (!m_explicit_dependencies_specified)
-    {
-       auto S { power2(m_F) };
-       if (!m_available_systems_specified && !m_missing_systems_specified)
-       {
-          for (unsigned_integer id { 1 };id <= S; ++id)
-          {
-             m_available_systems.insert(id);
+    if ( !m_explicit_dependencies_specified ) {
+      auto S { power2( m_F ) };
+      if ( !m_available_systems_specified && !m_missing_systems_specified ) {
+        for ( unsigned_integer id { 1 }; id <= S; ++id ) {
+          m_available_systems.insert( id );
+        }
+      }
+      if ( m_missing_systems_specified ) {
+        for ( unsigned_integer id { 1 }; id <= S; ++id ) {
+          if ( !m_missing_systems.contains( id ) ) {
+            m_available_systems.insert( id );
           }
-       }
-       if (m_missing_systems_specified)
-       {
-          for (unsigned_integer id { 1 };id <= S; ++id)
-          {
-             if (!m_missing_systems.contains(id))
-             {
-                m_available_systems.insert(id);
-             }
-          }          
-       }
+        }
+      }
     }
   }
 
@@ -196,6 +191,7 @@ namespace feature_isolation {
     }
     m_F = f;
     m_feature_names = feature_names_t( f );
+    std::unordered_set<std::string> feature_set;
     for ( auto& feature : m_feature_names ) {
       std::string token;
       m_file >> token;
@@ -209,6 +205,10 @@ namespace feature_isolation {
           throw_error( "Error occurred when reading name of independent feature in file " + m_filename );
         }
       }
+      if ( feature_set.find( token ) != feature_set.end() ) {
+        throw_error( "Duplicate feature found in file " + m_filename + ": " + token );
+      }
+      feature_set.insert( token );
       feature = token;
     }
     m_feature_names_specified = true;
