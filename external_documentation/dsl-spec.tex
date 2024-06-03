@@ -1,0 +1,159 @@
+% This file was converted to LaTeX by Writer2LaTeX ver. 1.6.1
+% see http://writer2latex.sourceforge.net for more info
+\documentclass[a4paper]{article}
+\usepackage[latin1]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb,amsfonts,textcomp}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{color}
+\usepackage{array}
+\usepackage{hhline}
+\usepackage{hyperref}
+\hypersetup{pdftex, colorlinks=true, linkcolor=blue, citecolor=blue, filecolor=blue, urlcolor=blue, pdftitle=, pdfauthor=Ulrich Eisenecker, pdfsubject=, pdfkeywords=}
+% Page layout (geometry)
+\setlength\voffset{-1in}
+\setlength\hoffset{-1in}
+\setlength\topmargin{2cm}
+\setlength\oddsidemargin{2cm}
+\setlength\textheight{25.7cm}
+\setlength\textwidth{17.001cm}
+\setlength\footskip{0.0cm}
+\setlength\headheight{0cm}
+\setlength\headsep{0cm}
+% Footnote rule
+\setlength{\skip\footins}{0.119cm}
+\renewcommand\footnoterule{\vspace*{-0.018cm}\setlength\leftskip{0pt}\setlength\rightskip{0pt plus 1fil}\noindent\textcolor{black}{\rule{0.25\columnwidth}{0.018cm}}\vspace*{0.101cm}}
+% Pages styles
+\makeatletter
+\newcommand\ps@Standard{
+  \renewcommand\@oddhead{}
+  \renewcommand\@evenhead{}
+  \renewcommand\@oddfoot{}
+  \renewcommand\@evenfoot{}
+  \renewcommand\thepage{\arabic{page}}
+}
+\makeatother
+\pagestyle{Standard}
+\title{}
+\author{Ulrich Eisenecker}
+\date{2024-06-03}
+\begin{document}
+This document describes the DSL for the specification of an SPL.
+
+Version 1.1, June 3, 2024, by Yannis Hübenthal \& Ulrich Eisenecker
+
+
+\bigskip
+
+Token types are comment, keywords, name and value.
+
+
+\bigskip
+
+A comment begins with // and must be followed by a whitespace (space, tab). It extends to the next newline character.
+
+
+\bigskip
+
+Keywords are SPL, FEATURES, CATEGORIES, END, MAX\_RANK, EXPLICIT\_DEPENDENCIES, MISSING\_SYSTEMS and AVAILABLE\_SYSTEMS.
+A keyword must be terminated with a whitespace. Keywords are NOT case sensitive.
+
+Strictly speaking, keywords are not reserved words. Nevertheless, it should be refrained from using them as names, e.g.
+of features.
+
+
+\bigskip
+
+SPL has the cardinality 0..1. It enables the specification of a name for a DSL. The name must not contain any
+whitespaces. A name is terminated by a whitespace.
+
+
+\bigskip
+
+FEATURES has the cardinality 1. It specifies the number of independent features of an SPL, followed by the names of the
+independent features. There must be exactly as many feature names as the number of features specified. A number is
+terminated by any character that cannot be part of an integer, e.g. a whitespace. IMPORTANT: The list of feature names
+is NOT terminated with END. Currently, there is no check for duplicate feature names.
+
+
+\bigskip
+
+CATEGORIES has the cardinality 0..1. CATEGORIES is used to define which feature categories are to be included in the
+feature analysis and feature isolation. Valid category values are F, A, O, AN, ON, ANF and ONF. If CATEGORY is not
+explicitly specified, F is implicitly assumed to be the only category. The category values can be specified in any
+order. If a category value is specified more than once, CATEGORY can appear anywhere in the SPL specification.
+
+
+\bigskip
+
+MAX\_RANK has the cardinality 0..1. It specifies the maximum number of feature interactions in relation to the
+categories A, O, AN, ON, ANF and ONF that are taken into account. MAX\_RANK must be equal to or less than the number of
+independent features. FEATURES must be specified before MAX\_RANK.
+
+
+\bigskip
+
+EXPLICIT\_DEPENDENCIES has the cardinality 0..1. It is used to specify explicitly dependent features. Dependencies are
+REQUIRES\_ALL, REQUIRES\_ONE, REQUIRES\_ANY and EXCLUDES\_ALL. In addition, there is the special feature named ROOT
+which represents the root feature that is a conceptual part of every system, but neither specified, nor analyzed or
+isolated.
+
+Each dependency is specified in the form feature\_name -- dependency -- list\_of\_feature\_names. The list of feature
+names starts with at least one feature name and is terminated by END.
+
+Examples:
+
+ROOT REQUIRES\_ALL F1 F2 F3 END specifies F1, F2 and F3 as core features which occur in each system of the SPL.
+
+F4 REQUIRES\_ALL F1 END specifies that F4 also requires F1 to be present in the system.
+
+F5 REQUIRES\_ONE F6 F7 END specifies that F5 requires either F6 or F7 to be also included, which corresponds to an
+exclusive-or group.
+
+F8 REQUIRES\_ANY F9 F10 END specifies that F8 requires F9 or F10 or both, F9 and F10 to be included as well. This
+corresponds to an inclusive-or group
+
+F11 EXCLUDES\_ALL F12 F13 END specifies that the presence of F11 excludes the presence of F12 or F13.
+
+The following specifications are syntactically correct and semantically valid, but redundant:
+
+FA REQUIRES\_ALL FB END
+
+FA REQUIRES\_ONE FB END
+
+FA REQUIRES\_ANY FB END.
+
+ROOT REQUIRES\_ONE FC FD END specifies that either FC or FD must be present in a system; its is not possible that both
+are absent or present in a system.
+
+After the parsing of the SPL specification is completed, a SAT solver is executed to check the specified dependencies
+for consistency, also with regard to any specified available or missing systems. The list of explicit dependencies must
+be concluded with END. If EXPLICIT\_DEPENDENCIES is missing, there are no explicitly dependent features.
+
+
+\bigskip
+
+MISSING\_SYSTEMS has a cardinality of 0..1 and specifies all systems that are not available. It must occur after
+FEATURES. Each missing system is specified by its ID. The ID of the first system is 1, the ID of the last system is 2
+to the power of F. In the system with ID 1 every feature is not available, in the system with the highest ID every
+feature is available. The list of system IDs must be terminated with END. If EXPLICIT\_DEPENDENCIES is also specified,
+no system ID may be specified that does not exist due to the constraints. It is permissible to specify missing systems
+that would exist if the constraints were applied. The specification of MISSING\_SYSTEMS can be omitted. If
+MISSING\_SYSTEMS occurs, AVAILABLE\_SYSTEMS may no longer be specified and vice versa. If neither MISSING\_SYSTEMS nor
+AVAILABLE\_SYSTEMS are specified, it is assumed that all systems that can occur according to the constraints are
+present.
+
+
+\bigskip
+
+AVAILABLE\_SYSTEMS has a cardinality of 0..1 and specifies all systems that are available. It must occur after FEATURES.
+Each available system is specified by its ID. The ID of the first system is 1, the ID of the last system is 2 to the
+power of F. In the system with ID 1 every feature is not available, in the system with the highest ID every feature is
+available. The list of system IDs must be terminated with END. If EXPLICIT\_DEPENDENCIES is also specified, no system
+ID may be specified that does not exist due to the constraints. It is permissible not to specify existing systems that
+would exist if the constraints were applied. The specification of AVAILABLE\_SYSTEMS can be omitted. If
+AVAILABLE\_SYSTEMS occurs, MISSING\_SYSTEMS may no longer be specified and vice versa. If neither MISSING\_SYSTEMS nor
+AVAILABLE\_SYSTEMS are specified, it is assumed that all systems that can occur according to the constraints are
+present.
+\end{document}
