@@ -1,7 +1,7 @@
 #ifndef SPL_HPP
 #define SPL_HPP
 
-#include "feature_analysis2.hpp"
+#include "feature_analysis.hpp"
 #include <algorithm>
 #include <fstream>
 #include <iostream>
