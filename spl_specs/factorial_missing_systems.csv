@@ -1,0 +1,32 @@
+// Case study FACTORIAL
+// Missing systems specified.
+
+DSL Factorial
+
+FEATURES 4
+Checked
+Logging
+Iterativ
+Recursive
+
+EXPLICIT_DEPENDENCIES
+ROOT REQUIRES_ONE Iterative Recursive END
+END
+
+MISSING_SYSTEMS
+1 // 0000 not available due to constraint
+// 2 // 0001
+// 3 // 0010 
+4 // 0011 not available due to constraint
+5 // 0100 not available due to constraint
+// 6 // 0101
+// 7 // 0110
+8 // 0111 not available due to constraint
+9 // 1000 not availalbe due to constraint
+// 10 // 1001
+// 11 // 1010
+12 // 1011 not available due to constraint
+13 // 1100 not available due to constraint
+// 14 // 1101 
+// 15 // 1110
+16 // 1111 not available due to constraint
