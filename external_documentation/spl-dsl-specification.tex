@@ -8,10 +8,50 @@
 	\maketitle
 \section{Token Types}
 	Token types are \emph{comment}, \emph{keyword}, \emph{name} and \emph{value}.
-	A comment begins with \emph{//} and must be followed by a whitespace (space, tab). It extends to the next newline character.
+	\begin{itemize}
+	\item A comment begins with \emph{//} and must be followed by a white space (space, tab). It extends to the next newline character.
+	\item Keywords are listed below. 
+	\item A name is a sequence of any non-white space characters. It is terminated by a white space. 
+	\item A number is any sequence of characters that gives a valid integer. It is terminated by any character that cannot be part of an integer, e.\ g. a space. 
+	\end{itemize}
+	
 \section{Keywords}
 Keywords are \emph{A}, \emph{AN}, \emph{ANF}, \emph{AVAILABLE\_SYSTEMS}, \emph{CATEGORIES}, \emph{END}, \emph{EXCLUDES\_ALL}, \emph{EXPLIC\-IT\_DEPENDENCIES}, \emph{F}, \emph{FEATURES}, \emph{MAX\_RANK}, \emph{MISSING\_SYSTEMS}, \emph{N}, \emph{O}, \emph{ON}, \emph{ONF}, \emph{RE\-QUIRES\_-ALL}, \emph{REQUIRES\_ANY}, \emph{REQUIRES\_ONE}, \emph{ROOT} and \emph{SPL}. \\
 A keyword must be terminated with a white space. \\
 Keywords are not case-sensitive. \\
 Strictly speaking, keywords are not reserved words. Nevertheless, they should not be used as names, e.g. names of features.
+\section{SPL}
+SPL has the cardinality 0..1. It allows the specification of a name for a DSL. The name must not contain any white spaces. 
+\section{FEATURES}
+FEATURES has the cardinality 1. It specifies the number of independent features of a software product line, followed by the names of the independent features. There must be exactly as many feature names as the number of features specified. \\
+\emph{Important}: The list of feature names is \emph{not} terminated with \emph{END}.
+\section{CATEGORIES}
+CATEGORIES has the cardinality 0..1. CATEGORIES is used to specify which feature categories are to be included in the feature analysis and feature isolation. Valid category names are F, A, O, N, AN, ON, ANF and ONF. If CATEGORY is not specified, it is assumed that F is the only category. The category names can be specified in any order. If a category name is specified more than once, an error is output. CATEGORY can appear anywhere in the SPL specification.
+\section{EXPLICIT\_DEPENDENCIES}
+EXPLICIT\_DEPENDENCIES has the cardinality 0..1. It is used to explicitly specify dependent features. Dependencies are REQUIRES\_ALL, REQUIRES\_ONE, REQUIRES\_ANY and EXCLUDES\_ALL. In addi\-tion, there is a special feature called ROOT, which is the root feature that is a conceptual part of every system, but is neither specified, analyzed nor isolated.
+Each dependency is specified in the form \em{feature\_name – dependency – list\_of\_feature\_names}\em{}. The list of feature names begins with at least one feature name and is concluded with END.\\
+Examples \\
+\begin{itemize}
+\item ROOT REQUIRES\_ALL F1 F2 F3 END defines F1, F2 and F3 as core features that occur in every system of the SPL.
+\item F4 REQUIRES\_ALL F1 END specifies that F4 also requires F1 to be present in a system.
+\item F5 REQUIRES\_ONE F6 F7 END specifies that F5 requires that either F6 or F7 is also included, which corresponds to an exclusive-or group.
+\item F8 REQUIRES\_ANY F9 F10 END indicates that F8 requires that F9 or F10 or both F9 and F10 are also included. This corresponds to an inclusive-or group.
+\item F11 EXCLUDES\_ALL F12 F13 END specifies that the presence of F11 excludes the presence of F12 or F13.
+\item The following specifications are syntactically correct and semantically valid, but redundant:
+\begin{itemize}
+\item FA REQUIRES\_ALL FB END
+\item FA REQUIRES\_ONE FB END
+\item FA REQUIRES\_ANY FB END
+\end{itemize}
+\item ROOT REQUIRES\_ONE FC FD END specifies that either FC or FD must be present in a system; it is not possible for both features to be present or absent in a system.
+\end{itemize}
+After the parsing of the SPL specification is completed, a SAT solver is executed to check the specified dependencies for consistency, also with regard to any specified existing or missing systems. The list of explicit dependencies must be concluded with END. If EXPLICIT\_DEPENDENCIES is missing, there are no explicitly dependent features.
+\section{MISSING\_SYSTEMS}
+MISSING\_SYSTEMS has a cardinality of 0..1 and specifies all systems that are not available. It must occur after FEATURES. Each missing system is specified by its ID. The ID of the first system is 1, the ID of the last system is $ 2^F $. In the system with ID 1, every feature is not available, in the system with the highest ID, every feature is available. The list of system IDs must be concluded with END.
+
+If EXPLICIT\_DEPENDENCIES is also specified, no system ID may be specified that is not available due to the constraints. It is permissible to specify missing systems that would exist if the constraints were applied.
+
+The specification of MISSING\_SYSTEMS can be omitted. If MISSING\_SYSTEMS occurs, AVAILABLE\_\-SYSTEMS may no longer be specified and vice versa. If neither MISSING\_SYSTEMS nor AVAILABLE\_SYS\-TEMS are specified, it is assumed that all systems that can occur according to the constraints are present.
+\section{AVAILABLE\_SYSTEMS}
+AVAILABLE\_SYSTEMS has a cardinality of 0..1 and specifies all systems that are available. It must be specified after FEATURES. Each available system is identified by its ID. The ID of the first system is 1, the ID of the last system is $ 2^F $. No feature is available in the system with ID 1, every feature is available in the system with the highest ID. The list of system IDs must be concluded with END. If EXPLICIT\_DEPENDENCIES is also specified, no system ID may be specified that does not exist due to the constraints. It is permissible not to specify any available systems that would exist if the constraints were applied. The specification of AVAILABLE\_SYSTEMS can be omitted. If AVAILABLE\_SYSTEMS occurs, MISSING\_SYSTEMS may no longer be specified and vice versa. If neither MISSING\_SYSTEMS nor AVAILABLE\_SYSTEMS are specified, it is assumed that all systems that can occur according to the constraints are present.
 \end{document}
