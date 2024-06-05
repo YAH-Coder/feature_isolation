@@ -1,0 +1,17 @@
+\documentclass[english,10pt,a4paper,draft,onecolumn]{article}
+\usepackage[T1]{fontenc}
+\usepackage[width=17cm]{geometry}
+\usepackage{babel}
+\title{Specification of a Domain Specific Language for Specyfing \\ a Software Product Line\\ \small Version 1.1}
+\author{Ulrich Eisenecker, Yannis Hübenthal}
+\begin{document}
+	\maketitle
+\section{Token Types}
+	Token types are \emph{comment}, \emph{keyword}, \emph{name} and \emph{value}.
+	A comment begins with \emph{//} and must be followed by a whitespace (space, tab). It extends to the next newline character.
+\section{Keywords}
+Keywords are \emph{A}, \emph{AN}, \emph{ANF}, \emph{AVAILABLE\_SYSTEMS}, \emph{CATEGORIES}, \emph{END}, \emph{EXCLUDES\_ALL}, \emph{EXPLIC\-IT\_DEPENDENCIES}, \emph{F}, \emph{FEATURES}, \emph{MAX\_RANK}, \emph{MISSING\_SYSTEMS}, \emph{N}, \emph{O}, \emph{ON}, \emph{ONF}, \emph{RE\-QUIRES\_-ALL}, \emph{REQUIRES\_ANY}, \emph{REQUIRES\_ONE}, \emph{ROOT} and \emph{SPL}. \\
+A keyword must be terminated with a white space. \\
+Keywords are not case-sensitive. \\
+Strictly speaking, keywords are not reserved words. Nevertheless, they should not be used as names, e.g. names of features.
+\end{document}
