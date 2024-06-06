@@ -1,7 +1,7 @@
 // Case study FACTORIAL
 // Available systems specified.
 
-DSL Factorial
+SPL Factorial
 
 FEATURES 4
 Checked
