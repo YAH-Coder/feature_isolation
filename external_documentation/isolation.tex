@@ -36,8 +36,7 @@ $I_3 = SD_2 \cap SD_5$
 
 $I_4 = SD_1 \cap SD_2 \cap SD_5$ is not minimal because $I_1$, $I_2$ and $I_3$ successfully isolate $FID_2$ but contain less operands. It is important to note that only evaluating $I$ can give the desired result. Furthermore, $I$ cannot be omitted.
 
-With respect to $FID_2$ the following set difference $D$ is minimal as it isolates $FID_2$.\\
-$D_1 = SD_1 \setminus SD_3 \cup SD_6$
+With respect to $FID_2$ the set difference $D_1 = SD_1 \setminus SD_3 \cup SD_6$ is minimal as it isolates $FID_2$.
 
-$D_2 = SD_1 \cap SD_2 \ SD_3$ is not minimal, as $I$ already successfully isolates $FID_2$. $D_3 = SD_1 \setminus SD_3 \cup SD_4 \cup SD_6$ is also not minimal, as $SD_3 \cup SD_6$ in $U$ already subtracts all unwanted elements of $I$. It has to be emphasized, that ---different from $I$--- $U$ can be omitted.
+$D_2 = SD_1 \cap SD_2 \setminus SD_3$ is not minimal, as $I$ already successfully isolates $FID_2$. $D_3 = SD_1 \setminus SD_3 \cup SD_4 \cup SD_6$ is also not minimal, as $SD_3 \cup SD_6$ in $U$ already subtracts all unwanted elements of $I$. It has to be emphasized, that ---different from $I$--- $U$ can be omitted.
 \end{document}
