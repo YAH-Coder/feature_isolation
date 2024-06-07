@@ -2,11 +2,14 @@
 \usepackage[T1]{fontenc}
 \usepackage[width=17cm]{geometry}
 \usepackage{babel}
+\usepackage{xcolor}
+\definecolor{light-gray}{gray}{0.95}
+\newcommand{\code}[1]{\colorbox{light-gray}{\texttt{#1}}}
 \title{Specification of Feature Isolation\\ \small Version 0.9}
 \author{Ulrich Eisenecker}
 \begin{document}
 	\maketitle
-
+\section{Basic Information and Results}
 Feature isolation is based on the following information:
 \begin{itemize}
 	\item A specification of a software product line including the names of its independent features, the feature categories to be considered, the maximum rank of interaction between any kind of and- and or-features, and optionally explicitly dependent features plus available systems or missing systems all of which resulting in a set with the identifiers of available systems. This specification is denoted by $SPL$. An identifier ($ID$ for short) is a natural number with a lower bound of 1.
@@ -39,4 +42,8 @@ $I_4 = SD_1 \cap SD_2 \cap SD_5$ is not minimal because $I_1$, $I_2$ and $I_3$ s
 With respect to $FID_2$ the set difference $D_1 = SD_1 \setminus SD_3 \cup SD_6$ is minimal as it isolates $FID_2$.
 
 $D_2 = SD_1 \cap SD_2 \setminus SD_3$ is not minimal, as $I$ already successfully isolates $FID_2$. $D_3 = SD_1 \setminus SD_3 \cup SD_4 \cup SD_6$ is also not minimal, as $SD_3 \cup SD_6$ in $U$ already subtracts all unwanted elements of $I$. It has to be emphasized, that ---different from $I$--- $U$ can be omitted.
+\section{Functions,Datatypes and Variables}
+The datatypes \code{feature\_ids\_t} and \code{system\_ids\_t} represent the set types for $FID$s and $SID$s.
+The member variable \code{spl\_specification\_t::m\_avail\-able\_\-systems} which is of type  \code{sys\-tem\_ids\_t} contains the IDs of the actually available system.
+
 \end{document}
