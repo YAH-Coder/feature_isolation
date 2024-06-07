@@ -1,0 +1,43 @@
+\documentclass[english,10pt,a4paper,draft,onecolumn]{article}
+\usepackage[T1]{fontenc}
+\usepackage[width=17cm]{geometry}
+\usepackage{babel}
+\title{Specification of Feature Isolation\\ \small Version 0.9}
+\author{Ulrich Eisenecker}
+\begin{document}
+	\maketitle
+
+Feature isolation is based on the following information:
+\begin{itemize}
+	\item A specification of a software product line including the names of its independent features, the feature categories to be considered, the maximum rank of interaction between any kind of and- and or-features, and optionally explicitly dependent features plus available systems or missing systems all of which resulting in a set with the identifiers of available systems. This specification is denoted by $SPL$. An identifier ($ID$ for short) is a natural number with a lower bound of 1.
+    \item For each feature there exists a description that specifies in which systems it occurs and in which it does not plus an associated unique feature $ID$. Such a feature description is called $FD$, a feature $ID$ is called $FID$.
+    \item For each system there exists a description that specifies the features it consists of plus an associated unique system $ID$. Such a system description is called $SD$, a system $ID$ is called $SID$.
+\end{itemize}
+	The isolation of a feature $f_i$ specified by its $FID$ produces the following outcome:
+\begin{itemize}
+\item A set of $FID$s representing the result of the set difference of the set intersection of $FID$s of all systems that include $f_i$ (denoted by $I$) and the set union of $FID$s of all systems that do not include $f_i$ (denoted by $U$). The result set must not be $\emptyset$ (as this would indicate a fundamental error). It can include exactly one element which then must be the $FID$ of $f_i$. It can include more than one element, but one of them must be the $FID$ of the sought feature $f_i$. The resulting set difference is denoted by $D$.
+A set of minimal set differences of $SID$s which evaluate to the result specified before, i.e. $D$. A set difference is \emph{minimal} if none of its sub expressions includes more elements than required to give $D$. There must be at least one minimal set difference that gives $D$. The set of minimal set differences is denoted by $MD$.
+\end{itemize}
+\paragraph {Minimal set difference.} The following examples illustrate the meaning of \emph{minimal} in a set difference. Just as a reminder: The elements of these sets are $FID$s.
+
+Given are the systems \\
+$ SD_1 = \{ 1, 2, 3 \} $, \\
+$ SD_2 = \{ 2, 3, 4 \} $, \\
+$SD_3 = \{ 3, 4, 5 \}$, \\
+$SD_4 = \{ 4, 5, 6 \}$, \\
+$SD_5 = \{ 2, 7 \}$ and \\
+$SD_6 = \{ 1, 8 \}$.
+
+
+With respect to $FID_2$, the following set intersections $I$ are minimal as they all isolate $FID_2$.\\
+$I_1 = SD_1 \cap SD_2$\\
+$I_2 = SD_1 \cap SD_5$\\
+$I_3 = SD_2 \cap SD_5$
+
+$I_4 = SD_1 \cap SD_2 \cap SD_5$ is not minimal because $I_1$, $I_2$ and $I_3$ successfully isolate $FID_2$ but contain less operands. It is important to note that only evaluating $I$ can give the desired result. Furthermore, $I$ cannot be omitted.
+
+With respect to $FID_2$ the following set difference $D$ is minimal as it isolates $FID_2$.\\
+$D_1 = SD_1 \setminus SD_3 \cup SD_6$
+
+$D_2 = SD_1 \cap SD_2 \ SD_3$ is not minimal, as $I$ already successfully isolates $FID_2$. $D_3 = SD_1 \setminus SD_3 \cup SD_4 \cup SD_6$ is also not minimal, as $SD_3 \cup SD_6$ in $U$ already subtracts all unwanted elements of $I$. It has to be emphasized, that ---different from $I$--- $U$ can be omitted.
+\end{document}

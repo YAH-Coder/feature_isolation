@@ -44,7 +44,7 @@ Examples \\
 \item FA REQUIRES\_ANY FB END
 \end{itemize}
 \item ROOT REQUIRES\_ONE FC FD END specifies that either FC or FD must be present in a system; it is not possible for both features to be present or absent in a system.
-\end{itemize}
+\begin{itemize}
 After the parsing of the SPL specification is completed, a SAT solver is executed to check the specified dependencies for consistency, also with regard to any specified existing or missing systems. The list of explicit dependencies must be concluded with END. If EXPLICIT\_DEPENDENCIES is missing, there are no explicitly dependent features.
 \section{MISSING\_SYSTEMS}
 MISSING\_SYSTEMS has a cardinality of 0..1 and specifies all systems that are not available. It must occur after FEATURES. Each missing system is specified by its ID. The ID of the first system is 1, the ID of the last system is $ 2^F $. In the system with ID 1, every feature is not available, in the system with the highest ID, every feature is available. The list of system IDs must be concluded with END.
