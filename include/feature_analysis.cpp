@@ -1,11 +1,15 @@
 #include "feature_analysis.hpp"
 
 namespace feature_isolation {
-  [[nodiscard]] auto system_t::DF() const {
+  [[nodiscard]] unsigned_integer system_t::T() const {
+    return DF() + F_feature_ids.size();
+  }
+
+  [[nodiscard]] unsigned_integer system_t::DF() const {
     return N_feature_ids.size() + A_feature_ids.size() + O_feature_ids.size() + AN_feature_ids.size() + ON_feature_ids.size() + ANF_feature_ids.size() + ONF_feature_ids.size();
   }
 
-  auto system_t::all_features() const {
+  feature_ids_t system_t::all_features() const {
     auto result { F_feature_ids };
     result.insert( N_feature_ids.begin(), N_feature_ids.end() );
     result.insert( A_feature_ids.begin(), A_feature_ids.end() );

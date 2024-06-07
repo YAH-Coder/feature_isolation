@@ -54,9 +54,9 @@ namespace feature_isolation {
                     ON_feature_ids,
                     ANF_feature_ids,
                     ONF_feature_ids;
-     [[nodiscard]] auto DF() const;
-     [[nodiscard]] auto T() const;
-     auto all_features() const;
+     [[nodiscard]] unsigned_integer DF() const;
+     [[nodiscard]] unsigned_integer T() const;
+     [[nodiscard]] feature_ids_t all_features() const;
   };
 
   using systems_t = std::vector<system_t>;
@@ -83,8 +83,9 @@ namespace feature_isolation {
     cui F_offset, N_offset, A_offset, O_offset, AN_offset, ON_offset, ANF_offset, ONF_offset;
     std::array<cui, 8> feature_offsets;
     std::array<const features_t*, 8> all_features;
+  public:
     const systems_t m_systems;
-
+  private:
     [[nodiscard]] features_t initialize_F_features() const;
     [[nodiscard]] features_t initialize_N_features() const;
     void and_combine( feature_t& f1, const feature_t& f2 ) const;
