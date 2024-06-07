@@ -20,7 +20,9 @@ namespace feature_isolation {
 
   using feature_t = std::vector<bool>;
   using features_t = std::vector<feature_t>;
-  using feature_ids_t = std::set<unsigned_integer>;
+  using ids_t = std::set<unsigned_integer>;
+  using feature_ids_t = ids_t;
+  using system_ids_t = ids_t;
 
   std::string to_string( const feature_t& fd );
 
