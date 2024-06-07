@@ -50,7 +50,8 @@ namespace feature_isolation {
   public:
     using feature_names_t = std::vector<std::string>;
     using dependencies_t = std::multimap<unsigned_integer, unsigned_integer>;
-    using systems_t = std::set<unsigned_integer>;
+    // using system_t = std::set<unsigned_integer>; // replaced by
+    // feature_isolation::system_ids_t.
 
     explicit spl_specification_t( const std::string& filename );
     ~spl_specification_t();
@@ -79,7 +80,7 @@ namespace feature_isolation {
     unsigned_integer m_categories { F };
     unsigned_integer m_max_rank {};
     dependencies_t m_requires, m_is_required_by, m_excludes, m_is_excluded_by;
-    systems_t m_missing_systems, m_available_systems;
+    system_ids_t m_missing_systems, m_available_systems;
     bool m_spl_specified { false },
         m_feature_names_specified { false },
         m_categories_specified { false },
@@ -438,7 +439,7 @@ namespace feature_isolation {
 
     unsigned_integer total_systems = 1 << m_F;
 
-    systems_t effective_available_systems;
+    system_ids_t effective_available_systems;
     if ( m_available_systems_specified ) {
       effective_available_systems = m_available_systems;
     } else if ( m_missing_systems_specified ) {
