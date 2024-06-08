@@ -1,26 +1,21 @@
-# Makefile feature isolation development
+# Makefile feature isolation testing
 
 CXX = g++
 CXXFLAGS = -std=c++20 -Wall -pedantic
-SRCDIR = ../src
 INCDIR = ../include
+SRCDIR = ../src
 OBJDIR = ../obj
 
-# Further targets to be added in the line below.
-all: isolation_test
-
-test_isolation: $(OBJDIR)/it
+it: $(OBJDIR)/it
 
 $(OBJDIR)/it: $(OBJDIR)/feature_analysis.o $(OBJDIR)/isolation.o
-	$(CXX) $(CXXFLAGS) -o $(OBJDIR)/it $(OBJDIR)/feature_analysis.o $(OBJDIR)/isolation.o -lminisat
-
+	$(CXX) $(CXXFLAGS) $(OBJDIR)/feature_analysis.o $(OBJDIR)/isolation.o -lminisat -o $(OBJDIR)/it
 $(OBJDIR)/feature_analysis.o: $(SRCDIR)/feature_analysis.cpp $(INCDIR)/feature_analysis.hpp
-	$(CXX) $(CXXFLAGS) -o $(OBJDIR)/feature_analysis.o $(SRCDIR)/feature_analysis.cpp
+	$(CXX) $(CXXFLAGS) -c $(SRCDIR)/feature_analysis.cpp -o $(OBJDIR)/feature_analysis.o
 
 $(OBJDIR)/isolation.o: $(SRCDIR)/isolation_test.cpp $(INCDIR)/isolation.hpp
+	$(CXX) $(CXXFLAGS) -c $(SRCDIR)/isolation_test.cpp -o $(OBJDIR)/isolation.o
 
 clean:
 	rm -f $(OBJDIR)/*
-
-
 
