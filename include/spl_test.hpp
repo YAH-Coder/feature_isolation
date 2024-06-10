@@ -36,6 +36,7 @@ namespace feature_isolation {
     systems_t m_available_systems, m_missing_systems;
 
     [[nodiscard]] std::optional<signed int> feature_index( const std::string& feature ) const;
+    [[nodiscard]] systems_t effective_available_systems() const;
     bool validate_systems();
 
     bool add_constraints( Minisat::Solver& solver, std::vector<Minisat::Var>& feature_vars, Minisat::vec<Minisat::Lit>& assumptions );
@@ -196,290 +197,120 @@ namespace feature_isolation {
     return std::distance( m_feature_names.begin(), it );
   }
 
-  bool spl_specification_t::validate_systems() {
-    Minisat::Solver solver;
-    std::vector<Minisat::Var> feature_vars( m_feature_names.size() );
-
-    // Create MiniSat variables for each feature
-    for ( unsigned_integer i = 0; i < m_feature_names.size(); ++i ) {
-      feature_vars[i] = solver.newVar();
-    }
-
-    // Validate each system
-    for ( unsigned_integer system : m_available_systems ) {
-      Minisat::vec<Minisat::Lit> assumptions;
-      for ( unsigned_integer i = 0; i < m_feature_names.size(); ++i ) {
-        if ( system & ( 1 << i ) ) {
-          assumptions.push( Minisat::mkLit( feature_vars[i] ) );
-        } else {
-          assumptions.push( ~Minisat::mkLit( feature_vars[i] ) );
+  spl_specification_t::systems_t spl_specification_t::effective_available_systems() const {
+    if ( m_available_systems_specified ) {
+      return m_available_systems;
+    } else if ( m_missing_systems_specified ) {
+      systems_t eff_available_systems;
+      for ( unsigned_integer i = 0; i < m_max_available_systems; ++i ) {
+        if ( std::find( m_missing_systems.begin(), m_missing_systems.end(), i ) == m_missing_systems.end() ) {
+          eff_available_systems.push_back( i );
         }
       }
-
-      if ( !solver.solve( assumptions ) ) {
-        std::cerr << "System " << system << " cannot exist because: " << get_failed_constraints( solver, feature_vars, assumptions ) << std::endl;
-        return false; // System is invalid
+      return eff_available_systems;
+    } else {
+      systems_t eff_available_systems;
+      for ( unsigned_integer i = 0; i < m_max_available_systems; ++i ) {
+        eff_available_systems.push_back( i );
       }
-
-      // Add constraints incrementally and validate
-      if ( !add_constraints( solver, feature_vars, assumptions ) ) {
-        return false; // Constraint failed
-      }
+      return eff_available_systems;
     }
-
-    return true;
   }
 
-  bool spl_specification_t::add_constraints( Minisat::Solver& solver, std::vector<Minisat::Var>& feature_vars, Minisat::vec<Minisat::Lit>& assumptions ) {
-    // REQUIRES_ALL: F1 requires F2 and F3
-    for ( const auto& [feature, deps] : m_requires_all ) {
-      for ( const auto& dep : deps ) {
-        Minisat::vec<Minisat::Lit> clause;
+  bool spl_specification_t::validate_systems() {
+    systems_t eff_available_systems { effective_available_systems() };
+    for ( const auto& system_id : eff_available_systems ) {
+      unsigned_integer system = system_id - 1;
+      std::cout << "System: " << static_cast<std::bitset<4>>( system ) << std::endl;
+      for ( const auto& [feature, deps] : m_requires_all ) {
         if ( feature == -1 ) {
-          for ( unsigned int i = 0; i < m_feature_names.size(); ++i ) {
-            clause.push( ~Minisat::mkLit( feature_vars[i] ) );
-            clause.push( Minisat::mkLit( feature_vars[dep] ) );
-            solver.addClause( clause );
-            if ( !solver.solve( assumptions ) ) {
-              std::cerr << "REQUIRES_ALL constraint failed for feature " << m_feature_names[i] << " and dependent feature " << m_feature_names[dep] << std::endl;
-              return false;
+          for ( const auto& dep : deps ) {
+            if ( !( system & ( 1 << dep ) ) ) {
+              return error( "System " + std::to_string( system ) + " violates " + static_cast<std::string>( kw::ROOT ) + " REQUIRES_ALL constraint for dependent feature " + m_feature_names[dep] );
             }
           }
-        } else {
-          clause.push( ~Minisat::mkLit( feature_vars[feature] ) );
-          clause.push( Minisat::mkLit( feature_vars[dep] ) );
-          solver.addClause( clause );
-          if ( !solver.solve( assumptions ) ) {
-            std::cerr << "REQUIRES_ALL constraint failed for feature " << m_feature_names[feature] << " and dependent feature " << m_feature_names[dep] << std::endl;
-            return false;
+        }
+        if ( system & ( 1 << feature ) ) {
+          for ( const auto& dep : deps ) {
+            if ( !( system & ( 1 << dep ) ) ) {
+              return error( "System " + std::to_string( system ) + " violates REQUIRES_ALL constraint for feature " + m_feature_names[static_cast<unsigned_integer>( feature )] + " and dependent feature " + m_feature_names[dep] );
+            }
           }
         }
       }
-    }
-
-    // REQUIRES_ONE: F1 requires one of F2, F3
-    for ( const auto& [feature, deps] : m_requires_one ) {
-      Minisat::vec<Minisat::Lit> clause;
-      if ( feature == -1 ) {
-        for ( unsigned int i = 0; i < m_feature_names.size(); ++i ) {
+      for ( const auto& [feature, deps] : m_requires_any ) {
+        if ( feature == -1 ) {
+          bool satisfied = false;
           for ( const auto& dep : deps ) {
-            clause.push( Minisat::mkLit( feature_vars[dep] ) );
+            if ( system & ( 1 << dep ) ) {
+              satisfied = true;
+              break;
+            }
           }
-          solver.addClause( clause );
-          if ( !solver.solve( assumptions ) ) {
-            std::cerr << "REQUIRES_ONE constraint failed for feature " << m_feature_names[i] << " requiring one of the dependent features." << std::endl;
-            return false;
+          if ( !satisfied ) {
+            std::string dep_str;
+            for ( const auto& dep : deps ) {
+              dep_str += m_feature_names[dep] + " ";
+            }
+            return error( "System " + std::to_string( system ) + " violates " + static_cast<std::string>( kw::ROOT ) + " REQUIRES_ANY constraint for dependent features " + dep_str );
           }
-          clause.clear();
-          for ( auto it1 = deps.begin(); it1 != deps.end(); ++it1 ) {
-            for ( auto it2 = std::next( it1 ); it2 != deps.end(); ++it2 ) {
-              solver.addClause( ~Minisat::mkLit( feature_vars[*it1] ), ~Minisat::mkLit( feature_vars[*it2] ) );
-              if ( !solver.solve( assumptions ) ) {
-                std::cerr << "REQUIRES_ONE constraint failed for feature " << m_feature_names[*it1] << " and " << m_feature_names[*it2] << std::endl;
-                return false;
+        }
+        if ( system & ( 1 << feature ) ) {
+          bool satisfied = false;
+          for ( const auto& dep : deps ) {
+            if ( system & ( 1 << dep ) ) {
+              satisfied = true;
+              break;
+            }
+          }
+          if ( !satisfied ) {
+            return error( "System " + std::to_string( system ) + " violates REQUIRES_ANY constraint for feature " + m_feature_names[static_cast<unsigned_integer>( feature )] );
+          }
+        }
+      }
+      for ( const auto& [feature, deps] : m_requires_one ) {
+        if ( feature == -1 ) {
+          unsigned_integer satisfied = 0;
+          for ( const auto& dep : deps ) {
+            if ( system & ( 1 << dep ) ) {
+              satisfied++;
+              if ( satisfied > 1 ) {
+                return error( "System " + std::to_string( system ) + " violates " + static_cast<std::string>( kw::ROOT ) + " REQUIRES_ONE constraint for dependent feature " + m_feature_names[dep] );
               }
             }
           }
         }
-      } else {
-        for ( const auto& dep : deps ) {
-          clause.push( Minisat::mkLit( feature_vars[dep] ) );
+        if ( system & ( 1 << feature ) ) {
+          unsigned_integer satisfied = 0;
+          for ( const auto& dep : deps ) {
+            if ( system & ( 1 << dep ) ) {
+              satisfied++;
+              if ( satisfied > 1 ) {
+                return error( "System " + std::to_string( system ) + " violates " + static_cast<std::string>( kw::ROOT ) + " REQUIRES_ONE constraint for dependent feature " + m_feature_names[dep] );
+              }
+            }
+          }
         }
-        solver.addClause( clause );
-        if ( !solver.solve( assumptions ) ) {
-          std::cerr << "REQUIRES_ONE constraint failed for feature " << m_feature_names[feature] << " requiring one of the dependent features." << std::endl;
-          return false;
+      }
+      for ( const auto& [feature, deps] : m_excludes_all ) {
+        if ( feature == -1 ) {
+          for ( const auto& dep : deps ) {
+            if ( system & ( 1 << dep ) ) {
+              return error( "System " + std::to_string( system ) + " violates " + static_cast<std::string>( kw::ROOT ) + " EXCLUDES_ALL constraint for feature " + m_feature_names[dep] );
+            }
+          }
         }
-        clause.clear();
-        for ( auto it1 = deps.begin(); it1 != deps.end(); ++it1 ) {
-          for ( auto it2 = std::next( it1 ); it2 != deps.end(); ++it2 ) {
-            solver.addClause( ~Minisat::mkLit( feature_vars[*it1] ), ~Minisat::mkLit( feature_vars[*it2] ) );
-            if ( !solver.solve( assumptions ) ) {
-              std::cerr << "REQUIRES_ONE constraint failed for feature " << m_feature_names[*it1] << " and " << m_feature_names[*it2] << std::endl;
-              return false;
+        if ( system & ( 1 << feature ) ) {
+          for ( const auto& dep : deps ) {
+            if ( system & ( 1 << dep ) ) {
+              return error( "System " + std::to_string( system ) + " violates EXCLUDES_ALL constraint for feature " + m_feature_names[static_cast<unsigned_integer>( feature )] + " and dependent feature " + m_feature_names[dep] );
             }
           }
         }
       }
     }
-
-    // REQUIRES_ANY: F1 requires any of F2, F3
-    for ( const auto& [feature, deps] : m_requires_any ) {
-      Minisat::vec<Minisat::Lit> clause;
-      if ( feature == -1 ) {
-        for ( unsigned int i = 0; i < m_feature_names.size(); ++i ) {
-          for ( const auto& dep : deps ) {
-            clause.push( Minisat::mkLit( feature_vars[dep] ) );
-          }
-          solver.addClause( clause );
-          if ( !solver.solve( assumptions ) ) {
-            std::cerr << "REQUIRES_ANY constraint failed for feature " << m_feature_names[i] << " requiring any of the dependent features." << std::endl;
-            return false;
-          }
-        }
-      } else {
-        for ( const auto& dep : deps ) {
-          clause.push( Minisat::mkLit( feature_vars[dep] ) );
-        }
-        solver.addClause( clause );
-        if ( !solver.solve( assumptions ) ) {
-          std::cerr << "REQUIRES_ANY constraint failed for feature " << m_feature_names[feature] << " requiring any of the dependent features." << std::endl;
-          return false;
-        }
-      }
-    }
-
-    // EXCLUDES_ALL: F1 excludes F2 and F3
-    for ( const auto& [feature, deps] : m_excludes_all ) {
-      Minisat::vec<Minisat::Lit> clause;
-      if ( feature == -1 ) {
-        for ( unsigned int i = 0; i < m_feature_names.size(); ++i ) {
-          for ( const auto& dep : deps ) {
-            clause.push( ~Minisat::mkLit( feature_vars[i] ) );
-            clause.push( ~Minisat::mkLit( feature_vars[dep] ) );
-            solver.addClause( clause );
-            if ( !solver.solve( assumptions ) ) {
-              std::cerr << "EXCLUDES_ALL constraint failed for feature " << m_feature_names[i] << " and excluded feature " << m_feature_names[dep] << std::endl;
-              return false;
-            }
-          }
-        }
-      } else {
-        for ( const auto& dep : deps ) {
-          clause.push( ~Minisat::mkLit( feature_vars[feature] ) );
-          clause.push( ~Minisat::mkLit( feature_vars[dep] ) );
-          solver.addClause( clause );
-          if ( !solver.solve( assumptions ) ) {
-            std::cerr << "EXCLUDES_ALL constraint failed for feature " << m_feature_names[feature] << " and excluded feature " << m_feature_names[dep] << std::endl;
-            return false;
-          }
-        }
-      }
-    }
-
+    m_available_systems = eff_available_systems;
     return true;
-  }
-
-  std::string spl_specification_t::get_failed_constraints( const Minisat::Solver& solver, const std::vector<Minisat::Var>& feature_vars, const Minisat::vec<Minisat::Lit>& assumptions ) const {
-    std::stringstream ss;
-
-    // Check REQUIRES_ALL constraints
-    for ( const auto& [feature, deps] : m_requires_all ) {
-      if ( feature == -1 ) {
-        for ( unsigned int i = 0; i < m_feature_names.size(); ++i ) {
-          for ( const auto& dep : deps ) {
-            if ( solver.modelValue( Minisat::mkLit( feature_vars[i] ) ) == Minisat::l_True &&
-                 solver.modelValue( Minisat::mkLit( feature_vars[dep] ) ) == Minisat::l_False ) {
-              ss << "REQUIRES_ALL constraint failed: feature " << m_feature_names[i] << " requires " << m_feature_names[dep] << "\n";
-            }
-          }
-        }
-      } else {
-        for ( const auto& dep : deps ) {
-          if ( solver.modelValue( Minisat::mkLit( feature_vars[feature] ) ) == Minisat::l_True &&
-               solver.modelValue( Minisat::mkLit( feature_vars[dep] ) ) == Minisat::l_False ) {
-            ss << "REQUIRES_ALL constraint failed: feature " << m_feature_names[feature] << " requires " << m_feature_names[dep] << "\n";
-          }
-        }
-      }
-    }
-
-    // Check REQUIRES_ONE constraints
-    for ( const auto& [feature, deps] : m_requires_one ) {
-      if ( feature == -1 ) {
-        for ( unsigned int i = 0; i < m_feature_names.size(); ++i ) {
-          bool one_is_true = false;
-          for ( const auto& dep : deps ) {
-            if ( solver.modelValue( Minisat::mkLit( feature_vars[dep] ) ) == Minisat::l_True ) {
-              one_is_true = true;
-              break;
-            }
-          }
-          if ( !one_is_true ) {
-            ss << "REQUIRES_ONE constraint failed: feature " << m_feature_names[i] << " requires one of ";
-            for ( const auto& dep : deps ) {
-              ss << m_feature_names[dep] << " ";
-            }
-            ss << "\n";
-          }
-        }
-      } else {
-        bool one_is_true = false;
-        for ( const auto& dep : deps ) {
-          if ( solver.modelValue( Minisat::mkLit( feature_vars[dep] ) ) == Minisat::l_True ) {
-            one_is_true = true;
-            break;
-          }
-        }
-        if ( !one_is_true ) {
-          ss << "REQUIRES_ONE constraint failed: feature " << m_feature_names[feature] << " requires one of ";
-          for ( const auto& dep : deps ) {
-            ss << m_feature_names[dep] << " ";
-          }
-          ss << "\n";
-        }
-      }
-    }
-
-    // Check REQUIRES_ANY constraints
-    for ( const auto& [feature, deps] : m_requires_any ) {
-      if ( feature == -1 ) {
-        for ( unsigned int i = 0; i < m_feature_names.size(); ++i ) {
-          bool any_is_true = false;
-          for ( const auto& dep : deps ) {
-            if ( solver.modelValue( Minisat::mkLit( feature_vars[dep] ) ) == Minisat::l_True ) {
-              any_is_true = true;
-              break;
-            }
-          }
-          if ( !any_is_true ) {
-            ss << "REQUIRES_ANY constraint failed: feature " << m_feature_names[i] << " requires any of ";
-            for ( const auto& dep : deps ) {
-              ss << m_feature_names[dep] << " ";
-            }
-            ss << "\n";
-          }
-        }
-      } else {
-        bool any_is_true = false;
-        for ( const auto& dep : deps ) {
-          if ( solver.modelValue( Minisat::mkLit( feature_vars[dep] ) ) == Minisat::l_True ) {
-            any_is_true = true;
-            break;
-          }
-        }
-        if ( !any_is_true ) {
-          ss << "REQUIRES_ANY constraint failed: feature " << m_feature_names[feature] << " requires any of ";
-          for ( const auto& dep : deps ) {
-            ss << m_feature_names[dep] << " ";
-          }
-          ss << "\n";
-        }
-      }
-    }
-
-    // Check EXCLUDES_ALL constraints
-    for ( const auto& [feature, deps] : m_excludes_all ) {
-      if ( feature == -1 ) {
-        for ( unsigned int i = 0; i < m_feature_names.size(); ++i ) {
-          for ( const auto& dep : deps ) {
-            if ( solver.modelValue( Minisat::mkLit( feature_vars[i] ) ) == Minisat::l_True &&
-                 solver.modelValue( Minisat::mkLit( feature_vars[dep] ) ) == Minisat::l_True ) {
-              ss << "EXCLUDES_ALL constraint failed: feature " << m_feature_names[i] << " excludes " << m_feature_names[dep] << "\n";
-            }
-          }
-        }
-      } else {
-        for ( const auto& dep : deps ) {
-          if ( solver.modelValue( Minisat::mkLit( feature_vars[feature] ) ) == Minisat::l_True &&
-               solver.modelValue( Minisat::mkLit( feature_vars[dep] ) ) == Minisat::l_True ) {
-            ss << "EXCLUDES_ALL constraint failed: feature " << m_feature_names[feature] << " excludes " << m_feature_names[dep] << "\n";
-          }
-        }
-      }
-    }
-
-    return ss.str();
   }
 
   [[nodiscard]] const TokenType& Token::type() const {
