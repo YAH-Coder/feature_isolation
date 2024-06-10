@@ -5,7 +5,6 @@
 
 #include <fstream>
 #include <iostream>
-#include <minisat/core/Solver.h>
 #include <optional>
 #include <ostream>
 #include <set>
@@ -38,9 +37,6 @@ namespace feature_isolation {
     [[nodiscard]] std::optional<signed int> feature_index( const std::string& feature ) const;
     [[nodiscard]] systems_t effective_available_systems() const;
     bool validate_systems();
-
-    bool add_constraints( Minisat::Solver& solver, std::vector<Minisat::Var>& feature_vars, Minisat::vec<Minisat::Lit>& assumptions );
-    std::string get_failed_constraints( const Minisat::Solver& solver, const std::vector<Minisat::Var>& feature_vars, const Minisat::vec<Minisat::Lit>& assumptions ) const;
 
     bool m_spl_specified { false }, m_feature_names_specified { false }, m_categories_specified { false },
         m_explicit_dependencies_specified { false }, m_missing_systems_specified { false },
@@ -221,7 +217,6 @@ namespace feature_isolation {
     systems_t eff_available_systems { effective_available_systems() };
     for ( const auto& system_id : eff_available_systems ) {
       unsigned_integer system = system_id - 1;
-      std::cout << "System: " << static_cast<std::bitset<4>>( system ) << std::endl;
       for ( const auto& [feature, deps] : m_requires_all ) {
         if ( feature == -1 ) {
           for ( const auto& dep : deps ) {
