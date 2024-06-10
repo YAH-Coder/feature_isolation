@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <z3++.h>
 
 namespace feature_isolation {
   using feature_names_t = std::vector<std::string>;
@@ -44,6 +45,7 @@ namespace feature_isolation {
 
     friend class Parser;
     friend class Printer;
+    friend class spl_processor;
   };
 
   enum class TokenType {
@@ -215,95 +217,118 @@ namespace feature_isolation {
 
   bool spl_specification_t::validate_systems() {
     systems_t eff_available_systems { effective_available_systems() };
+    z3::context ctx;
+
     for ( const auto& system_id : eff_available_systems ) {
       unsigned_integer system = system_id - 1;
+
       for ( const auto& [feature, deps] : m_requires_all ) {
+        z3::solver solver( ctx );
         if ( feature == -1 ) {
           for ( const auto& dep : deps ) {
-            if ( !( system & ( 1 << dep ) ) ) {
-              return error( "System " + std::to_string( system ) + " violates " + static_cast<std::string>( kw::ROOT ) + " REQUIRES_ALL constraint for dependent feature " + m_feature_names[dep] );
+            z3::expr dep_expr = ctx.bool_val( system & ( 1 << dep ) );
+            solver.add( dep_expr );
+            if ( solver.check() != z3::sat ) {
+              return error( "System " + std::to_string( system_id ) + " violates " + static_cast<std::string>( kw::ROOT ) + " REQUIRES_ALL constraint for dependent feature " + m_feature_names[dep] );
             }
           }
         }
         if ( system & ( 1 << feature ) ) {
           for ( const auto& dep : deps ) {
-            if ( !( system & ( 1 << dep ) ) ) {
-              return error( "System " + std::to_string( system ) + " violates REQUIRES_ALL constraint for feature " + m_feature_names[static_cast<unsigned_integer>( feature )] + " and dependent feature " + m_feature_names[dep] );
+            z3::expr dep_expr = ctx.bool_val( system & ( 1 << dep ) );
+            solver.add( dep_expr );
+            if ( solver.check() != z3::sat ) {
+              return error( "System " + std::to_string( system_id ) + " violates REQUIRES_ALL constraint for feature " + m_feature_names[static_cast<unsigned_integer>( feature )] + " and dependent feature " + m_feature_names[dep] );
             }
           }
         }
       }
+
       for ( const auto& [feature, deps] : m_requires_any ) {
+        z3::solver solver( ctx );
         if ( feature == -1 ) {
-          bool satisfied = false;
+          z3::expr_vector exprs( ctx );
           for ( const auto& dep : deps ) {
-            if ( system & ( 1 << dep ) ) {
-              satisfied = true;
-              break;
-            }
+            exprs.push_back( ctx.bool_val( system & ( 1 << dep ) ) );
           }
-          if ( !satisfied ) {
+          solver.add( z3::mk_or( exprs ) );
+          if ( solver.check() != z3::sat ) {
             std::string dep_str;
             for ( const auto& dep : deps ) {
               dep_str += m_feature_names[dep] + " ";
             }
-            return error( "System " + std::to_string( system ) + " violates " + static_cast<std::string>( kw::ROOT ) + " REQUIRES_ANY constraint for dependent features " + dep_str );
+            return error( "System " + std::to_string( system_id ) + " violates " + static_cast<std::string>( kw::ROOT ) + " REQUIRES_ANY constraint for dependent features " + dep_str );
           }
         }
         if ( system & ( 1 << feature ) ) {
-          bool satisfied = false;
+          z3::expr_vector exprs( ctx );
           for ( const auto& dep : deps ) {
-            if ( system & ( 1 << dep ) ) {
-              satisfied = true;
-              break;
-            }
+            exprs.push_back( ctx.bool_val( system & ( 1 << dep ) ) );
           }
-          if ( !satisfied ) {
-            return error( "System " + std::to_string( system ) + " violates REQUIRES_ANY constraint for feature " + m_feature_names[static_cast<unsigned_integer>( feature )] );
+          solver.add( z3::mk_or( exprs ) );
+          if ( solver.check() != z3::sat ) {
+            return error( "System " + std::to_string( system_id ) + " violates REQUIRES_ANY constraint for feature " + m_feature_names[static_cast<unsigned_integer>( feature )] );
           }
         }
       }
+
       for ( const auto& [feature, deps] : m_requires_one ) {
+        z3::solver solver( ctx );
         if ( feature == -1 ) {
-          unsigned_integer satisfied = 0;
+          z3::expr_vector exprs( ctx );
           for ( const auto& dep : deps ) {
-            if ( system & ( 1 << dep ) ) {
-              satisfied++;
-              if ( satisfied > 1 ) {
-                return error( "System " + std::to_string( system ) + " violates " + static_cast<std::string>( kw::ROOT ) + " REQUIRES_ONE constraint for dependent feature " + m_feature_names[dep] );
-              }
+            exprs.push_back( ctx.bool_val( system & ( 1 << dep ) ) );
+          }
+          solver.add( z3::mk_or( exprs ) );
+          solver.add( z3::mk_xor( exprs ) );
+          if ( solver.check() != z3::sat ) {
+            std::string dep_str;
+            for ( const auto& dep : deps ) {
+              dep_str += m_feature_names[dep] + " ";
             }
+            return error( "System " + std::to_string( system_id ) + " violates " + static_cast<std::string>( kw::ROOT ) + " REQUIRES_ONE constraint for dependent feature " + dep_str );
           }
         }
         if ( system & ( 1 << feature ) ) {
-          unsigned_integer satisfied = 0;
+          z3::expr_vector exprs( ctx );
           for ( const auto& dep : deps ) {
-            if ( system & ( 1 << dep ) ) {
-              satisfied++;
-              if ( satisfied > 1 ) {
-                return error( "System " + std::to_string( system ) + " violates " + static_cast<std::string>( kw::ROOT ) + " REQUIRES_ONE constraint for dependent feature " + m_feature_names[dep] );
-              }
+            exprs.push_back( ctx.bool_val( system & ( 1 << dep ) ) );
+          }
+          solver.add( z3::mk_or( exprs ) );
+          solver.add( z3::mk_xor( exprs ) );
+          if ( solver.check() != z3::sat ) {
+            std::string dep_str;
+            for ( const auto& dep : deps ) {
+              dep_str += m_feature_names[dep] + " ";
             }
+            return error( "System " + std::to_string( system_id ) + " violates REQUIRES_ONE constraint for feature " + m_feature_names[static_cast<unsigned_integer>( feature )] + " and dependent feature " + dep_str );
           }
         }
       }
+
       for ( const auto& [feature, deps] : m_excludes_all ) {
+        z3::solver solver( ctx );
         if ( feature == -1 ) {
           for ( const auto& dep : deps ) {
-            if ( system & ( 1 << dep ) ) {
-              return error( "System " + std::to_string( system ) + " violates " + static_cast<std::string>( kw::ROOT ) + " EXCLUDES_ALL constraint for feature " + m_feature_names[dep] );
+            z3::expr dep_expr = !ctx.bool_val( system & ( 1 << dep ) );
+            solver.add( dep_expr );
+            if ( solver.check() != z3::sat ) {
+              return error( "System " + std::to_string( system_id ) + " violates " + static_cast<std::string>( kw::ROOT ) + " EXCLUDES_ALL constraint for feature " + m_feature_names[dep] );
             }
           }
         }
         if ( system & ( 1 << feature ) ) {
           for ( const auto& dep : deps ) {
-            if ( system & ( 1 << dep ) ) {
-              return error( "System " + std::to_string( system ) + " violates EXCLUDES_ALL constraint for feature " + m_feature_names[static_cast<unsigned_integer>( feature )] + " and dependent feature " + m_feature_names[dep] );
+            z3::expr dep_expr = !ctx.bool_val( system & ( 1 << dep ) );
+            solver.add( dep_expr );
+            if ( solver.check() != z3::sat ) {
+              return error( "System " + std::to_string( system_id ) + " violates EXCLUDES_ALL constraint for feature " + m_feature_names[static_cast<unsigned_integer>( feature )] + " and dependent feature " + m_feature_names[dep] );
             }
           }
         }
       }
     }
+
     m_available_systems = eff_available_systems;
     return true;
   }
@@ -460,9 +485,6 @@ namespace feature_isolation {
     }
     if ( !spec.m_feature_names_specified ) {
       return error( "Features not specified in file " + spec.m_filename );
-    }
-    if ( !spec.validate_systems() ) {
-      return error( "Invalid system configuration in file " + spec.m_filename );
     }
 
     return result;
@@ -790,6 +812,9 @@ namespace feature_isolation {
     if ( !parser.parse_specification( m_spec ) ) {
       error( "Failed to parse SPL specification in file: " + m_filename );
       return false;
+    }
+    if ( !m_spec.validate_systems() ) {
+      return error( "Invalid system configuration in file " + m_spec.m_filename );
     }
 
     return true;
