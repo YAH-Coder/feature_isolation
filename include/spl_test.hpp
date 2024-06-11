@@ -3,6 +3,9 @@
 
 #include "feature_analysis.hpp"
 
+#define FMT_HEADER_ONLY
+
+#include <fmt/format.h>
 #include <fstream>
 #include <iostream>
 #include <optional>
@@ -20,6 +23,40 @@ namespace feature_isolation {
   using dependencies_t = std::unordered_map<signed int, std::set<unsigned_integer>>;
 
   char csv_separator;
+
+  namespace error_msgs {
+    const std::string FEATURE_NAME_NOT_FOUND = "Feature name not found: {}",
+                      ERROR_ROOT_CONSTRAINT = "System {} violates {} {} constraint for dependent feature {}",
+                      ERROR_SYSTEM_CONSTRAINT = "System {} violates {} constraint for feature {} and dependent feature {}",
+                      UNEXPECTED_KEYWORD = "Unexpected keyword: {} at {}",
+                      UNEXPECTED_TOKEN = "Unexpected token: {} at {}",
+                      FEATURES_NOT_SPECIFIED = "Features not specified in file {}",
+                      SPL_SPECIFIED_MORE_THAN_ONCE = "SPL specified more than once in file {}",
+                      EXPECTED_SPL_NAME = "Expected SPL name, but got: {}",
+                      MAX_RANK_SPECIFIED_MORE_THAN_ONCE = "MAX_RANK specified more than once in file {}",
+                      EXPECTED_MAX_RANK_VALUE = "Expected MAX_RANK value, but got: {}",
+                      FEATURES_SPECIFIED_MORE_THAN_ONCE = "Features specified more than once in file {}",
+                      ERROR_READING_NUM_FEATURES = "Error occurred when reading number of independent features in file {}",
+                      ERROR_READING_FEATURE_NAME = "Error occurred when reading name of independent feature in file {}",
+                      DUPLICATE_FEATURE_FOUND = "Duplicate feature found in file {}: {} at {}",
+                      EXPLICIT_DEPENDENCIES_SPECIFIED_MORE_THAN_ONCE = "Explicit dependencies specified more than once in file {}",
+                      EXPECTED_FEATURE_NAME_OR_ROOT = "Expected a feature name or ROOT but received: {} at {}",
+                      FEATURE_INDEX_NOT_FOUND = "Feature index not found for: {}",
+                      EXPECTED_DEPENDENCY_KEYWORD = "Expected a dependency keyword but received: {} at {}",
+                      UNEXPECTED_CATEGORY = "Unexpected category: {} at {}",
+                      DUPLICATE_CATEGORY = "Duplicate category: {} at {}",
+                      CATEGORIES_SPECIFIED_MORE_THAN_ONCE = "Feature categories specified more than once in file {}",
+                      AVAILABLE_SYSTEMS_SPECIFIED_MORE_THAN_ONCE = "Available systems specified more than once in file {}",
+                      ONLY_ONE_OF_AVAILABLE_OR_MISSING_SYSTEMS = "Only one of AVAILABLE_SYSTEMS or MISSING_SYSTEMS can be specified in file {}",
+                      SYSTEM_EXCEEDS_AVAILABLE = "System {} exceeds the number of available systems: {}",
+                      UNEXPECTED_TOKEN_IN_AVAILABLE_SYSTEMS = "Unexpected token in AVAILABLE_SYSTEMS section: {}",
+                      MISSING_SYSTEMS_SPECIFIED_MORE_THAN_ONCE = "Missing systems specified more than once in file {}",
+                      UNEXPECTED_TOKEN_IN_MISSING_SYSTEMS = "Unexpected token in MISSING_SYSTEMS section: {}",
+                      FAILED_TO_OPEN_INPUT_FILE = "Failed to open input file: {}",
+                      FAILED_TO_PARSE_SPECIFICATION = "Failed to parse SPL specification in file: {}",
+                      INVALID_SYSTEM_CONFIGURATION = "Invalid system configuration in file {}",
+                      FAILED_TO_OPEN_OUTPUT_FILE = "Failed to open output file: {}";
+  } // namespace error_msgs
 
   class spl_specification_t final {
     using systems_t = std::vector<unsigned_integer>;
@@ -57,9 +94,6 @@ namespace feature_isolation {
     NAME
   };
 
-  static const std::unordered_map<std::string, unsigned_integer> category_map = {
-      { "F", F }, { "A", A }, { "O", O }, { "N", N }, { "AN", AN }, { "ON", ON }, { "ANF", ANF }, { "ONF", ONF } };
-
   namespace kw {
     constexpr std::string_view COMMENT { "//" }, SPL { "SPL" }, MAX_RANK { "MAX_RANK" }, FEATURES { "FEATURES" }, ROOT { "ROOT" },
         CATEGORIES { "CATEGORIES" }, F { "F" }, N { "N" }, O { "O" }, A { "A" }, AN { "AN" }, ON { "ON" },
@@ -90,8 +124,10 @@ namespace feature_isolation {
         { MISSING_SYSTEMS, TokenType::KEYWORD },
         { AVAILABLE_SYSTEMS, TokenType::KEYWORD },
         { MAX_RANK, TokenType::KEYWORD } };
-
   } // namespace kw
+
+  static const std::unordered_map<std::string, unsigned_integer> category_map = {
+      { std::string( kw::F ), F }, { std::string( kw::A ), A }, { std::string( kw::O ), O }, { std::string( kw::N ), N }, { std::string( kw::AN ), AN }, { std::string( kw::ON ), ON }, { std::string( kw::ANF ), ANF }, { std::string( kw::ONF ), ONF } };
 
   [[nodiscard]] std::string toupper( std::string s );
   bool error( const std::string_view& msg, std::ostream& output = std::cerr );
@@ -173,8 +209,8 @@ namespace feature_isolation {
     spl_specification_t m_spec;
   };
 
-  bool error( const std::string_view& msg, std::ostream& os ) {
-    os << msg << std::endl;
+  bool error( const std::string_view& msg, std::ostream& os, const std::string_view keyword = "", const std::string& system_id = "", const std::string& arg3 = "", const std::string& arg4 = "" ) {
+    os << fmt::format( fmt::runtime( msg ), system_id, keyword, arg3, arg4 ) << std::endl;
     return false;
   }
 
@@ -190,7 +226,7 @@ namespace feature_isolation {
 
     auto it = std::find( m_feature_names.begin(), m_feature_names.end(), feature_name );
     if ( it == m_feature_names.end() ) {
-      error( "Feature name not found: " + feature_name );
+      error( error_msgs::FEATURE_NAME_NOT_FOUND, std::cerr, feature_name );
     }
     return std::distance( m_feature_names.begin(), it );
   }
@@ -229,7 +265,7 @@ namespace feature_isolation {
             z3::expr dep_expr = ctx.bool_val( system & ( 1 << dep ) );
             solver.add( dep_expr );
             if ( solver.check() != z3::sat ) {
-              return error( "System " + std::to_string( system_id ) + " violates " + static_cast<std::string>( kw::ROOT ) + " REQUIRES_ALL constraint for dependent feature " + m_feature_names[dep] );
+              return error( error_msgs::ERROR_ROOT_CONSTRAINT, std::cerr, kw::REQUIRES_ALL, std::to_string( system_id ), kw::ROOT.data(), m_feature_names[dep] );
             }
           }
         }
@@ -238,7 +274,7 @@ namespace feature_isolation {
             z3::expr dep_expr = ctx.bool_val( system & ( 1 << dep ) );
             solver.add( dep_expr );
             if ( solver.check() != z3::sat ) {
-              return error( "System " + std::to_string( system_id ) + " violates REQUIRES_ALL constraint for feature " + m_feature_names[static_cast<unsigned_integer>( feature )] + " and dependent feature " + m_feature_names[dep] );
+              return error( error_msgs::ERROR_SYSTEM_CONSTRAINT, std::cerr, kw::REQUIRES_ALL, std::to_string( system_id ), m_feature_names[static_cast<unsigned_integer>( feature )], m_feature_names[dep] );
             }
           }
         }
@@ -257,7 +293,7 @@ namespace feature_isolation {
             for ( const auto& dep : deps ) {
               dep_str += m_feature_names[dep] + " ";
             }
-            return error( "System " + std::to_string( system_id ) + " violates " + static_cast<std::string>( kw::ROOT ) + " REQUIRES_ANY constraint for dependent features " + dep_str );
+            return error( error_msgs::ERROR_ROOT_CONSTRAINT, std::cerr, kw::REQUIRES_ANY, std::to_string( system_id ), kw::ROOT.data(), dep_str );
           }
         }
         if ( system & ( 1 << feature ) ) {
@@ -267,7 +303,7 @@ namespace feature_isolation {
           }
           solver.add( z3::mk_or( exprs ) );
           if ( solver.check() != z3::sat ) {
-            return error( "System " + std::to_string( system_id ) + " violates REQUIRES_ANY constraint for feature " + m_feature_names[static_cast<unsigned_integer>( feature )] );
+            return error( error_msgs::ERROR_SYSTEM_CONSTRAINT, std::cerr, kw::REQUIRES_ANY, std::to_string( system_id ), m_feature_names[static_cast<unsigned_integer>( feature )] );
           }
         }
       }
@@ -286,7 +322,7 @@ namespace feature_isolation {
             for ( const auto& dep : deps ) {
               dep_str += m_feature_names[dep] + " ";
             }
-            return error( "System " + std::to_string( system_id ) + " violates " + static_cast<std::string>( kw::ROOT ) + " REQUIRES_ONE constraint for dependent feature " + dep_str );
+            return error( error_msgs::ERROR_ROOT_CONSTRAINT, std::cerr, kw::REQUIRES_ONE, std::to_string( system_id ), kw::ROOT.data(), dep_str );
           }
         }
         if ( system & ( 1 << feature ) ) {
@@ -301,7 +337,7 @@ namespace feature_isolation {
             for ( const auto& dep : deps ) {
               dep_str += m_feature_names[dep] + " ";
             }
-            return error( "System " + std::to_string( system_id ) + " violates REQUIRES_ONE constraint for feature " + m_feature_names[static_cast<unsigned_integer>( feature )] + " and dependent feature " + dep_str );
+            return error( error_msgs::ERROR_SYSTEM_CONSTRAINT, std::cerr, kw::REQUIRES_ONE, std::to_string( system_id ), m_feature_names[static_cast<unsigned_integer>( feature )], dep_str );
           }
         }
       }
@@ -313,7 +349,7 @@ namespace feature_isolation {
             z3::expr dep_expr = !ctx.bool_val( system & ( 1 << dep ) );
             solver.add( dep_expr );
             if ( solver.check() != z3::sat ) {
-              return error( "System " + std::to_string( system_id ) + " violates " + static_cast<std::string>( kw::ROOT ) + " EXCLUDES_ALL constraint for feature " + m_feature_names[dep] );
+              return error( error_msgs::ERROR_ROOT_CONSTRAINT, std::cerr, kw::EXCLUDES_ALL, std::to_string( system_id ), kw::ROOT.data(), m_feature_names[dep] );
             }
           }
         }
@@ -322,7 +358,7 @@ namespace feature_isolation {
             z3::expr dep_expr = !ctx.bool_val( system & ( 1 << dep ) );
             solver.add( dep_expr );
             if ( solver.check() != z3::sat ) {
-              return error( "System " + std::to_string( system_id ) + " violates EXCLUDES_ALL constraint for feature " + m_feature_names[static_cast<unsigned_integer>( feature )] + " and dependent feature " + m_feature_names[dep] );
+              return error( error_msgs::ERROR_SYSTEM_CONSTRAINT, std::cerr, kw::EXCLUDES_ALL, std::to_string( system_id ), m_feature_names[static_cast<unsigned_integer>( feature )], m_feature_names[dep] );
             }
           }
         }
@@ -470,10 +506,10 @@ namespace feature_isolation {
         } else if ( token.value() == kw::MISSING_SYSTEMS ) {
           result &= parse_missing_systems( spec );
         } else {
-          return error( "Unexpected keyword: " + token.value() + " at " + token.position_string() );
+          return error( error_msgs::UNEXPECTED_KEYWORD, std::cerr, token.value(), token.position_string() );
         }
       } else {
-        return error( "Unexpected token: " + token.value() + " at " + token.position_string() );
+        return error( error_msgs::UNEXPECTED_TOKEN, std::cerr, token.value(), token.position_string() );
       }
     }
 
@@ -484,7 +520,7 @@ namespace feature_isolation {
       spec.m_max_rank = spec.m_F;
     }
     if ( !spec.m_feature_names_specified ) {
-      return error( "Features not specified in file " + spec.m_filename );
+      return error( error_msgs::FEATURES_NOT_SPECIFIED, std::cerr, spec.m_filename );
     }
 
     return result;
@@ -492,11 +528,11 @@ namespace feature_isolation {
 
   bool Parser::parse_spl( spl_specification_t& spec ) {
     if ( spec.m_spl_specified ) {
-      return error( "SPL specified more than once in file " + spec.m_filename );
+      return error( error_msgs::SPL_SPECIFIED_MORE_THAN_ONCE, std::cerr, spec.m_filename );
     }
     auto token = m_tokenizer.next();
     if ( token.type() != TokenType::NAME ) {
-      return error( "Expected SPL name, but got: " + token.value() );
+      return error( error_msgs::EXPECTED_SPL_NAME, std::cerr, token.value() );
     }
     spec.m_spl_name = token.value();
     spec.m_spl_specified = true;
@@ -505,11 +541,11 @@ namespace feature_isolation {
 
   bool Parser::parse_max_rank( spl_specification_t& spec ) {
     if ( spec.m_max_rank_specified ) {
-      return error( "MAX_RANK specified more than once in file " + spec.m_filename );
+      return error( error_msgs::MAX_RANK_SPECIFIED_MORE_THAN_ONCE, std::cerr, spec.m_filename );
     }
     auto token = m_tokenizer.next();
     if ( token.type() != TokenType::VALUE ) {
-      return error( "Expected MAX_RANK value, but got: " + token.value() );
+      return error( error_msgs::EXPECTED_MAX_RANK_VALUE, std::cerr, token.value() );
     }
     spec.m_max_rank = std::stoull( token.value() );
     spec.m_max_rank_specified = true;
@@ -518,11 +554,11 @@ namespace feature_isolation {
 
   bool Parser::parse_features( spl_specification_t& spec ) {
     if ( spec.m_feature_names_specified ) {
-      return error( "Features specified more than once in file " + spec.m_filename );
+      return error( error_msgs::FEATURES_SPECIFIED_MORE_THAN_ONCE, std::cerr, spec.m_filename );
     }
     auto token = m_tokenizer.next();
     if ( token.type() != TokenType::VALUE ) {
-      return error( "Error occurred when reading number of independent features in file " + spec.m_filename );
+      return error( error_msgs::ERROR_READING_NUM_FEATURES, std::cerr, spec.m_filename );
     }
     unsigned_integer f { std::stoull( token.value() ) };
     spec.m_F = f;
@@ -532,11 +568,10 @@ namespace feature_isolation {
     for ( auto& feature : spec.m_feature_names ) {
       token = m_tokenizer.next();
       if ( token.type() != TokenType::NAME ) {
-        return error( "Error occurred when reading name of independent feature in file " + spec.m_filename );
+        return error( error_msgs::ERROR_READING_FEATURE_NAME, std::cerr, spec.m_filename );
       }
       if ( feature_set.find( token.value() ) != feature_set.end() ) {
-        return error( "Duplicate feature found in file " + spec.m_filename + ": " + token.value() + " at " +
-                      token.position_string() );
+        return error( error_msgs::DUPLICATE_FEATURE_FOUND, std::cerr, spec.m_filename, token.value(), token.position_string() );
       }
       feature_set.insert( token.value() );
       feature = token.value();
@@ -547,7 +582,7 @@ namespace feature_isolation {
 
   bool Parser::parse_explicit_dependencies( spl_specification_t& spec ) {
     if ( spec.m_explicit_dependencies_specified ) {
-      return error( "Explicit dependencies specified more than once in file " + spec.m_filename );
+      return error( error_msgs::EXPLICIT_DEPENDENCIES_SPECIFIED_MORE_THAN_ONCE, std::cerr, spec.m_filename );
     }
 
     Token token;
@@ -558,7 +593,7 @@ namespace feature_isolation {
       }
 
       if ( token.type() != TokenType::NAME && toupper( token.value() ) != kw::ROOT ) {
-        return error( "Expected a feature name or ROOT but received: " + token.value() + " at " + token.position_string() );
+        return error( error_msgs::EXPECTED_FEATURE_NAME_OR_ROOT, std::cerr, token.value(), token.position_string() );
       }
 
       std::string feature_name = token.value();
@@ -567,7 +602,7 @@ namespace feature_isolation {
       if ( feature_name_upper != kw::ROOT ) {
         feature_index_opt = spec.feature_index( feature_name );
         if ( !feature_index_opt.has_value() ) {
-          return error( "Feature index not found for: " + feature_name );
+          return error( error_msgs::FEATURE_INDEX_NOT_FOUND, std::cerr, feature_name );
         }
       } else {
         feature_index_opt = -1; // Special index for ROOT
@@ -575,7 +610,7 @@ namespace feature_isolation {
 
       token = m_tokenizer.next();
       if ( token.type() != TokenType::KEYWORD ) {
-        return error( "Expected a dependency keyword but received: " + token.value() + " at " + token.position_string() );
+        return error( error_msgs::EXPECTED_DEPENDENCY_KEYWORD, std::cerr, token.value(), token.position_string() );
       }
 
       std::string dependency_type = toupper( token.value() );
@@ -591,7 +626,7 @@ namespace feature_isolation {
         if ( token.type() == TokenType::NAME ) {
           auto index_opt = spec.feature_index( token.value() );
           if ( !index_opt.has_value() ) {
-            return error( "Feature index not found for: " + token.value() + " at " + token.position_string() );
+            return error( error_msgs::FEATURE_INDEX_NOT_FOUND, std::cerr, token.value(), token.position_string() );
           }
           dependent_features.insert( static_cast<unsigned_integer>( index_opt.value() ) );
         } else if ( token.type() == TokenType::COMMENT ) {
@@ -600,7 +635,7 @@ namespace feature_isolation {
           }
           break;
         } else {
-          return error( "Unexpected token: " + token.value() + " at " + token.position_string() );
+          return error( error_msgs::UNEXPECTED_TOKEN, std::cerr, token.value(), token.position_string() );
         }
       }
 
@@ -621,7 +656,7 @@ namespace feature_isolation {
 
   bool Parser::parse_categories( spl_specification_t& spec ) {
     if ( spec.m_categories_specified ) {
-      return error( "Feature categories specified more than once in file " + spec.m_filename );
+      return error( error_msgs::CATEGORIES_SPECIFIED_MORE_THAN_ONCE, std::cerr, spec.m_filename );
     }
 
     std::unordered_set<std::string> category_set;
@@ -629,7 +664,7 @@ namespace feature_isolation {
     do {
       token = m_tokenizer.next();
       if ( token.type() != TokenType::KEYWORD ) {
-        return error( "Expected a category but received: " + token.value() + " at " + token.position_string() );
+        return error( error_msgs::UNEXPECTED_CATEGORY, std::cerr, token.value(), token.position_string() );
       }
 
       std::string token_value = toupper( token.value() );
@@ -640,12 +675,12 @@ namespace feature_isolation {
       auto it = category_map.find( token_value );
       if ( it != category_map.end() ) {
         if ( category_set.find( token_value ) != category_set.end() ) {
-          return error( "Duplicate category: " + token.value() + " at " + token.position_string() );
+          return error( error_msgs::DUPLICATE_CATEGORY, std::cerr, token.value(), token.position_string() );
         }
         category_set.insert( token_value );
         spec.m_categories |= it->second;
       } else {
-        return error( "Unexpected category: " + token.value() + " at " + token.position_string() );
+        return error( error_msgs::UNEXPECTED_CATEGORY, std::cerr, token.value(), token.position_string() );
       }
     } while ( token.value() != kw::END );
 
@@ -655,22 +690,22 @@ namespace feature_isolation {
 
   bool Parser::parse_available_systems( spl_specification_t& spec ) {
     if ( spec.m_available_systems_specified ) {
-      return error( "Available systems specified more than once in file " + spec.m_filename );
+      return error( error_msgs::AVAILABLE_SYSTEMS_SPECIFIED_MORE_THAN_ONCE, std::cerr, spec.m_filename );
     }
     if ( spec.m_missing_systems_specified ) {
-      return error( "Only one of AVAILABLE_SYSTEMS or MISSING_SYSTEMS can be specified in file " + spec.m_filename );
+      return error( error_msgs::ONLY_ONE_OF_AVAILABLE_OR_MISSING_SYSTEMS, std::cerr, spec.m_filename );
     }
     Token token = m_tokenizer.next();
     while ( token.type() != TokenType::EMPTY ) {
       if ( token.type() == TokenType::VALUE ) {
         if ( std::stoull( token.value() ) > spec.m_max_available_systems ) {
-          return error( "System " + token.value() + " exceeds the number of available systems: " + std::to_string( spec.m_max_available_systems ) );
+          return error( error_msgs::SYSTEM_EXCEEDS_AVAILABLE, std::cerr, token.value(), std::to_string( spec.m_max_available_systems ) );
         }
         spec.m_available_systems.push_back( std::stoull( token.value() ) );
       } else if ( token.type() == TokenType::KEYWORD && toupper( token.value() ) == kw::END ) {
         break;
       } else {
-        return error( "Unexpected token in AVAILABLE_SYSTEMS section: " + token.value() );
+        return error( error_msgs::UNEXPECTED_TOKEN_IN_AVAILABLE_SYSTEMS, std::cerr, token.value() );
       }
       token = m_tokenizer.next();
     }
@@ -680,22 +715,22 @@ namespace feature_isolation {
 
   bool Parser::parse_missing_systems( spl_specification_t& spec ) {
     if ( spec.m_missing_systems_specified ) {
-      return error( "Missing systems specified more than once in file " + spec.m_filename );
+      return error( error_msgs::MISSING_SYSTEMS_SPECIFIED_MORE_THAN_ONCE, std::cerr, spec.m_filename );
     }
     if ( spec.m_available_systems_specified ) {
-      return error( "Only one of AVAILABLE_SYSTEMS or MISSING_SYSTEMS can be specified in file " + spec.m_filename );
+      return error( error_msgs::ONLY_ONE_OF_AVAILABLE_OR_MISSING_SYSTEMS, std::cerr, spec.m_filename );
     }
     Token token = m_tokenizer.next();
     while ( token.type() != TokenType::EMPTY ) {
       if ( token.type() == TokenType::VALUE ) {
         if ( std::stoull( token.value() ) > spec.m_max_available_systems ) {
-          return error( "System " + token.value() + " exceeds the number of available systems: " + std::to_string( spec.m_max_available_systems ) );
+          return error( error_msgs::SYSTEM_EXCEEDS_AVAILABLE, std::cerr, token.value(), std::to_string( spec.m_max_available_systems ) );
         }
         spec.m_missing_systems.push_back( std::stoull( token.value() ) );
       } else if ( token.type() == TokenType::KEYWORD && toupper( token.value() ) == kw::END ) {
         break;
       } else {
-        return error( "Unexpected token in MISSING_SYSTEMS section: " + token.value() );
+        return error( error_msgs::UNEXPECTED_TOKEN_IN_MISSING_SYSTEMS, std::cerr, token.value() );
       }
       token = m_tokenizer.next();
     }
@@ -804,17 +839,17 @@ namespace feature_isolation {
   bool spl_processor::process() {
     std::ifstream input_file( m_filename );
     if ( !input_file.is_open() ) {
-      error( "Failed to open input file: " + m_filename );
+      error( error_msgs::FAILED_TO_OPEN_INPUT_FILE, std::cerr, m_filename );
       return false;
     }
 
     feature_isolation::Parser parser( input_file );
     if ( !parser.parse_specification( m_spec ) ) {
-      error( "Failed to parse SPL specification in file: " + m_filename );
+      error( error_msgs::FAILED_TO_PARSE_SPECIFICATION, std::cerr, m_filename );
       return false;
     }
     if ( !m_spec.validate_systems() ) {
-      return error( "Invalid system configuration in file " + m_spec.m_filename );
+      return error( error_msgs::INVALID_SYSTEM_CONFIGURATION, std::cerr, m_spec.m_filename );
     }
 
     return true;
@@ -823,7 +858,7 @@ namespace feature_isolation {
   void spl_processor::print( const std::string& output_filename ) const {
     std::ofstream output_file( output_filename );
     if ( !output_file.is_open() ) {
-      error( "Failed to open output file: " + output_filename );
+      error( error_msgs::FAILED_TO_OPEN_OUTPUT_FILE, std::cerr, output_filename );
       return;
     }
 
