@@ -75,6 +75,7 @@ namespace feature_isolation {
     [[nodiscard]] std::optional<signed int> feature_index( const std::string& feature ) const;
     [[nodiscard]] systems_t effective_available_systems() const;
     bool validate_systems();
+    bool check_constraints( const std::string& constraint_type, const dependencies_t& constraints_map, unsigned_integer system_id, unsigned_integer system, z3::context& ctx );
 
     bool m_spl_specified { false }, m_feature_names_specified { false }, m_categories_specified { false },
         m_explicit_dependencies_specified { false }, m_missing_systems_specified { false },
@@ -209,14 +210,23 @@ namespace feature_isolation {
     spl_specification_t m_spec;
   };
 
-  bool error( const std::string_view& msg, std::ostream& os, const std::string_view keyword = "", const std::string& system_id = "", const std::string& arg3 = "", const std::string& arg4 = "" ) {
-    os << fmt::format( fmt::runtime( msg ), system_id, keyword, arg3, arg4 ) << std::endl;
+  bool error( const std::string_view& msg, std::ostream& os, const std::string& arg1 = "", const std::string& arg2 = "", const std::string& arg3 = "", const std::string& arg4 = "" ) {
+    os << fmt::format( fmt::runtime( msg ), arg1, arg2, arg3, arg4 ) << std::endl;
     return false;
   }
 
   std::string toupper( std::string s ) {
     std::transform( s.begin(), s.end(), s.begin(), ::toupper );
     return s;
+  }
+
+  z3::expr exactly( unsigned n, z3::expr_vector const& xs ) {
+    z3::context& ctx = xs[0].ctx();
+    z3::expr_vector k( ctx );
+    for ( unsigned i = 0; i < xs.size(); i++ ) {
+      k.push_back( z3::ite( xs[i], z3::expr( ctx, Z3_mk_true( ctx ) ), z3::expr( ctx, Z3_mk_false( ctx ) ) ) );
+    }
+    return z3::sum( k ) == ctx.int_val( n );
   }
 
   std::optional<signed int> spl_specification_t::feature_index( const std::string& feature_name ) const {
@@ -251,118 +261,88 @@ namespace feature_isolation {
     }
   }
 
+  bool spl_specification_t::check_constraints( const std::string& constraint_type, const dependencies_t& constraints_map, unsigned_integer system_id, unsigned_integer system, z3::context& ctx ) {
+    for ( const auto& [feature, deps] : constraints_map ) {
+      z3::solver solver( ctx );
+
+      if ( feature == -1 ) {
+        z3::expr_vector dep_exprs( ctx );
+        for ( const auto& dep : deps ) {
+          z3::expr dep_expr = ctx.bool_val( system & ( 1 << dep ) );
+          dep_exprs.push_back( dep_expr );
+        }
+
+        if ( constraint_type == kw::REQUIRES_ONE ) {
+          solver.add( exactly( 1, dep_exprs ) );
+        } else {
+          for ( const auto& dep_expr : dep_exprs ) {
+            solver.add( dep_expr );
+          }
+        }
+
+        if ( solver.check() != z3::sat ) {
+          return error( error_msgs::ERROR_ROOT_CONSTRAINT, std::cerr, std::to_string( system_id ), std::string( kw::ROOT ), constraint_type, m_feature_names[*deps.begin()] );
+        }
+      } else {
+        z3::expr feature_expr = ctx.bool_val( system & ( 1 << feature ) );
+        z3::expr_vector dep_exprs( ctx );
+        for ( const auto& dep : deps ) {
+          z3::expr dep_expr = ctx.bool_val( system & ( 1 << dep ) );
+          dep_exprs.push_back( dep_expr );
+        }
+
+        if ( constraint_type == kw::REQUIRES_ALL ) {
+          for ( const auto& dep_expr : dep_exprs ) {
+            solver.add( implies( feature_expr, dep_expr ) );
+          }
+        } else if ( constraint_type == kw::REQUIRES_ANY ) {
+          solver.add( implies( feature_expr, z3::mk_or( dep_exprs ) ) );
+        } else if ( constraint_type == kw::REQUIRES_ONE ) {
+          solver.add( implies( feature_expr, exactly( 1, dep_exprs ) ) );
+        } else if ( constraint_type == kw::EXCLUDES_ALL ) {
+          for ( const auto& dep_expr : dep_exprs ) {
+            solver.add( implies( feature_expr, !dep_expr ) );
+          }
+        }
+
+        if ( solver.check() != z3::sat ) {
+          for ( const auto& dep : deps ) {
+            z3::solver detail_solver( ctx );
+            z3::expr dep_expr = ctx.bool_val( system & ( 1 << dep ) );
+            if ( constraint_type == kw::REQUIRES_ALL ) {
+              detail_solver.add( implies( feature_expr, dep_expr ) );
+            } else if ( constraint_type == kw::REQUIRES_ANY ) {
+              detail_solver.add( implies( feature_expr, dep_expr ) );
+            } else if ( constraint_type == kw::REQUIRES_ONE ) {
+              detail_solver.add( implies( feature_expr, exactly( 1, dep_exprs ) ) );
+            } else if ( constraint_type == kw::EXCLUDES_ALL ) {
+              detail_solver.add( implies( feature_expr, !dep_expr ) );
+            }
+            if ( detail_solver.check() != z3::sat ) {
+              return error( error_msgs::ERROR_SYSTEM_CONSTRAINT, std::cerr, std::string( constraint_type ), std::to_string( system_id ), m_feature_names[feature], m_feature_names[dep] );
+            }
+          }
+        }
+      }
+    }
+    return true;
+  }
+
   bool spl_specification_t::validate_systems() {
-    systems_t eff_available_systems { effective_available_systems() };
+    systems_t eff_available_systems = effective_available_systems();
     z3::context ctx;
 
     for ( const auto& system_id : eff_available_systems ) {
       unsigned_integer system = system_id - 1;
 
-      for ( const auto& [feature, deps] : m_requires_all ) {
-        z3::solver solver( ctx );
-        if ( feature == -1 ) {
-          for ( const auto& dep : deps ) {
-            z3::expr dep_expr = ctx.bool_val( system & ( 1 << dep ) );
-            solver.add( dep_expr );
-            if ( solver.check() != z3::sat ) {
-              return error( error_msgs::ERROR_ROOT_CONSTRAINT, std::cerr, kw::REQUIRES_ALL, std::to_string( system_id ), kw::ROOT.data(), m_feature_names[dep] );
-            }
-          }
-        }
-        if ( system & ( 1 << feature ) ) {
-          for ( const auto& dep : deps ) {
-            z3::expr dep_expr = ctx.bool_val( system & ( 1 << dep ) );
-            solver.add( dep_expr );
-            if ( solver.check() != z3::sat ) {
-              return error( error_msgs::ERROR_SYSTEM_CONSTRAINT, std::cerr, kw::REQUIRES_ALL, std::to_string( system_id ), m_feature_names[static_cast<unsigned_integer>( feature )], m_feature_names[dep] );
-            }
-          }
-        }
-      }
-
-      for ( const auto& [feature, deps] : m_requires_any ) {
-        z3::solver solver( ctx );
-        if ( feature == -1 ) {
-          z3::expr_vector exprs( ctx );
-          for ( const auto& dep : deps ) {
-            exprs.push_back( ctx.bool_val( system & ( 1 << dep ) ) );
-          }
-          solver.add( z3::mk_or( exprs ) );
-          if ( solver.check() != z3::sat ) {
-            std::string dep_str;
-            for ( const auto& dep : deps ) {
-              dep_str += m_feature_names[dep] + " ";
-            }
-            return error( error_msgs::ERROR_ROOT_CONSTRAINT, std::cerr, kw::REQUIRES_ANY, std::to_string( system_id ), kw::ROOT.data(), dep_str );
-          }
-        }
-        if ( system & ( 1 << feature ) ) {
-          z3::expr_vector exprs( ctx );
-          for ( const auto& dep : deps ) {
-            exprs.push_back( ctx.bool_val( system & ( 1 << dep ) ) );
-          }
-          solver.add( z3::mk_or( exprs ) );
-          if ( solver.check() != z3::sat ) {
-            return error( error_msgs::ERROR_SYSTEM_CONSTRAINT, std::cerr, kw::REQUIRES_ANY, std::to_string( system_id ), m_feature_names[static_cast<unsigned_integer>( feature )] );
-          }
-        }
-      }
-
-      for ( const auto& [feature, deps] : m_requires_one ) {
-        z3::solver solver( ctx );
-        if ( feature == -1 ) {
-          z3::expr_vector exprs( ctx );
-          for ( const auto& dep : deps ) {
-            exprs.push_back( ctx.bool_val( system & ( 1 << dep ) ) );
-          }
-          solver.add( z3::mk_or( exprs ) );
-          solver.add( z3::mk_xor( exprs ) );
-          if ( solver.check() != z3::sat ) {
-            std::string dep_str;
-            for ( const auto& dep : deps ) {
-              dep_str += m_feature_names[dep] + " ";
-            }
-            return error( error_msgs::ERROR_ROOT_CONSTRAINT, std::cerr, kw::REQUIRES_ONE, std::to_string( system_id ), kw::ROOT.data(), dep_str );
-          }
-        }
-        if ( system & ( 1 << feature ) ) {
-          z3::expr_vector exprs( ctx );
-          for ( const auto& dep : deps ) {
-            exprs.push_back( ctx.bool_val( system & ( 1 << dep ) ) );
-          }
-          solver.add( z3::mk_or( exprs ) );
-          solver.add( z3::mk_xor( exprs ) );
-          if ( solver.check() != z3::sat ) {
-            std::string dep_str;
-            for ( const auto& dep : deps ) {
-              dep_str += m_feature_names[dep] + " ";
-            }
-            return error( error_msgs::ERROR_SYSTEM_CONSTRAINT, std::cerr, kw::REQUIRES_ONE, std::to_string( system_id ), m_feature_names[static_cast<unsigned_integer>( feature )], dep_str );
-          }
-        }
-      }
-
-      for ( const auto& [feature, deps] : m_excludes_all ) {
-        z3::solver solver( ctx );
-        if ( feature == -1 ) {
-          for ( const auto& dep : deps ) {
-            z3::expr dep_expr = !ctx.bool_val( system & ( 1 << dep ) );
-            solver.add( dep_expr );
-            if ( solver.check() != z3::sat ) {
-              return error( error_msgs::ERROR_ROOT_CONSTRAINT, std::cerr, kw::EXCLUDES_ALL, std::to_string( system_id ), kw::ROOT.data(), m_feature_names[dep] );
-            }
-          }
-        }
-        if ( system & ( 1 << feature ) ) {
-          for ( const auto& dep : deps ) {
-            z3::expr dep_expr = !ctx.bool_val( system & ( 1 << dep ) );
-            solver.add( dep_expr );
-            if ( solver.check() != z3::sat ) {
-              return error( error_msgs::ERROR_SYSTEM_CONSTRAINT, std::cerr, kw::EXCLUDES_ALL, std::to_string( system_id ), m_feature_names[static_cast<unsigned_integer>( feature )], m_feature_names[dep] );
-            }
-          }
-        }
-      }
+      if ( !check_constraints( std::string( kw::REQUIRES_ALL ), m_requires_all, system_id, system, ctx ) )
+        return false;
+      if ( !check_constraints( std::string( kw::REQUIRES_ANY ), m_requires_any, system_id, system, ctx ) )
+        return false;
+      if ( !check_constraints( std::string( kw::REQUIRES_ONE ), m_requires_one, system_id, system, ctx ) )
+        return false;
+      if ( !check_constraints( std::string( kw::EXCLUDES_ALL ), m_excludes_all, system_id, system, ctx ) )
+        return false;
     }
 
     m_available_systems = eff_available_systems;
