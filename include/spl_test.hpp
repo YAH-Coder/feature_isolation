@@ -22,7 +22,7 @@ namespace feature_isolation {
   using feature_names_t = std::vector<std::string>;
   using dependencies_t = std::unordered_map<signed int, std::set<unsigned_integer>>;
 
-  char csv_separator;
+  char csv_separator { '\t' };
 
   namespace error_msgs {
     const std::string FEATURE_NAME_NOT_FOUND = "Feature name not found: {}",
@@ -381,6 +381,8 @@ namespace feature_isolation {
   Token Tokenizer::next() {
     std::string token;
     char c;
+    Position token_begin = m_position; // Store the beginning position of the token
+
     while ( m_is.get( c ) ) {
       if ( c == '\n' ) {
         m_position.first++;
@@ -390,29 +392,37 @@ namespace feature_isolation {
       }
 
       if ( std::isalnum( c ) || c == '_' ) {
+        if ( token.empty() ) {
+          token_begin = m_position; // Update token_begin when starting a new token
+          token_begin.second -= 1;  // Adjust for the initial character
+        }
         token += c;
       } else {
         if ( !token.empty() ) {
           m_is.unget();
           m_position.second--;
 
+          Position token_end = m_position;
+
           if ( std::all_of( token.begin(), token.end(), ::isdigit ) ) {
-            return Token( TokenType::VALUE, token, m_position,
-                          { m_position.first, m_position.second - token.length() } );
+            Token result( TokenType::VALUE, token, token_begin, token_end );
+            std::cout << "Token: " << result.value() << " Type: VALUE at line: "
+                      << result.begin().first << ", column: " << result.begin().second << std::endl;
+            return result;
           }
 
           auto keyword_check = check_keyword( toupper( token ) );
           if ( keyword_check.has_value() ) {
-            if ( !csv_separator ) {
-              m_is.get( c );
-              csv_separator = c;
-              m_is.unget();
-            }
-            return keyword_check.value();
+            Token result = keyword_check.value();
+            std::cout << "Token: " << result.value() << " Type: KEYWORD at line: "
+                      << result.begin().first << ", column: " << result.begin().second << std::endl;
+            return result;
           }
 
-          return Token( TokenType::NAME, token, m_position,
-                        { m_position.first, m_position.second - token.length() } );
+          Token result( TokenType::NAME, token, token_begin, token_end );
+          std::cout << "Token: " << result.value() << " Type: NAME at line: "
+                    << result.begin().first << ", column: " << result.begin().second << std::endl;
+          return result;
         }
 
         if ( std::isspace( c ) ) {
@@ -434,16 +444,27 @@ namespace feature_isolation {
     }
 
     if ( !token.empty() ) {
+      Position token_end = m_position;
+
       if ( std::all_of( token.begin(), token.end(), ::isdigit ) ) {
-        return Token( TokenType::VALUE, token, m_position, { m_position.first, m_position.second - token.length() } );
+        Token result( TokenType::VALUE, token, token_begin, token_end );
+        std::cout << "Token: " << result.value() << " Type: VALUE at line: "
+                  << result.begin().first << ", column: " << result.begin().second << std::endl;
+        return result;
       }
 
       auto keyword_check = check_keyword( toupper( token ) );
       if ( keyword_check.has_value() ) {
-        return keyword_check.value();
+        Token result = keyword_check.value();
+        std::cout << "Token: " << result.value() << " Type: KEYWORD at line: "
+                  << result.begin().first << ", column: " << result.begin().second << std::endl;
+        return result;
       }
 
-      return Token( TokenType::NAME, token, m_position, { m_position.first, m_position.second - token.length() } );
+      Token result( TokenType::NAME, token, token_begin, token_end );
+      std::cout << "Token: " << result.value() << " Type: NAME at line: "
+                << result.begin().first << ", column: " << result.begin().second << std::endl;
+      return result;
     }
 
     return Token( TokenType::EMPTY, "", m_position, m_position );
@@ -545,9 +566,15 @@ namespace feature_isolation {
     spec.m_max_available_systems = ( 1 << f );
     spec.m_feature_names = feature_names_t( f );
     std::unordered_set<std::string> feature_set;
+
+    bool parsing_feature_names = true;
+
     for ( auto& feature : spec.m_feature_names ) {
       token = m_tokenizer.next();
-      if ( token.type() != TokenType::NAME ) {
+      if ( parsing_feature_names && token.type() == TokenType::KEYWORD && token.value() == "END" ) {
+        parsing_feature_names = false;
+      }
+      if ( !parsing_feature_names && token.type() != TokenType::NAME ) {
         return error( error_msgs::ERROR_READING_FEATURE_NAME, std::cerr, spec.m_filename );
       }
       if ( feature_set.find( token.value() ) != feature_set.end() ) {
@@ -753,14 +780,13 @@ namespace feature_isolation {
 
   void Printer::print_categories( const spl_specification_t& spec ) {
     if ( spec.m_categories_specified ) {
-      m_os << kw::CATEGORIES;
+      m_os << kw::CATEGORIES << std::endl;
       for ( const auto& [name, bit] : category_map ) {
         if ( spec.m_categories & bit ) {
           m_os << name << std::endl;
         }
       }
-      m_os << std::endl
-           << kw::END << std::endl;
+      m_os << kw::END << std::endl;
     }
   }
 
