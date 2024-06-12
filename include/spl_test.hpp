@@ -263,7 +263,7 @@ namespace feature_isolation {
         }
 
         if ( solver.check() != z3::sat ) {
-          return error( error_msgs::SYSTEM_CONSTRAINT, std::cerr, std::to_string( system_id ), constraint_type, m_feature_names[static_cast<unsigned_integer>( feature )], m_feature_names[*deps.begin()] );
+          return error( error_msgs::SYSTEM_CONSTRAINT, std::cerr, std::to_string( system_id + 1 ), constraint_type, std::string( kw::ROOT ), m_feature_names[*deps.begin()] );
         }
       } else {
         z3::expr feature_expr = ctx.bool_val( system & ( 1 << feature ) );
@@ -301,7 +301,7 @@ namespace feature_isolation {
               detail_solver.add( implies( feature_expr, !dep_expr ) );
             }
             if ( detail_solver.check() != z3::sat ) {
-              return error( error_msgs::SYSTEM_CONSTRAINT, std::cerr, std::to_string( system_id ), constraint_type, std::string( kw::ROOT ), m_feature_names[*deps.begin()] );
+              return error( error_msgs::SYSTEM_CONSTRAINT, std::cerr, std::to_string( system_id + 1 ), constraint_type, std::string( kw::ROOT ), m_feature_names[*deps.begin()] );
             }
           }
         }
@@ -315,7 +315,7 @@ namespace feature_isolation {
     z3::context ctx;
 
     for ( const auto& system_id : eff_available_systems ) {
-      unsigned_integer system = system_id - 1;
+      unsigned_integer system = system_id;
 
       if ( !check_constraints( std::string( kw::REQUIRES_ALL ), m_requires_all, system_id, system, ctx ) )
         return false;
@@ -597,7 +597,7 @@ namespace feature_isolation {
           break;
         }
 
-        if ( token.type() == TokenType::NAME ) {
+        if ( token.type() == TokenType::NAME || token.type() == TokenType::KEYWORD || token.type() == TokenType::VALUE ) {
           auto index_opt = spec.feature_index( token.value() );
           if ( !index_opt.has_value() ) {
             return error( error_msgs::FEATURE_NOT_FOUND, std::cerr, token.value(), token.position_line(), token.position_column() );
@@ -822,7 +822,7 @@ namespace feature_isolation {
       return false;
     }
     if ( !m_spec.validate_systems() ) {
-      error( error_msgs::FAILED_TO, std::cerr, "validate systems", ", because invalid system configuration in file", m_spec.m_filename );
+      error( error_msgs::FAILED_TO, std::cerr, "validate systems", ", because invalid system configuration in file", m_filename );
     }
 
     return true;
