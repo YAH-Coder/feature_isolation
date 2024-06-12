@@ -667,7 +667,7 @@ namespace feature_isolation {
       return error( error_msgs::SPECIFIED_MORE_THAN_ONCE, std::cerr, std::string( kw::AVAILABLE_SYSTEMS ), spec.m_filename );
     }
     if ( spec.m_missing_systems_specified ) {
-      return error( error_msgs::EXPECTED_BUT_GOT, std::cerr, "only one of AVAILABLE_SYSTEMS or MISSING_SYSTEMS", spec.m_filename );
+      return error( error_msgs::EXPECTED_BUT_GOT, std::cerr, "only one of " + std::string( kw::AVAILABLE_SYSTEMS ) + "or" + std::string( kw::MISSING_SYSTEMS ), spec.m_filename );
     }
     Token token = m_tokenizer.next();
     while ( token.type() != TokenType::EMPTY ) {
@@ -679,7 +679,7 @@ namespace feature_isolation {
       } else if ( token.type() == TokenType::KEYWORD && toupper( token.value() ) == kw::END ) {
         break;
       } else {
-        return error( error_msgs::UNEXPECTED, std::cerr, "token in AVAILABLE_SYSTEMS section", token.value(), token.position_line(), token.position_column() );
+        return error( error_msgs::UNEXPECTED, std::cerr, "token in " + std::string( kw::AVAILABLE_SYSTEMS ) + " section", token.value(), token.position_line(), token.position_column() );
       }
       token = m_tokenizer.next();
     }
@@ -692,7 +692,7 @@ namespace feature_isolation {
       return error( error_msgs::SPECIFIED_MORE_THAN_ONCE, std::cerr, std::string( kw::MISSING_SYSTEMS ), spec.m_filename );
     }
     if ( spec.m_available_systems_specified ) {
-      return error( error_msgs::EXPECTED_BUT_GOT, std::cerr, "only one of AVAILABLE_SYSTEMS or MISSING_SYSTEMS", spec.m_filename );
+      return error( error_msgs::EXPECTED_BUT_GOT, std::cerr, "only one of " + std::string( kw::AVAILABLE_SYSTEMS ) + "or" + std::string( kw::MISSING_SYSTEMS ), spec.m_filename );
     }
     Token token = m_tokenizer.next();
     while ( token.type() != TokenType::EMPTY ) {
@@ -704,7 +704,7 @@ namespace feature_isolation {
       } else if ( token.type() == TokenType::KEYWORD && toupper( token.value() ) == kw::END ) {
         break;
       } else {
-        return error( error_msgs::UNEXPECTED, std::cerr, "token in MISSING_SYSTEMS section", token.value(), token.position_line(), token.position_column() );
+        return error( error_msgs::UNEXPECTED, std::cerr, "token in " + std::string( kw::MISSING_SYSTEMS ) + " section", token.value(), token.position_line(), token.position_column() );
       }
       token = m_tokenizer.next();
     }
@@ -818,7 +818,7 @@ namespace feature_isolation {
 
     Parser parser( input_file );
     if ( !parser.parse_specification( m_spec ) ) {
-      error( error_msgs::FAILED_TO, std::cerr, "parse", "SPL specification in file", m_filename );
+      error( error_msgs::FAILED_TO, std::cerr, "parse", std::string( kw::SPL ) + " specification in file", m_filename );
       return false;
     }
     if ( !m_spec.validate_systems() ) {
