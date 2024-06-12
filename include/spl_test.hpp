@@ -26,7 +26,7 @@ namespace feature_isolation {
 
   namespace error_msgs {
     const std::string FEATURE_NOT_FOUND = "Feature {} not found at line {}, column {}";
-    const std::string FEATUREINDEX_NOT_FOUND = "Feature {} not found.";
+    const std::string FEATUREINDEX_NOT_FOUND = "Feature {} is not a specified feature name.";
     const std::string SYSTEM_CONSTRAINT = "System {} violates {} constraint for feature {} and dependent feature {}";
     const std::string UNEXPECTED = "Unexpected {}: {} at line {}, column {}";
     const std::string SPECIFIED_MORE_THAN_ONCE = "{} specified more than once in file {}";
