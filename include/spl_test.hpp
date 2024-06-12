@@ -381,7 +381,7 @@ namespace feature_isolation {
   Token Tokenizer::next() {
     std::string token;
     char c;
-    Position token_begin = m_position; // Store the beginning position of the token
+    Position token_begin = m_position;
 
     while ( m_is.get( c ) ) {
       if ( c == '\n' ) {
@@ -393,8 +393,8 @@ namespace feature_isolation {
 
       if ( std::isalnum( c ) || c == '_' ) {
         if ( token.empty() ) {
-          token_begin = m_position; // Update token_begin when starting a new token
-          token_begin.second -= 1;  // Adjust for the initial character
+          token_begin = m_position;
+          token_begin.second -= 1;
         }
         token += c;
       } else {
@@ -406,22 +406,16 @@ namespace feature_isolation {
 
           if ( std::all_of( token.begin(), token.end(), ::isdigit ) ) {
             Token result( TokenType::VALUE, token, token_begin, token_end );
-            std::cout << "Token: " << result.value() << " Type: VALUE at line: "
-                      << result.begin().first << ", column: " << result.begin().second << std::endl;
             return result;
           }
 
           auto keyword_check = check_keyword( toupper( token ) );
           if ( keyword_check.has_value() ) {
             Token result = keyword_check.value();
-            std::cout << "Token: " << result.value() << " Type: KEYWORD at line: "
-                      << result.begin().first << ", column: " << result.begin().second << std::endl;
             return result;
           }
 
           Token result( TokenType::NAME, token, token_begin, token_end );
-          std::cout << "Token: " << result.value() << " Type: NAME at line: "
-                    << result.begin().first << ", column: " << result.begin().second << std::endl;
           return result;
         }
 
@@ -448,22 +442,16 @@ namespace feature_isolation {
 
       if ( std::all_of( token.begin(), token.end(), ::isdigit ) ) {
         Token result( TokenType::VALUE, token, token_begin, token_end );
-        std::cout << "Token: " << result.value() << " Type: VALUE at line: "
-                  << result.begin().first << ", column: " << result.begin().second << std::endl;
         return result;
       }
 
       auto keyword_check = check_keyword( toupper( token ) );
       if ( keyword_check.has_value() ) {
         Token result = keyword_check.value();
-        std::cout << "Token: " << result.value() << " Type: KEYWORD at line: "
-                  << result.begin().first << ", column: " << result.begin().second << std::endl;
         return result;
       }
 
       Token result( TokenType::NAME, token, token_begin, token_end );
-      std::cout << "Token: " << result.value() << " Type: NAME at line: "
-                << result.begin().first << ", column: " << result.begin().second << std::endl;
       return result;
     }
 
