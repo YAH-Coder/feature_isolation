@@ -377,7 +377,7 @@ namespace feature_isolation {
         m_position.second++;
       }
 
-      if ( std::isalnum( c ) || c == '_' ) {
+      if ( std::isalnum( c ) || c == '_' || c == '#' || c == '-' || c == '.' ) {
         if ( token.empty() ) {
           token_begin = m_position;
           token_begin.second -= 1;
