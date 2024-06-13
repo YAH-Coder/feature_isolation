@@ -59,12 +59,12 @@ namespace feature_isolation {
         m_explicit_dependencies_specified { false }, m_missing_systems_specified { false },
         m_available_systems_specified { false }, m_max_rank_specified { false };
 
-    friend class Parser;
-    friend class Printer;
-    friend class spl_processor;
+    friend class parser_t;
+    friend class printer_t;
+    friend class spl_processor_t;
   };
 
-  enum class TokenType {
+  enum class token_type_t {
     EMPTY,
     UNKNOWN,
     COMMENT,
@@ -80,29 +80,29 @@ namespace feature_isolation {
         REQUIRES_ALL { "REQUIRES_ALL" }, REQUIRES_ANY { "REQUIRES_ANY" }, REQUIRES_ONE { "REQUIRES_ONE" },
         EXCLUDES_ALL { "EXCLUDES_ALL" }, MISSING_SYSTEMS { "MISSING_SYSTEMS" },
         AVAILABLE_SYSTEMS { "AVAILABLE_SYSTEMS" };
-    static const std::unordered_map<std::string_view, TokenType> keywords = {
-        { COMMENT, TokenType::COMMENT },
-        { SPL, TokenType::KEYWORD },
-        { FEATURES, TokenType::KEYWORD },
-        { ROOT, TokenType::NAME },
-        { CATEGORIES, TokenType::KEYWORD },
-        { F, TokenType::KEYWORD },
-        { A, TokenType::KEYWORD },
-        { O, TokenType::KEYWORD },
-        { N, TokenType::KEYWORD },
-        { AN, TokenType::KEYWORD },
-        { ON, TokenType::KEYWORD },
-        { ANF, TokenType::KEYWORD },
-        { ONF, TokenType::KEYWORD },
-        { END, TokenType::KEYWORD },
-        { EXPLICIT_DEPENDENCIES, TokenType::KEYWORD },
-        { REQUIRES_ALL, TokenType::KEYWORD },
-        { REQUIRES_ANY, TokenType::KEYWORD },
-        { REQUIRES_ONE, TokenType::KEYWORD },
-        { EXCLUDES_ALL, TokenType::KEYWORD },
-        { MISSING_SYSTEMS, TokenType::KEYWORD },
-        { AVAILABLE_SYSTEMS, TokenType::KEYWORD },
-        { MAX_RANK, TokenType::KEYWORD } };
+    static const std::unordered_map<std::string_view, token_type_t> keywords = {
+        { COMMENT, token_type_t::COMMENT },
+        { SPL, token_type_t::KEYWORD },
+        { FEATURES, token_type_t::KEYWORD },
+        { ROOT, token_type_t::NAME },
+        { CATEGORIES, token_type_t::KEYWORD },
+        { F, token_type_t::KEYWORD },
+        { A, token_type_t::KEYWORD },
+        { O, token_type_t::KEYWORD },
+        { N, token_type_t::KEYWORD },
+        { AN, token_type_t::KEYWORD },
+        { ON, token_type_t::KEYWORD },
+        { ANF, token_type_t::KEYWORD },
+        { ONF, token_type_t::KEYWORD },
+        { END, token_type_t::KEYWORD },
+        { EXPLICIT_DEPENDENCIES, token_type_t::KEYWORD },
+        { REQUIRES_ALL, token_type_t::KEYWORD },
+        { REQUIRES_ANY, token_type_t::KEYWORD },
+        { REQUIRES_ONE, token_type_t::KEYWORD },
+        { EXCLUDES_ALL, token_type_t::KEYWORD },
+        { MISSING_SYSTEMS, token_type_t::KEYWORD },
+        { AVAILABLE_SYSTEMS, token_type_t::KEYWORD },
+        { MAX_RANK, token_type_t::KEYWORD } };
   } // namespace kw
 
   static const std::unordered_map<std::string, unsigned_integer> category_map = {
@@ -113,42 +113,42 @@ namespace feature_isolation {
   template <typename... Args>
   bool error( const std::string_view& msg, std::ostream& output = std::cerr, Args&&... args );
 
-  using Position = std::pair<std::size_t, std::size_t>;
+  using position_t = std::pair<std::size_t, std::size_t>;
 
-  class Token final {
+  class token_t final {
   public:
-    Token( const TokenType& tt = TokenType::EMPTY, const std::string& v = "", const Position& b = { 0, 0 },
-           const Position& e = { 0, 0 } )
+    token_t( const token_type_t& tt = token_type_t::EMPTY, const std::string& v = "", const position_t& b = { 0, 0 },
+             const position_t& e = { 0, 0 } )
         : m_token_type { tt }, m_value { v }, m_begin { b }, m_end { e } {};
 
-    [[nodiscard]] const TokenType& type() const;
+    [[nodiscard]] const token_type_t& type() const;
     [[nodiscard]] const std::string value() const;
-    [[nodiscard]] const Position& begin() const;
-    [[nodiscard]] const Position& end() const;
+    [[nodiscard]] const position_t& begin() const;
+    [[nodiscard]] const position_t& end() const;
     [[nodiscard]] const std::string position_line() const;
     [[nodiscard]] const std::string position_column() const;
 
   private:
-    TokenType m_token_type;
+    token_type_t m_token_type;
     std::string m_value;
-    Position m_begin, m_end;
+    position_t m_begin, m_end;
   };
 
-  class Tokenizer final {
+  class tokenizer_t final {
   public:
-    Tokenizer( std::istream& is )
+    tokenizer_t( std::istream& is )
         : m_is { is }, m_position { 1, 0 } {}
-    Token next();
-    [[nodiscard]] std::optional<Token> check_keyword( const std::string& token );
+    token_t next();
+    [[nodiscard]] std::optional<token_t> check_keyword( const std::string& token );
 
   private:
     std::istream& m_is;
-    Position m_position;
+    position_t m_position;
   };
 
-  class Parser final {
+  class parser_t final {
   public:
-    Parser( std::istream& is )
+    parser_t( std::istream& is )
         : m_tokenizer { is } {}
     bool parse_specification( spl_specification_t& spec );
     bool parse_spl( spl_specification_t& spec );
@@ -160,12 +160,12 @@ namespace feature_isolation {
     bool parse_missing_systems( spl_specification_t& spec );
 
   private:
-    Tokenizer m_tokenizer;
+    tokenizer_t m_tokenizer;
   };
 
-  class Printer final {
+  class printer_t final {
   public:
-    Printer( std::ostream& os )
+    printer_t( std::ostream& os )
         : m_os { os } {}
     void print_specification( const spl_specification_t& spec );
     void print_spl_name( const spl_specification_t& spec );
@@ -179,9 +179,9 @@ namespace feature_isolation {
     std::ostream& m_os;
   };
 
-  class spl_processor final {
+  class spl_processor_t final {
   public:
-    spl_processor( const std::string& filename );
+    spl_processor_t( const std::string& filename );
     bool process();
     void print( const std::string& output_filename ) const;
     const spl_specification_t& get_specification() const;
@@ -331,43 +331,43 @@ namespace feature_isolation {
     return true;
   }
 
-  [[nodiscard]] const TokenType& Token::type() const {
+  [[nodiscard]] const token_type_t& token_t::type() const {
     return m_token_type;
   }
 
-  [[nodiscard]] const std::string Token::value() const {
-    if ( m_token_type == TokenType::EMPTY ) {
-      throw std::runtime_error( "Token::value() MUST not be called if m_token_type == TokenType::EMPTY." );
+  [[nodiscard]] const std::string token_t::value() const {
+    if ( m_token_type == token_type_t::EMPTY ) {
+      throw std::runtime_error( "token_t::value() MUST not be called if m_token_type == token_type_t::EMPTY." );
     }
     return m_value;
   }
 
-  [[nodiscard]] const Position& Token::begin() const {
-    if ( m_token_type == TokenType::EMPTY ) {
-      throw std::runtime_error( "Token::begin() MUST not be called if m_token_type == TokenType::EMPTY." );
+  [[nodiscard]] const position_t& token_t::begin() const {
+    if ( m_token_type == token_type_t::EMPTY ) {
+      throw std::runtime_error( "token_t::begin() MUST not be called if m_token_type == token_type_t::EMPTY." );
     }
     return m_begin;
   }
 
-  [[nodiscard]] const Position& Token::end() const {
-    if ( m_token_type == TokenType::EMPTY ) {
-      throw std::runtime_error( "Token::end() MUST not be called if m_token_type == TokenType::EMPTY." );
+  [[nodiscard]] const position_t& token_t::end() const {
+    if ( m_token_type == token_type_t::EMPTY ) {
+      throw std::runtime_error( "token_t::end() MUST not be called if m_token_type == token_type_t::EMPTY." );
     }
     return m_end;
   }
 
-  [[nodiscard]] const std::string Token::position_line() const {
+  [[nodiscard]] const std::string token_t::position_line() const {
     return ( std::to_string( m_begin.first ) );
   }
 
-  [[nodiscard]] const std::string Token::position_column() const {
+  [[nodiscard]] const std::string token_t::position_column() const {
     return ( std::to_string( m_begin.second ) );
   }
 
-  Token Tokenizer::next() {
+  token_t tokenizer_t::next() {
     std::string token;
     char c;
-    Position token_begin = m_position;
+    position_t token_begin = m_position;
 
     while ( m_is.get( c ) ) {
       if ( c == '\n' ) {
@@ -388,20 +388,20 @@ namespace feature_isolation {
           m_is.unget();
           m_position.second--;
 
-          Position token_end = m_position;
+          position_t token_end = m_position;
 
           if ( std::all_of( token.begin(), token.end(), ::isdigit ) ) {
-            Token result( TokenType::VALUE, token, token_begin, token_end );
+            token_t result( token_type_t::VALUE, token, token_begin, token_end );
             return result;
           }
 
           auto keyword_check = check_keyword( toupper( token ) );
           if ( keyword_check.has_value() ) {
-            Token result = keyword_check.value();
+            token_t result = keyword_check.value();
             return result;
           }
 
-          Token result( TokenType::NAME, token, token_begin, token_end );
+          token_t result( token_type_t::NAME, token, token_begin, token_end );
           return result;
         }
 
@@ -424,48 +424,48 @@ namespace feature_isolation {
     }
 
     if ( !token.empty() ) {
-      Position token_end = m_position;
+      position_t token_end = m_position;
 
       if ( std::all_of( token.begin(), token.end(), ::isdigit ) ) {
-        Token result( TokenType::VALUE, token, token_begin, token_end );
+        token_t result( token_type_t::VALUE, token, token_begin, token_end );
         return result;
       }
 
       auto keyword_check = check_keyword( toupper( token ) );
       if ( keyword_check.has_value() ) {
-        Token result = keyword_check.value();
+        token_t result = keyword_check.value();
         return result;
       }
 
-      Token result( TokenType::NAME, token, token_begin, token_end );
+      token_t result( token_type_t::NAME, token, token_begin, token_end );
       return result;
     }
 
-    return Token( TokenType::EMPTY, "", m_position, m_position );
+    return token_t( token_type_t::EMPTY, "", m_position, m_position );
   }
 
-  std::optional<Token> Tokenizer::check_keyword( const std::string& token ) {
+  std::optional<token_t> tokenizer_t::check_keyword( const std::string& token ) {
     using namespace kw;
     std::string upper_token = toupper( token );
 
     auto it = keywords.find( upper_token );
     if ( it != keywords.end() ) {
-      return Token( it->second, token, m_position, m_position );
+      return token_t( it->second, token, m_position, m_position );
     }
     return std::nullopt;
   }
 
-  bool Parser::parse_specification( spl_specification_t& spec ) {
+  bool parser_t::parse_specification( spl_specification_t& spec ) {
     bool result = true;
     while ( true ) {
       auto token = m_tokenizer.next();
-      if ( token.type() == TokenType::EMPTY ) {
+      if ( token.type() == token_type_t::EMPTY ) {
         break;
       }
-      if ( token.type() == TokenType::COMMENT ) {
+      if ( token.type() == token_type_t::COMMENT ) {
         continue;
       }
-      if ( token.type() == TokenType::KEYWORD ) {
+      if ( token.type() == token_type_t::KEYWORD ) {
         if ( token.value() == kw::SPL ) {
           result &= parse_spl( spec );
         } else if ( token.value() == kw::MAX_RANK ) {
@@ -501,7 +501,7 @@ namespace feature_isolation {
     return result;
   }
 
-  bool Parser::parse_spl( spl_specification_t& spec ) {
+  bool parser_t::parse_spl( spl_specification_t& spec ) {
     if ( spec.m_spl_specified ) {
       return error( error_msgs::SPECIFIED_MORE_THAN_ONCE, std::cerr, std::string( kw::SPL ), spec.m_filename );
     }
@@ -511,12 +511,12 @@ namespace feature_isolation {
     return true;
   }
 
-  bool Parser::parse_max_rank( spl_specification_t& spec ) {
+  bool parser_t::parse_max_rank( spl_specification_t& spec ) {
     if ( spec.m_max_rank_specified ) {
       return error( error_msgs::SPECIFIED_MORE_THAN_ONCE, std::cerr, std::string( kw::MAX_RANK ), spec.m_filename );
     }
     auto token = m_tokenizer.next();
-    if ( token.type() != TokenType::VALUE ) {
+    if ( token.type() != token_type_t::VALUE ) {
       return error( error_msgs::EXPECTED_BUT_GOT, std::cerr, std::string( kw::MAX_RANK ), "value", token.value() );
     }
     spec.m_max_rank = std::stoull( token.value() );
@@ -524,12 +524,12 @@ namespace feature_isolation {
     return true;
   }
 
-  bool Parser::parse_features( spl_specification_t& spec ) {
+  bool parser_t::parse_features( spl_specification_t& spec ) {
     if ( spec.m_feature_names_specified ) {
       return error( error_msgs::SPECIFIED_MORE_THAN_ONCE, std::cerr, std::string( kw::FEATURES ), spec.m_filename );
     }
     auto token = m_tokenizer.next();
-    if ( token.type() != TokenType::VALUE ) {
+    if ( token.type() != token_type_t::VALUE ) {
       return error( error_msgs::ERROR_READING, std::cerr, "number of independent features", spec.m_filename );
     }
     unsigned_integer f { std::stoull( token.value() ) };
@@ -542,10 +542,10 @@ namespace feature_isolation {
 
     for ( auto& feature : spec.m_feature_names ) {
       token = m_tokenizer.next();
-      if ( parsing_feature_names && token.type() == TokenType::KEYWORD && token.value() == "END" ) {
+      if ( parsing_feature_names && token.type() == token_type_t::KEYWORD && token.value() == "END" ) {
         parsing_feature_names = false;
       }
-      if ( !parsing_feature_names && token.type() != TokenType::NAME ) {
+      if ( !parsing_feature_names && token.type() != token_type_t::NAME ) {
         return error( error_msgs::ERROR_READING, std::cerr, "name of independent feature", spec.m_filename );
       }
       if ( feature_set.find( token.value() ) != feature_set.end() ) {
@@ -558,15 +558,15 @@ namespace feature_isolation {
     return true;
   }
 
-  bool Parser::parse_explicit_dependencies( spl_specification_t& spec ) {
+  bool parser_t::parse_explicit_dependencies( spl_specification_t& spec ) {
     if ( spec.m_explicit_dependencies_specified ) {
       return error( error_msgs::SPECIFIED_MORE_THAN_ONCE, std::cerr, std::string( kw::EXPLICIT_DEPENDENCIES ), spec.m_filename );
     }
 
-    Token token;
+    token_t token;
     while ( true ) {
       token = m_tokenizer.next();
-      if ( token.type() == TokenType::KEYWORD && toupper( token.value() ) == kw::END ) {
+      if ( token.type() == token_type_t::KEYWORD && toupper( token.value() ) == kw::END ) {
         break;
       }
 
@@ -583,7 +583,7 @@ namespace feature_isolation {
       }
 
       token = m_tokenizer.next();
-      if ( token.type() != TokenType::KEYWORD ) {
+      if ( token.type() != token_type_t::KEYWORD ) {
         return error( error_msgs::EXPECTED_BUT_GOT, std::cerr, "a dependency keyword", token.value(), token.position_line(), token.position_column() );
       }
 
@@ -593,18 +593,18 @@ namespace feature_isolation {
       while ( true ) {
         token = m_tokenizer.next();
 
-        if ( token.type() == TokenType::KEYWORD && toupper( token.value() ) == kw::END ) {
+        if ( token.type() == token_type_t::KEYWORD && toupper( token.value() ) == kw::END ) {
           break;
         }
 
-        if ( token.type() == TokenType::NAME || token.type() == TokenType::KEYWORD || token.type() == TokenType::VALUE ) {
+        if ( token.type() == token_type_t::NAME || token.type() == token_type_t::KEYWORD || token.type() == token_type_t::VALUE ) {
           auto index_opt = spec.feature_index( token.value() );
           if ( !index_opt.has_value() ) {
             return error( error_msgs::FEATURE_NOT_FOUND, std::cerr, token.value(), token.position_line(), token.position_column() );
           }
           dependent_features.insert( static_cast<unsigned_integer>( index_opt.value() ) );
-        } else if ( token.type() == TokenType::COMMENT ) {
-          while ( m_tokenizer.next().type() != TokenType::KEYWORD ) {
+        } else if ( token.type() == token_type_t::COMMENT ) {
+          while ( m_tokenizer.next().type() != token_type_t::KEYWORD ) {
             // Skip until the next keyword or end of dependencies section
           }
           break;
@@ -628,16 +628,16 @@ namespace feature_isolation {
     return true;
   }
 
-  bool Parser::parse_categories( spl_specification_t& spec ) {
+  bool parser_t::parse_categories( spl_specification_t& spec ) {
     if ( spec.m_categories_specified ) {
       return error( error_msgs::SPECIFIED_MORE_THAN_ONCE, std::cerr, std::string( kw::CATEGORIES ), spec.m_filename );
     }
 
     std::unordered_set<std::string> category_set;
-    Token token;
+    token_t token;
     do {
       token = m_tokenizer.next();
-      if ( token.type() != TokenType::KEYWORD ) {
+      if ( token.type() != token_type_t::KEYWORD ) {
         return error( error_msgs::UNEXPECTED, std::cerr, "category", token.value(), token.position_line(), token.position_column() );
       }
 
@@ -662,21 +662,21 @@ namespace feature_isolation {
     return true;
   }
 
-  bool Parser::parse_available_systems( spl_specification_t& spec ) {
+  bool parser_t::parse_available_systems( spl_specification_t& spec ) {
     if ( spec.m_available_systems_specified ) {
       return error( error_msgs::SPECIFIED_MORE_THAN_ONCE, std::cerr, std::string( kw::AVAILABLE_SYSTEMS ), spec.m_filename );
     }
     if ( spec.m_missing_systems_specified ) {
       return error( error_msgs::EXPECTED_BUT_GOT, std::cerr, "only one of " + std::string( kw::AVAILABLE_SYSTEMS ) + "or" + std::string( kw::MISSING_SYSTEMS ), spec.m_filename );
     }
-    Token token = m_tokenizer.next();
-    while ( token.type() != TokenType::EMPTY ) {
-      if ( token.type() == TokenType::VALUE ) {
+    token_t token = m_tokenizer.next();
+    while ( token.type() != token_type_t::EMPTY ) {
+      if ( token.type() == token_type_t::VALUE ) {
         if ( std::stoull( token.value() ) > spec.m_max_available_systems ) {
           return error( error_msgs::ERROR_READING, std::cerr, "system exceeds available", token.value(), std::to_string( spec.m_max_available_systems ) );
         }
         spec.m_available_systems.push_back( std::stoull( token.value() ) );
-      } else if ( token.type() == TokenType::KEYWORD && toupper( token.value() ) == kw::END ) {
+      } else if ( token.type() == token_type_t::KEYWORD && toupper( token.value() ) == kw::END ) {
         break;
       } else {
         return error( error_msgs::UNEXPECTED, std::cerr, "token in " + std::string( kw::AVAILABLE_SYSTEMS ) + " section", token.value(), token.position_line(), token.position_column() );
@@ -687,21 +687,21 @@ namespace feature_isolation {
     return true;
   }
 
-  bool Parser::parse_missing_systems( spl_specification_t& spec ) {
+  bool parser_t::parse_missing_systems( spl_specification_t& spec ) {
     if ( spec.m_missing_systems_specified ) {
       return error( error_msgs::SPECIFIED_MORE_THAN_ONCE, std::cerr, std::string( kw::MISSING_SYSTEMS ), spec.m_filename );
     }
     if ( spec.m_available_systems_specified ) {
       return error( error_msgs::EXPECTED_BUT_GOT, std::cerr, "only one of " + std::string( kw::AVAILABLE_SYSTEMS ) + "or" + std::string( kw::MISSING_SYSTEMS ), spec.m_filename );
     }
-    Token token = m_tokenizer.next();
-    while ( token.type() != TokenType::EMPTY ) {
-      if ( token.type() == TokenType::VALUE ) {
+    token_t token = m_tokenizer.next();
+    while ( token.type() != token_type_t::EMPTY ) {
+      if ( token.type() == token_type_t::VALUE ) {
         if ( std::stoull( token.value() ) > spec.m_max_available_systems ) {
           return error( error_msgs::ERROR_READING, std::cerr, "system exceeds available", token.value(), std::to_string( spec.m_max_available_systems ) );
         }
         spec.m_missing_systems.push_back( std::stoull( token.value() ) );
-      } else if ( token.type() == TokenType::KEYWORD && toupper( token.value() ) == kw::END ) {
+      } else if ( token.type() == token_type_t::KEYWORD && toupper( token.value() ) == kw::END ) {
         break;
       } else {
         return error( error_msgs::UNEXPECTED, std::cerr, "token in " + std::string( kw::MISSING_SYSTEMS ) + " section", token.value(), token.position_line(), token.position_column() );
@@ -712,7 +712,7 @@ namespace feature_isolation {
     return true;
   }
 
-  void Printer::print_specification( const spl_specification_t& spec ) {
+  void printer_t::print_specification( const spl_specification_t& spec ) {
     print_spl_name( spec );
     print_max_rank( spec );
     print_features( spec );
@@ -721,21 +721,21 @@ namespace feature_isolation {
     print_systems( spec );
   }
 
-  void Printer::print_spl_name( const spl_specification_t& spec ) {
+  void printer_t::print_spl_name( const spl_specification_t& spec ) {
     if ( spec.m_spl_specified ) {
       m_os << kw::SPL << csv_separator << spec.m_spl_name << "\n"
            << std::endl;
     }
   }
 
-  void Printer::print_max_rank( const spl_specification_t& spec ) {
+  void printer_t::print_max_rank( const spl_specification_t& spec ) {
     if ( spec.m_max_rank_specified ) {
       m_os << kw::MAX_RANK << csv_separator << spec.m_max_rank << "\n"
            << std::endl;
     }
   }
 
-  void Printer::print_features( const spl_specification_t& spec ) {
+  void printer_t::print_features( const spl_specification_t& spec ) {
     if ( spec.m_feature_names_specified ) {
       m_os << kw::FEATURES << csv_separator << spec.m_F << std::endl;
       for ( const auto& feature : spec.m_feature_names ) {
@@ -745,7 +745,7 @@ namespace feature_isolation {
     }
   }
 
-  void Printer::print_categories( const spl_specification_t& spec ) {
+  void printer_t::print_categories( const spl_specification_t& spec ) {
     if ( spec.m_categories_specified ) {
       m_os << kw::CATEGORIES << std::endl;
       for ( const auto& [name, bit] : category_map ) {
@@ -757,7 +757,7 @@ namespace feature_isolation {
     }
   }
 
-  void Printer::print_dependencies( const spl_specification_t& spec ) {
+  void printer_t::print_dependencies( const spl_specification_t& spec ) {
     if ( spec.m_explicit_dependencies_specified ) {
       m_os << kw::EXPLICIT_DEPENDENCIES << std::endl;
 
@@ -787,7 +787,7 @@ namespace feature_isolation {
     }
   }
 
-  void Printer::print_systems( const spl_specification_t& spec ) {
+  void printer_t::print_systems( const spl_specification_t& spec ) {
     if ( spec.m_available_systems_specified ) {
       m_os << kw::AVAILABLE_SYSTEMS;
       for ( const auto& system : spec.m_available_systems ) {
@@ -806,17 +806,17 @@ namespace feature_isolation {
     }
   }
 
-  spl_processor::spl_processor( const std::string& filename )
+  spl_processor_t::spl_processor_t( const std::string& filename )
       : m_filename( filename ) {};
 
-  bool spl_processor::process() {
+  bool spl_processor_t::process() {
     std::ifstream input_file( m_filename );
     if ( !input_file.is_open() ) {
       error( error_msgs::FAILED_TO, std::cerr, "open", "input", m_filename );
       return false;
     }
 
-    Parser parser( input_file );
+    parser_t parser( input_file );
     if ( !parser.parse_specification( m_spec ) ) {
       error( error_msgs::FAILED_TO, std::cerr, "parse", std::string( kw::SPL ) + " specification in file", m_filename );
       return false;
@@ -828,18 +828,18 @@ namespace feature_isolation {
     return true;
   }
 
-  void spl_processor::print( const std::string& output_filename ) const {
+  void spl_processor_t::print( const std::string& output_filename ) const {
     std::ofstream output_file( output_filename );
     if ( !output_file.is_open() ) {
       error( error_msgs::FAILED_TO, std::cerr, "open", "output", output_filename );
       return;
     }
 
-    Printer printer( output_file );
+    printer_t printer( output_file );
     printer.print_specification( m_spec );
   }
 
-  const spl_specification_t& spl_processor::get_specification() const {
+  const spl_specification_t& spl_processor_t::get_specification() const {
     return m_spec;
   }
 
