@@ -16,12 +16,20 @@ Feature isolation is based on the following information:
     \item For each feature there exists a description that specifies in which systems it occurs and in which it does not plus an associated unique feature $ID$. Such a feature description is called $FD$, a feature $ID$ is called $FID$.
     \item For each system there exists a description that specifies the features it consists of plus an associated unique system $ID$. Such a system description is called $SD$, a system $ID$ is called $SID$.
 \end{itemize}
-	The isolation of a feature $f_i$ specified by its $FID$ produces the following outcome:
-\begin{itemize}
-\item A set of $FID$s representing the result of the set difference of the set intersection of $FID$s of all systems that include $f_i$ (denoted by $I$) and the set union of $FID$s of all systems that do not include $f_i$ (denoted by $U$). The result set must not be $\emptyset$ (as this would indicate a fundamental error). It can include exactly one element which then must be the $FID$ of $f_i$. It can include more than one element, but one of them must be the $FID$ of the sought feature $f_i$. The resulting set difference is denoted by $D$.
-A set of minimal set differences of $SID$s which evaluate to the result specified before, i.e. $D$. A set difference is \emph{minimal} if none of its sub expressions includes more elements than required to give $D$. There must be at least one minimal set difference that gives $D$. The set of minimal set differences is denoted by $MD$.
-\end{itemize}
-\paragraph {Minimal set difference.} The following examples illustrate the meaning of \emph{minimal} in a set difference. Just as a reminder: The elements of these sets are $FID$s.
+\paragraph{Evaluation. }The isolation of a feature $f_i$ specified by its $FID$ comprises the following steps:
+\begin{enumerate}
+\item $I$ is the set with $SID$s of all systems that include $f_i$ with $FID_i$.
+\item $U$ is the set with $SID$s of all systems that do \emph{not} include  $f_i$ with $FID_i$.
+\item Evaluating the set difference $D = I \setminus U$ gives a set of $FID$s that indicates whether $f_i$ can be succesfully isolated. The evaluation is done as follows:
+\begin{enumerate}
+\item Each element of $I$ is replaced with the set of its corresponding $SD$s which gives $I'$. Afterwards all elements of $I'$ are intersected (hence the name $I'$).
+\item Each element of $U$ is replaced with the set of its corresponding $SD$s which gives $U'$. Afterwards all elements of $U'$ are united (hence the name $U'$).
+\item Then set difference is applied to $I$ and $U$, i.e. $D' = I' \ U'$. The result set $D'$ must not be $\emptyset$ (as this would indicate a fundamental error). It can include exactly one element which then must be the $FID$ of $f_i$. It can include more than one element, but one of them must be the $FID$ of the sought feature $f_i$.
+\end{enumerate}
+\end{enumerate}
+\paragraph {Minimal set difference.} $D'$ is minimal if there is no strict subset of $D$ of which the evaluation also gives $D'$. There can be more than one $D$ for isolating a feature $f_i$. The set of all $D$s that evaluate to $D'$ is the set of minimal set differences and denoted by $MD$.
+
+The following examples illustrate the meaning of \emph{minimal} in a set difference. Just as a reminder: The elements of these sets are $FID$s.
 
 Given are the systems \\
 $ SD_1 = \{ 1, 2, 3 \} $, \\
@@ -42,6 +50,8 @@ $I_4 = SD_1 \cap SD_2 \cap SD_5$ is not minimal because $I_1$, $I_2$ and $I_3$ s
 With respect to $FID_2$ the set difference $D_1 = SD_1 \setminus SD_3 \cup SD_6$ is minimal as it isolates $FID_2$.
 
 $D_2 = SD_1 \cap SD_2 \setminus SD_3$ is not minimal, as $I$ already successfully isolates $FID_2$. $D_3 = SD_1 \setminus SD_3 \cup SD_4 \cup SD_6$ is also not minimal, as $SD_3 \cup SD_6$ in $U$ already subtracts all unwanted elements of $I$. It has to be emphasized, that ---different from $I$--- $U$ can be omitted.
+
+%\paragraph {Formalization.} A $D$ is minimal if it contains no subset of which the evaluation gives the same result as when evaluating $D$. min(D) := for_all s in { P(D)\D}: eval(s) != eval(D).
 \section{Functions,Datatypes and Variables}
 The datatypes \code{feature\_ids\_t} and \code{system\_ids\_t} represent the set types for $FID$s and $SID$s.
 The member variable \code{spl\_specification\_t::m\_avail\-able\_\-systems} which is of type  \code{sys\-tem\_ids\_t} contains the IDs of the actually available system.
