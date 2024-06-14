@@ -20,26 +20,34 @@ Feature isolation is based on the following information:
 \paragraph{Evaluation.} To describe the  isolation of a feature $f_i$ based on its  $\mathit{FID}$ some operations are introduced.
 \begin{itemize}
 	\item Given is a system description $\mathit{SD}$.
-	\item $\mathit{SD}$ can be flattened by replacing all each of its elements by the corresponding set of $\mathit{FID}$s and applying either set intersection, $\bigcap$, or set union, $\bigcup$ to them. 
-	\item If $\mathit{SD}$ is flattened by applying $\bigcap$ the result is $\widehat{\mathit{SD}}$.
-	\item If $\mathit{SD}$ is flattened by applying $\bigcup$ the result is $\widecheck{\mathit{SD}}$.
+	\item $\mathit{SD}$ can be flattened by replacing all each of its elements by the corresponding set of $\mathit{FID}$s and applying either set intersection, $\bigcap$, or set union, $\bigcup$, to them. 
+	\item Flattening $\mathit{SD}$ with $\bigcap$ gives $\widehat{\mathit{SD}}$.
+	\item Flattening $\mathit{SD}$ with $\bigcup$ gives $\widecheck{\mathit{SD}}$.
 \end{itemize}
 
-
-Next, the isolation of a feature $f_i$ specified by its $\mathit{FID}$ is described:
-
-HERE IS STILL A BIG PROBLEM: IT MUST BE WELL DIFFERENTIATED BETWEEN SETS THAT ARE NOT FLATTENED AND SETS THAT ARE FLATTENED AND FLATTENED SETS THAT ARE EVALUATED AS WELL!
+The isolation of a feature $f_i$ specified by its $\mathit{FID}$ involves the following steps:
 
 \begin{enumerate}
-\item $I$ is the set with $\mathit{SID}$s of all systems that include $f_i$ with $\mathit{FID_i}$.
-\item $U$ is the set with $\mathit{SID}$s of all systems that do \emph{not} include  $f_i$ with $\mathit{FID_i}$.
-\item Each element of $I$ is replaced with the set of its corresponding $\mathit{SD}$s. The resulting nested set is flattened by applying set intersection to all elements. This is denoted by $\bigcap I$.
-\item Each element of $U$ is replaced with the set of its corresponding $\mathit{SD}$s.   The resulting nested set is flattened by applying set union to all elements. This is denoted by $\bigcup I$.
-\item The set difference $\mathit{DF} = \bigcap I\setminus \bigcup U$ is the result of feature isolation. $\mathit{DF}$ must not be equal to $\emptyset$, as this would indicate a fundamental error during preceding steps. $\mathit{DF}$ can include exactly one element which then must be the $\mathit{FID}$ of $f_i$, i.e. $\mathit{FID_i}$. It $\mathit{DF}$ includes more than one element, one of them must be $\mathit{FID_i}$.
+	\item $I$ is the set with $\mathit{SID}$s of all systems that include $\mathit{FID_i}$.
+	\item $U$ is the set with $\mathit{SID}$s of all systems that do \emph{not} include  $\mathit{FID_i}$.
+	\item $\widehat{\mathit{I}} \setminus \widecheck{\mathit{U}}$ gives the result of feature isolation which is denoted by $\overline{D}$.
+	$\overline{D}$ must not be equal to $\emptyset$ as this would indicate a fundamental error during the preceding steps. $\overline{D}$ can include exactly one element which then must be the $\mathit{FID_i}$. If $\overline{D}$ includes more than one element, one of them must be $\mathit{FID_i}$.
 \end{enumerate}
-\paragraph {Minimal set differences.} Given $D =  I \setminus U$ and $\mathit{D_S} = \mathit{I_S} \subseteq I \setminus \mathit{U_S} \subseteq U$. Additionally, $\mathit{D_S}$ is a proper subset of $D$ if $\mathit{I_S} \subset I \lor \mathit{U_S} \subset U$ is true. Then any set difference $D_i$ which evaluates to $D_S$ is minimal if there is no strict subset of $D_i$ which also evaluates to $D_S$.\\
-For $D$ must exist at least one subset which evaluates to $D_S$, namely $D$. It is possible that for $D$ exist more than one different proper subsets which all evaluate to $D_S$. The set which includes all different subsets of $D$ that evaluate to $D_S$ is called $M$. $|M| \geq 0$.\\
-The property of being minimal can also be generalized to $I$ and $U$. A subset of $I$ is minimal if there is no other proper subset of $I$ which evaluates to the same set of $\mathit{FID}$s after flattening. A subset of $U$ is minimal if there is no other proper subset of $U$ which evaluates to the same set of $\mathit{FID}$s  after flattening.
+\paragraph {Minimal set differences} Given are the following definitions:
+\begin{enumerate}
+	\item $D = I \setminus U$
+	\item $\overline{D} = \widehat{\mathit{I}} \setminus \widecheck{\mathit{U}}$
+	\item $I_S \subseteq I$
+	\item $U_S \subseteq U$
+	\item $D_S \subset D \mid \mathit{I_S} \subset I \lor \mathit{U_S} \subset U$
+\end{enumerate} 
+
+Then any $D$ that evaluates to $\overline{D}$ if there is no proper subset of $D$ which also gives $\overline{D}$ is \emph{minimal}.
+
+There exists at least one subset of $D$ which gives $\overline{D}$, namely $D$. There can be more than one proper subset of $D$ which also gives $\overline{D}$. The set that includes all different subsets of $D$ that evaluate to $\overline{D}$, is called $M$. $|M| \geq 1$. \\
+
+
+THE PRECEDING TWO PARAGRAPHS SHOULD BE MORE FORMALIZED.\\
 
 The following examples illustrate the meaning of \emph{minimal} in a set difference (the elements are $\mathit{FID})$s. Given are the systems \\
 $ \mathit{SD}_1 = \{ 1, 2, 3 \} $, \\
