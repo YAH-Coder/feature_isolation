@@ -3,6 +3,7 @@
 \usepackage[width=17cm]{geometry}
 \usepackage{babel}
 \usepackage{xcolor}
+\usepackage{mathabx}
 \definecolor{light-gray}{gray}{0.95}
 \newcommand{\code}[1]{\colorbox{light-gray}{\texttt{#1}}}
 \title{Specification of Feature Isolation\\ \small Version 0.9}
@@ -16,7 +17,16 @@ Feature isolation is based on the following information:
     \item For each feature there exists a description that specifies in which systems it occurs and in which it does not plus an associated unique feature $\mathit{ID}$. Such a feature description is called $\mathit{FD}$, a feature $\mathit{ID}$ is called $\mathit{FID}$.
     \item Each system has a description that specifies the features it consists of plus an associated unique system $\mathit{ID}$. Such a system description is called $\mathit{SD}$, a system $\mathit{ID}$ is called $\mathit{SID}$.
 \end{itemize}
-\paragraph{Evaluation. }Next, the isolation of a feature $f_i$ specified by its $\mathit{FID}$ is described:
+\paragraph{Evaluation.} To describe the  isolation of a feature $f_i$ based on its  $\mathit{FID}$ some operations are introduced.
+\begin{itemize}
+	\item Given is a system description $\mathit{SD}$.
+	\item $\mathit{SD}$ can be flattened by replacing all each of its elements by the corresponding set of $\mathit{FID}$s and applying either set intersection, $\bigcap$, or set union, $\bigcup$ to them. 
+	\item If $\mathit{SD}$ is flattened by applying $\bigcap$ the result is $\widehat{\mathit{SD}}$.
+	\item If $\mathit{SD}$ is flattened by applying $\bigcup$ the result is $\widecheck{\mathit{SD}}$.
+\end{itemize}
+
+
+Next, the isolation of a feature $f_i$ specified by its $\mathit{FID}$ is described:
 
 HERE IS STILL A BIG PROBLEM: IT MUST BE WELL DIFFERENTIATED BETWEEN SETS THAT ARE NOT FLATTENED AND SETS THAT ARE FLATTENED AND FLATTENED SETS THAT ARE EVALUATED AS WELL!
 
