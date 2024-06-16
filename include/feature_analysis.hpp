@@ -21,8 +21,8 @@ namespace feature_isolation {
   using feature_t = std::vector<bool>;
   using features_t = std::vector<feature_t>;
   using ids_t = std::set<unsigned_integer>;
-  using feature_ids_t = ids_t;
-  using system_ids_t = ids_t;
+  struct feature_ids_t: ids_t {}; // Turn feature_ids_t into its own type.
+  struct system_ids_t : ids_t {}; // Turn system_ids_t into its own type.
 
   std::string to_string( const feature_t& fd );
 
