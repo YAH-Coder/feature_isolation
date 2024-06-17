@@ -33,12 +33,13 @@ The isolation of a feature $f_i$ specified by its $\mathit{FID}$ involves the fo
 	\item $\widehat{\mathit{I}} \setminus \widecheck{\mathit{U}}$ gives the result of feature isolation which is denoted by $\overline{D}$.
 	$\overline{D}$ must not be equal to $\emptyset$ as this would indicate a fundamental error during the preceding steps. $\overline{D}$ can include exactly one element which then must be the $\mathit{FID_i}$. If $\overline{D}$ includes more than one element, one of them must be $\mathit{FID_i}$.
 \end{enumerate}
-\paragraph {Minimal set differences} Given are the following definitions:
+\paragraph {Minimal set difference} Given are the following definitions:
 \begin{enumerate}
 	\item $D = I \setminus U$
 	\item $\overline{D} = \widehat{\mathit{I}} \setminus \widecheck{\mathit{U}}$
 	\item $I_S \subseteq I$
 	\item $U_S \subseteq U$
+	\item DEFINITION OF POWERSET FOR D IS MISSING!
 	\item $D_S \subset D \mid \mathit{I_S} \subset I \lor \mathit{U_S} \subset U$
 \end{enumerate} 
 
@@ -63,7 +64,7 @@ $I_1 = \mathit{SD}_1 \cap \mathit{SD}_2$\\
 $I_2 = \mathit{SD}_1 \cap \mathit{SD}_5$\\
 $I_3 = \mathit{SD}_2 \cap \mathit{SD}_5$
 
-$I_4 = \mathit{SD}_1 \cap \mathit{SD}_2 \cap \mathit{SD}_5$ is not minimal because $I_1$, $I_2$ and $I_3$ successfully isolate $\mathit{FID}_2$ but contain less operands. It is important to note that only evaluating $I$ can give the desired result. Furthermore, $I$ cannot be omitted.
+$I_4 = \mathit{SD}_1 \cap \mathit{SD}_2 \cap \mathit{SD}_5$ <-- THIS IS ERRNOEIUS! s not minimal because $I_1$, $I_2$ and $I_3$ successfully isolate $\mathit{FID}_2$ but contain less operands. It is important to note that only evaluating $I$ can give the desired result. Furthermore, $I$ cannot be omitted.
 
 With respect to $\mathit{FID}_2$ the set difference $D_1 = \mathit{SD}_1 \setminus \mathit{SD}_3 \cup \mathit{SD}_6$ is minimal as it isolates $\mathit{FID}_2$.
 
