@@ -33,22 +33,21 @@ The isolation of a feature $f_i$ specified by its $\mathit{FID}$ involves the fo
 	\item $\widehat{\mathit{I}} \setminus \widecheck{\mathit{U}}$ gives the result of feature isolation which is denoted by $\overline{D}$.
 	$\overline{D}$ must not be equal to $\emptyset$ as this would indicate a fundamental error during the preceding steps. $\overline{D}$ can include exactly one element which then must be the $\mathit{FID_i}$. If $\overline{D}$ includes more than one element, one of them must be $\mathit{FID_i}$.
 \end{enumerate}
-\paragraph {Minimal set difference} Given are the following definitions:
+\paragraph {Minimal set differences} Given are the following equations and the definition:
 \begin{enumerate}
 	\item $D = I \setminus U$
 	\item $\overline{D} = \widehat{\mathit{I}} \setminus \widecheck{\mathit{U}}$
 	\item $I_S \subseteq I$
 	\item $U_S \subseteq U$
-	\item DEFINITION OF POWERSET FOR D IS MISSING!
-	\item $D_S \subset D \mid \mathit{I_S} \subset I \lor \mathit{U_S} \subset U$
+	\item $D_S \subset D \coloneq \mathit{I_S} \subset I \lor \mathit{U_S} \subset U$
+	\item $\mathcal{P}(D) = \forall _\mathit{I_S} \in S, \forall _\mathit{U_S} \in U \mathit{I_S} \setminus \mathit{U_S}$
+	\item forall crossproduct
+	\item \label{minimality} $\mathit{minimal}(D) \coloneq \forall _\mathit{D_S} \in{\{\mathit{\mathcal{P}(D) \setminus D}\}} \land \overline{D_S} \neq \overline{D}$
 \end{enumerate} 
 
-Then any $D$ that evaluates to $\overline{D}$ if there is no proper subset of $D$ which also gives $\overline{D}$ is \emph{minimal}.
+From \ref{minimality}  follows that any $D$ that evaluates to $\overline{D}$ if there is no proper subset of $D$ which also gives $\overline{D}$ is \emph{minimal}.
 
-There exists at least one subset of $D$ which gives $\overline{D}$, namely $D$. There can be more than one proper subset of $D$ which also gives $\overline{D}$. The set that includes all different subsets of $D$ that evaluate to $\overline{D}$, is called $M$. $|M| \geq 1$. \\
-
-
-THE PRECEDING TWO PARAGRAPHS SHOULD BE MORE FORMALIZED.\\
+In addition, there exists at least one subset of $D$ which gives $\overline{D}$, namely $D$. There can be more than one proper subset of $D$ which also gives $\overline{D}$. The set that includes all different subsets of $D$ that evaluate to $\overline{D}$, is called $M$. $|M| \geq 1$. 
 
 The following examples illustrate the meaning of \emph{minimal} in a set difference (the elements are $\mathit{FID})$s. Given are the systems \\
 $ \mathit{SD}_1 = \{ 1, 2, 3 \} $, \\
@@ -58,13 +57,12 @@ $ \mathit{SD}_4 = \{ 4, 5, 6 \}$, \\
 $ \mathit{SD}_5 = \{ 2, 7 \}$ and \\
 $ \mathit{SD}_6 = \{ 1, 8 \}$.
 
-
 With respect to $FID_2$, the following set intersections $I$ are minimal as they all isolate $\mathit{FID}_2$.\\
 $I_1 = \mathit{SD}_1 \cap \mathit{SD}_2$\\
 $I_2 = \mathit{SD}_1 \cap \mathit{SD}_5$\\
 $I_3 = \mathit{SD}_2 \cap \mathit{SD}_5$
 
-$I_4 = \mathit{SD}_1 \cap \mathit{SD}_2 \cap \mathit{SD}_5$ <-- THIS IS ERRNOEIUS! s not minimal because $I_1$, $I_2$ and $I_3$ successfully isolate $\mathit{FID}_2$ but contain less operands. It is important to note that only evaluating $I$ can give the desired result. Furthermore, $I$ cannot be omitted.
+$I_4 = \mathit{SD}_1 \cap \mathit{SD}_2 \cap \mathit{SD}_5$ is not minimal because $I_1$, $I_2$ and $I_3$ successfully isolate $\mathit{FID}_2$ but contain less operands. It is important to note that only evaluating $I$ can give the desired result. Furthermore, $I$ cannot be omitted.
 
 With respect to $\mathit{FID}_2$ the set difference $D_1 = \mathit{SD}_1 \setminus \mathit{SD}_3 \cup \mathit{SD}_6$ is minimal as it isolates $\mathit{FID}_2$.
 
