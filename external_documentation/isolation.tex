@@ -17,9 +17,8 @@ Feature isolation is based on the following information:
     \item For each feature there exists a description that specifies in which systems it occurs and in which it does not plus an associated unique feature $\mathit{ID}$. Such a feature description is called $\mathit{FD}$, a feature $\mathit{ID}$ is called $\mathit{FID}$.
     \item Each system has a description that specifies the features it consists of plus an associated unique system $\mathit{ID}$. Such a system description is called $\mathit{SD}$, a system $\mathit{ID}$ is called $\mathit{SID}$.
 \end{itemize}
-\paragraph{Evaluation.} To describe the  isolation of a feature $f_i$ based on its  $\mathit{FID}$ some operations are introduced.
+\paragraph{Evaluation.} To describe the  isolation of a feature $f_i$ based on its  $\mathit{FID}$ and given a system description $\mathit{SD}$ some operations are introduced:
 \begin{itemize}
-	\item Given is a system description $\mathit{SD}$.
 	\item $\mathit{SD}$ can be flattened by replacing all each of its elements by the corresponding set of $\mathit{FID}$s and applying either set intersection, $\bigcap$, or set union, $\bigcup$, to them. 
 	\item Flattening $\mathit{SD}$ with $\bigcap$ gives $\widehat{\mathit{SD}}$.
 	\item Flattening $\mathit{SD}$ with $\bigcup$ gives $\widecheck{\mathit{SD}}$.
@@ -33,16 +32,16 @@ The isolation of a feature $f_i$ specified by its $\mathit{FID}$ involves the fo
 	\item $\widehat{\mathit{I}} \setminus \widecheck{\mathit{U}}$ gives the result of feature isolation which is denoted by $\overline{D}$.
 	$\overline{D}$ must not be equal to $\emptyset$ as this would indicate a fundamental error during the preceding steps. $\overline{D}$ can include exactly one element which then must be the $\mathit{FID_i}$. If $\overline{D}$ includes more than one element, one of them must be $\mathit{FID_i}$.
 \end{enumerate}
-\paragraph {Minimal set differences} Given are the following equations and the definition:
+\paragraph {Minimal set differences} Given are the following equations and definitions:
 \begin{enumerate}
 	\item $D = I \setminus U$
 	\item $\overline{D} = \widehat{\mathit{I}} \setminus \widecheck{\mathit{U}}$
 	\item $I_S \subseteq I$
 	\item $U_S \subseteq U$
 	\item $D_S \subset D \coloneq \mathit{I_S} \subset I \lor \mathit{U_S} \subset U$
-	\item $\mathcal{P}(D) = \forall _\mathit{I_S} \in S, \forall _\mathit{U_S} \in U \mathit{I_S} \setminus \mathit{U_S}$
-	\item forall crossproduct
+	\item $\mathcal{P}(D) = \forall (_\mathit{I_S \setminus U_S}) \in \mathcal{P}(I) \times \mathcal{P}(U)$
 	\item \label{minimality} $\mathit{minimal}(D) \coloneq \forall _\mathit{D_S} \in{\{\mathit{\mathcal{P}(D) \setminus D}\}} \land \overline{D_S} \neq \overline{D}$
+	\item IT WOULD BE NICE TO ALSO PROVIDE A DEFINITION FOR M.
 \end{enumerate} 
 
 From \ref{minimality}  follows that any $D$ that evaluates to $\overline{D}$ if there is no proper subset of $D$ which also gives $\overline{D}$ is \emph{minimal}.
@@ -57,16 +56,15 @@ $ \mathit{SD}_4 = \{ 4, 5, 6 \}$, \\
 $ \mathit{SD}_5 = \{ 2, 7 \}$ and \\
 $ \mathit{SD}_6 = \{ 1, 8 \}$.
 
-With respect to $FID_2$, the following set intersections $I$ are minimal as they all isolate $\mathit{FID}_2$.\\
-$I_1 = \mathit{SD}_1 \cap \mathit{SD}_2$\\
-$I_2 = \mathit{SD}_1 \cap \mathit{SD}_5$\\
-$I_3 = \mathit{SD}_2 \cap \mathit{SD}_5$
+With respect to $FID_2$, the following set intersections $I$ are minimal as they isolate $\mathit{FID}_2$.\\
+$I_1 = \mathit{SD}_1 \cap \mathit{SD}_5$\\
+$I_2 = \mathit{SD}_2 \cap \mathit{SD}_5$
 
-$I_4 = \mathit{SD}_1 \cap \mathit{SD}_2 \cap \mathit{SD}_5$ is not minimal because $I_1$, $I_2$ and $I_3$ successfully isolate $\mathit{FID}_2$ but contain less operands. It is important to note that only evaluating $I$ can give the desired result. Furthermore, $I$ cannot be omitted.
+$I_4 = \mathit{SD}_1 \cap \mathit{SD}_2 \cap \mathit{SD}_5$ is not minimal because $I_1$ and $I_2$ successfully isolate $\mathit{FID}_2$ with less elements. With respect to $D$, it is important to note that only evaluating $I$ can give the desired result. Furthermore, $I$ must not be
 
-With respect to $\mathit{FID}_2$ the set difference $D_1 = \mathit{SD}_1 \setminus \mathit{SD}_3 \cup \mathit{SD}_6$ is minimal as it isolates $\mathit{FID}_2$.
+With respect to $\mathit{FID}_2$ the set differencse $D_1 = \mathit{SD}_1 \setminus \mathit{SD}_3 \cup \mathit{SD}_6$ and $D_2 = \mathit{SD}_1 \cap \mathit{SD}_2 \setminus \mathit{SD}_3$ are also minimal as each isolates $\mathit{FID}_2$.
 
-$D_2 = \mathit{SD}_1 \cap \mathit{SD}_2 \setminus \mathit{SD}_3$ is not minimal, as $I$ already isolates $\mathit{FID}_2$. $D_3 = \mathit{SD}_1 \setminus \mathit{SD}_3 \cup \mathit{SD}_4 \cup \mathit{SD}_6$ is also not minimal, as $\mathit{SD}_3 \cup \mathit{SD}_6$ in $U$ already removes all unwanted elements of $I$. It has to be emphasized, that ---different from $I$--- $U$ can be omitted.
+$D_3 = \mathit{SD}_1 \setminus \mathit{SD}_3 \cup \mathit{SD}_4 \cup \mathit{SD}_6$ is not minimal, as $\mathit{SD}_3 \cup \mathit{SD}_6$ in $U$ already removes all unwanted elements of $I$. It has to be emphasized, that ---different from $I$--- $U$ can be  $\emptyset$.
 
 \section{Functions, Datatypes and Variables}
 \begin{itemize}
