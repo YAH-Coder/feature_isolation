@@ -9,7 +9,7 @@ using namespace feature_isolation;
 int main ()
 {
    feature_isolation_t fi{ "../spl_specs/spl_isolation.csv" };
-   cout << fi.m_features.m_systems.at(0).T() << endl;
+/*   cout << fi.m_features.m_systems.at(0).T() << endl;
    auto [i,u] = fi.partition(1);
    print("I",i);
    print("U",u);
@@ -25,5 +25,15 @@ int main ()
    }
    auto u_flat { fi.flatten_by_union(u) };
    print("U flattened",u_flat);
-   print("D flattened",fi.flattened_difference(1));
+   print("D flattened",fi.flattened_difference(1)); // DON'T CALL THIS METHOD!
+   print("D flattened again",fi.flattened_difference(i,u)); */
+   auto result { fi.minimal_differences(1) };
+   print("D flat",result.features);
+   cout << "Minimal subsets\n";
+   for (auto i { zero };auto s : result.differences)
+   {
+      cout << ++i << endl;
+      print("I",s.I);
+      print("U",s.U);
+   }
 }
