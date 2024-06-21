@@ -74,7 +74,8 @@ namespace feature_isolation {
         if (lhs.I > rhs.I or (lhs.I == rhs.I and lhs.U > rhs.U))
             return std::strong_ordering::greater;
         return std::strong_ordering::equivalent;
-   } 
+   }
+
    bool operator==(const difference_t& lhs,const difference_t& rhs)
    {
       return lhs.I == rhs.I && lhs.U == rhs.U;
@@ -100,12 +101,10 @@ namespace feature_isolation {
             m_features.print(out);
          }
          [[nodiscard]] difference_t partition(unsigned_integer feature_id) const;
-         //[[nodiscard]] isolation_result_t isolate(unsigned_integer feature_id) const;
          [[nodiscard]] feature_ids_t flatten_by_intersection(const system_ids_t& sids) const;
          [[nodiscard]] feature_ids_t flatten_by_union(const system_ids_t& sids) const;
-         [[nodiscard]] feature_ids_t flattened_difference(unsigned_integer feature_id) const; // DON'T USE THIS METHOD!
          [[nodiscard]] feature_ids_t flattened_difference(const system_ids_t& i,const system_ids_t& u) const;
-         [[nodiscard]] isolation_result_t minimal_differences(unsigned_integer feature_id) const;                                                                           
+         [[nodiscard]] isolation_result_t minimal_differences(unsigned_integer feature_id) const;                          
          [[nodiscard]] feature_ids_t sid_to_fids(unsigned_integer sid) const;
          static void memorize_proper_difference_subset(differences_t& md,const system_ids_t& i,const system_ids_t& u);
          [[nodiscard]] static bool proper_difference_subset(const system_ids_t& i,const system_ids_t& u,const difference_t& d);
@@ -113,10 +112,6 @@ namespace feature_isolation {
          const feature_analysis_t m_features;
    };
 
-/*   isolation_result_t feature_isolation_t::isolate(unsigned_integer feature_id) const
-   {
-      return isolation_result_t { };
-   }*/
    difference_t feature_isolation_t::partition(unsigned_integer feature_id) const
    {
       system_ids_t I,U;
@@ -180,24 +175,14 @@ namespace feature_isolation {
             /* result has been specified according to
              * https://stackoverflow.com/questions/71390905/why-cant-i-use-a-set-as-the-output-collection-of-transform-operation-on-a-vecto
              */
-//            std::ranges::set_union(set1,set2,std::insert_iterator<decltype(result)>(result,result.begin()));
             std::ranges::set_union(set1,set2,std::insert_iterator { result,result.begin() });
          }
       }
       return result;
    }
-   feature_ids_t feature_isolation_t::flattened_difference(unsigned_integer feature_id) const // DON'T USE THIS METHOD!
-   {
-      auto [i,u] { partition(feature_id) };
-      feature_ids_t result {};
-//      std::ranges::set_difference(flatten_by_intersection(i),flatten_by_union(u),std::insert_iterator<decltype(result)>(result,result.begin()));
-      std::ranges::set_difference(flatten_by_intersection(i),flatten_by_union(u),std::insert_iterator { result,result.begin() });
-      return result;
-   }
    feature_ids_t feature_isolation_t::flattened_difference(const system_ids_t& i,const system_ids_t& u) const 
    {
       feature_ids_t result {};
-//      std::ranges::set_difference(flatten_by_intersection(i),flatten_by_union(u),std::insert_iterator<decltype(result)>(result,result.begin()));
       std::ranges::set_difference(flatten_by_intersection(i),flatten_by_union(u),std::insert_iterator { result,result.begin() });
       return result;
    }
