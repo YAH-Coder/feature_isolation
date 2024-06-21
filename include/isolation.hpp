@@ -10,18 +10,6 @@
 #include <compare>
 #include <string>
 
-template <typename T>
-void print(std::string m,const T& c)
-{
-   auto s { c.size() };
-   std::cout << m << ": { ";
-   for (const auto& e : c)
-   {
-      std::cout << e << ((--s > 0) ? ", " : " ");
-   }
-   std::cout << "}" << std::endl;
-}
-
 namespace feature_isolation {
 
    template <typename T>
@@ -47,6 +35,32 @@ namespace feature_isolation {
       return result;
    }
    
+   template <typename T>
+   void print(std::string m,const T& c)
+   {
+      auto s { c.size() };
+      std::cout << m << ": { ";
+      for (const auto& e : c)
+      {
+         std::cout << e << ((--s > 0) ? ", " : " ");
+      }
+      std::cout << "}" << std::endl;
+   }
+   
+   template <typename T>
+   [[nodiscard]] bool subset(const std::set<T>& s1,const std::set<T>& s2)
+   // Returns true, if s2 is a subset of s1
+   {
+      return std::ranges::includes(s1,s2);
+   }
+
+   template <typename T>
+   [[nodiscard]] bool proper_subset(const std::set<T>& s1,const std::set<T>& s2)
+   // Returns true, if s2 is a proper subset of s1
+   {
+      return subset(s1,s2) and s1.size() > s2.size();
+   }
+   
    struct difference_t
    {
       system_ids_t I,
@@ -66,12 +80,12 @@ namespace feature_isolation {
       return lhs.I == rhs.I && lhs.U == rhs.U;
    }
 
-   using minimal_differences_t = std::set<difference_t>;
+   using differences_t = std::set<difference_t>;
 
    struct isolation_result_t
    {
       feature_ids_t features;
-      minimal_differences_t differences;
+      differences_t differences;
    };
    
    class feature_isolation_t final
@@ -93,8 +107,8 @@ namespace feature_isolation {
          [[nodiscard]] feature_ids_t flattened_difference(const system_ids_t& i,const system_ids_t& u) const;
          [[nodiscard]] isolation_result_t minimal_differences(unsigned_integer feature_id) const;                                                                           
          [[nodiscard]] feature_ids_t sid_to_fids(unsigned_integer sid) const;
-         static void memorize_if_proper_subset(minimal_differences_t& md,const system_ids_t& i,const system_ids_t& u);
-         [[nodiscard]] static bool proper_subset(const system_ids_t& i,const system_ids_t& u,const difference_t& d);
+         static void memorize_proper_difference_subset(differences_t& md,const system_ids_t& i,const system_ids_t& u);
+         [[nodiscard]] static bool proper_difference_subset(const system_ids_t& i,const system_ids_t& u,const difference_t& d);
          const spl_specification_t m_spl;
          const feature_analysis_t m_features;
    };
@@ -201,14 +215,14 @@ namespace feature_isolation {
                combination i_draw { to_vector(i),i_k };
                do
                {
-                  print(std::to_string(i_k) + "I",i_draw());
-                  print(std::to_string(u_k) + "U",u_draw());
+                  //print(std::to_string(i_k) + "I",i_draw());
+                  //print(std::to_string(u_k) + "U",u_draw());
                   system_ids_t i_s { to_set(i_draw()) };
                   system_ids_t u_s { to_set(u_draw()) };
                   auto d_f { flattened_difference(i_s,u_s) };
                   if (d_f == result.features)
                   {
-                     memorize_if_proper_subset(result.differences,i_s,u_s);
+                     memorize_proper_difference_subset(result.differences,i_s,u_s);
                   }
                }
                while (i_draw.next());
@@ -217,15 +231,16 @@ namespace feature_isolation {
       }
       return result;
    }
-   bool feature_isolation_t::proper_subset(const system_ids_t& i,const system_ids_t& u,const difference_t& d)
+   bool feature_isolation_t::proper_difference_subset(const system_ids_t& i,const system_ids_t& u,const difference_t& d)
    {
-     return !(std::ranges::includes(d.I,i) or std::ranges::includes(d.U,u));
+     //return (std::ranges::includes(d.I,i) and d.I.size() > i.size()) or (std::ranges::includes(d.U,u) and d.U.size() > u.size());
+     return proper_subset(i,d.I) or proper_subset(u,d.U);
    }
-   void feature_isolation_t::memorize_if_proper_subset(minimal_differences_t& md,const system_ids_t& i,const system_ids_t& u)
+   void feature_isolation_t::memorize_proper_difference_subset(differences_t& md,const system_ids_t& i,const system_ids_t& u)
    {
       for (const auto& d : md)
       {
-         if (proper_subset(i,u,d))
+         if (proper_difference_subset(i,u,d))
          {
             return;
          }
