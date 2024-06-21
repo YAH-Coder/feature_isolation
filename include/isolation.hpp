@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <vector>
 #include <compare>
+#include <iostream>
 #include <string>
 
 namespace feature_isolation {
@@ -108,6 +109,10 @@ namespace feature_isolation {
          [[nodiscard]] feature_ids_t sid_to_fids(unsigned_integer sid) const;
          static void memorize_proper_difference_subset(differences_t& md,const system_ids_t& i,const system_ids_t& u);
          [[nodiscard]] static bool proper_difference_subset(const system_ids_t& i,const system_ids_t& u,const difference_t& d);
+         static void print_header(std::ostream& os,bool feature_names = false);
+         void print(std::ostream& os,unsigned_integer fid,bool feature_names) const;
+         void print(std::ostream& os,bool feature_names = false) const;
+         [[nodiscard]] std::string name(unsigned_integer fid) const;
          const spl_specification_t m_spl;
          const feature_analysis_t m_features;
    };
@@ -149,11 +154,7 @@ namespace feature_isolation {
             /* result has been specified according to
              * https://stackoverflow.com/questions/71390905/why-cant-i-use-a-set-as-the-output-collection-of-transform-operation-on-a-vecto
              */
-//            std::ranges::set_intersection(set1,set2,std::insert_iterator<decltype(result)>(result,result.begin()));
             std::ranges::set_intersection(set1,set2,std::insert_iterator { result,result.begin() });
-/*            std::set_intersection(set1.begin(),set1.end(),
-                                  set2.begin(),set2.end(),
-                                  std::insert_iterator<decltype(result)>(result,result.begin())); */
          }
       }
       return result;
@@ -200,8 +201,6 @@ namespace feature_isolation {
                combination i_draw { to_vector(i),i_k };
                do
                {
-                  //print(std::to_string(i_k) + "I",i_draw());
-                  //print(std::to_string(u_k) + "U",u_draw());
                   system_ids_t i_s { to_set(i_draw()) };
                   system_ids_t u_s { to_set(u_draw()) };
                   auto d_f { flattened_difference(i_s,u_s) };
@@ -218,7 +217,6 @@ namespace feature_isolation {
    }
    bool feature_isolation_t::proper_difference_subset(const system_ids_t& i,const system_ids_t& u,const difference_t& d)
    {
-     //return (std::ranges::includes(d.I,i) and d.I.size() > i.size()) or (std::ranges::includes(d.U,u) and d.U.size() > u.size());
      return proper_subset(i,d.I) or proper_subset(u,d.U);
    }
    void feature_isolation_t::memorize_proper_difference_subset(differences_t& md,const system_ids_t& i,const system_ids_t& u)
@@ -232,5 +230,58 @@ namespace feature_isolation {
       }
       md.insert(difference_t { i,u });
    }
+    void feature_isolation_t::print_header(std::ostream& os,bool feature_names)
+    {
+       os << (feature_names ? "Feature Name" : "Feature ID") << separator()
+          << "Isolation Result" << separator()
+          << "# Min. Diff" << separator()
+          << "Minimal Differences" << std::endl;
+    }
+    void feature_isolation_t::print(std::ostream& os,unsigned_integer fid,bool feature_names) const
+    {
+       auto result { minimal_differences(fid) };
+       os << (feature_names ? name(fid) : std::to_string(fid)) << separator()
+          << "{ ";
+       for (auto counter { zero };auto fid : result.features)
+       {
+          os << (feature_names ? name(fid) : std::to_string(fid))
+             << (++counter < result.features.size() ? ", " : "");
+       }
+       os << " }" << separator()
+                  << result.differences.size()
+                  << separator();
+       for (auto counter { zero };auto difference : result.differences)
+       {
+          os << "{ ";
+
+          for (auto counter { zero };auto sid : difference.I)
+          {
+             os << sid
+                << (++counter < difference.I.size() ? ", " : "");
+          }
+          os << " } \\ { ";
+          for (auto counter { zero };auto sid : difference.U)
+          {
+             os << sid
+                << (++counter < difference.U.size() ? ", " : "");
+          }
+          os << " }";
+          os << (++counter << result.differences.size() ? std::string { separator() } : "");
+      }
+      os << std::endl;
+    }
+    std::string feature_isolation_t::name(unsigned_integer fid) const
+    {
+       std::cerr << "feature_isolation::name(unsigned_integer fid) const" << "Not yet implemented" << std::endl;
+       return "Not yet implemented";
+    }
+    void feature_isolation_t::print(std::ostream& os,bool feature_names) const
+    {
+       print_header(os,feature_names);
+       for (auto fid { one };fid <= m_features.T;++fid)
+       {
+          print(os,fid,feature_names);
+       }
+    }
 } // namespace feature_isolation
 #endif // ISOLATION_HPP
