@@ -190,6 +190,7 @@ namespace feature_isolation {
    isolation_result_t feature_isolation_t::minimal_differences(unsigned_integer feature_id) const
    {
       auto [i,u] { partition(feature_id) };
+      if (feature_id == 34) { ::feature_isolation::print("I",i);::feature_isolation::print("U",u); };
       isolation_result_t result { { flattened_difference(i,u) } };
       for (auto u_k { zero }; u_k <= u.size(); ++u_k)
       {
