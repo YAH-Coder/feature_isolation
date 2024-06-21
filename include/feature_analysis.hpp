@@ -52,7 +52,8 @@ namespace feature_isolation {
   static const std::array<std::string, 8> feature_categories = { "F", "N", "A", "O", "AN", "ON", "ANF", "ONF" };
 
   [[nodiscard]] char separator( const char s = 0 );
-    class system_t
+  
+  class system_t
   {
     public:
       feature_ids_t F_feature_ids,
