@@ -23,6 +23,8 @@ namespace feature_isolation {
   using ids_t = std::set<unsigned_integer>;
   struct feature_ids_t: ids_t {}; // Turn feature_ids_t into its own type.
   struct system_ids_t : ids_t {}; // Turn system_ids_t into its own type.
+  //using feature_ids_t = ids_t;
+  //using system_ids_t = ids_t;
 
   std::string to_string( const feature_t& fd );
 
