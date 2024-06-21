@@ -6,7 +6,8 @@
 \usepackage{amsmath}
 \usepackage{mathabx}
 \definecolor{light-gray}{gray}{0.95}
-\newcommand{\code}[1]{\colorbox{light-gray}{\texttt{#1}}}
+\NewDocumentCommand{\code}{m}{\colorbox{light-gray}{\texttt{#1}}}
+\NewDocumentCommand{\varname}{m}{\mathit{#1}}
 \title{Specification of Feature Isolation\\ \small Version 0.9}
 \author{Ulrich Eisenecker}
 \begin{document}
@@ -14,35 +15,35 @@
 \section{Basic Information and Results}
 Feature isolation is based on the following information:
 \begin{itemize}
-	\item A specification of a software product line including the names of its independent features, the feature categories to be considered, the maximum rank of interaction between any kind of and- and or-features, and optionally explicitly dependent features plus available systems or missing systems all of which resulting in a set with the identifiers of available systems. This specification is denoted by \(\mathit{SPL}\). 
-	\item An identifier (\(\mathit{ID}\) for short) is a natural number with a lower bound of 1.
-    \item For each feature there exists a description that specifies in which systems it occurs and in which it does not plus an associated unique feature \(ID\) which is called \(\mathit{FID}\).
-    \item Each system has a description that specifies the features it consists of plus an associated unique system \(\mathit{ID}\) which is called \(\mathit{SID}\).
+	\item A specification of a software product line including the names of its independent features, the feature categories to be considered, the maximum rank of interaction between any kind of and- and or-features, and optionally explicitly dependent features plus available systems or missing systems all of which resulting in a set with the identifiers of available systems. This specification is denoted by \(\varname{SPL}\). 
+	\item An identifier (\(\varname{ID}\) for short) is a natural number with a lower bound of 1.
+    \item For each feature there exists a description that specifies in which systems it occurs and in which it does not plus an associated unique feature \(ID\) which is called \(\varname{FID}\).
+    \item Each system has a description that specifies the features it consists of plus an associated unique system \(\varname{ID}\) which is called \(\varname{SID}\).
 \end{itemize}
-\paragraph{Evaluation.} To describe the  isolation of a feature \(f_i\) based on its  \(\mathit{FID}\) and given a system description \(\mathit{SD}\) some operations are introduced:
+\paragraph{Evaluation.} To describe the  isolation of a feature \(f_i\) based on its  \(\varname{FID}\) and given a system description \(\varname{SD}\) some operations are introduced:
 \begin{itemize}
-	\item \(\mathit{SD}\) can be flattened by replacing all each of its elements by the corresponding set of \(\mathit{FID}\)s and applying either set intersection, \(\bigcap\), or set union, \(\bigcup\), to them. 
-	\item Flattening \(\mathit{SD}\) with \(\bigcap\) gives \(\widehat{\mathit{SD}}\).
-	\item Flattening \(\mathit{SD}\) with \(\bigcup\) gives \(\widecheck{\mathit{SD}}\).
+	\item \(\varname{SD}\) can be flattened by replacing all each of its elements by the corresponding set of \(\varname{FID}\)s and applying either set intersection, \(\bigcap\), or set union, \(\bigcup\), to them. 
+	\item Flattening \(\varname{SD}\) with \(\bigcap\) gives \(\widehat{\varname{SD}}\).
+	\item Flattening \(\varname{SD}\) with \(\bigcup\) gives \(\widecheck{\varname{SD}}\).
 \end{itemize}
 
-The isolation of a feature \(f_i\) specified by its \(\mathit{FID}\) involves the following steps:
+The isolation of a feature \(f_i\) specified by its \(\varname{FID}\) involves the following steps:
 
 \begin{enumerate}
-	\item \(I\) is the set with \(\mathit{SID}\)s of all systems that include \(\mathit{FID_i}\).
-	\item \(U\) is the set with \(\mathit{SID}\)s of all systems that do \emph{not} include  \(\mathit{FID_i}\).
-	\item \(\widehat{\mathit{I}} \setminus \widecheck{\mathit{U}}\) gives the result of feature isolation which is denoted by \(\overline{D}\).
-	\(\overline{D}\) must not be equal to \(\emptyset\) as this would indicate a fundamental error during the preceding steps <-- HAS TO BE CHECKED!. \(\overline{D}\) can include exactly one element which then must be the \(\mathit{FID_i}\). If \(\overline{D}\) includes more than one element, one of them must be \(\mathit{FID_i}\).
+	\item \(I\) is the set with \(\varname{SID}\)s of all systems that include \(\varname{FID_i}\).
+	\item \(U\) is the set with \(\varname{SID}\)s of all systems that do \emph{not} include  \(\varname{FID_i}\).
+	\item \(\widehat{\varname{I}} \setminus \widecheck{\varname{U}}\) gives the result of feature isolation which is denoted by \(\overline{D}\).
+	\(\overline{D}\) must not be equal to \(\emptyset\) as this would indicate a fundamental error during the preceding steps <-- HAS TO BE CHECKED!. \(\overline{D}\) can include exactly one element which then must be the \(\varname{FID_i}\). If \(\overline{D}\) includes more than one element, one of them must be \(\varname{FID_i}\).
 \end{enumerate}
 \paragraph {Minimal set differences.} Given are the following equations and definitions:
 \begin{enumerate}
 	\item \(D = I \setminus U\)
-	\item \(\overline{D} = \widehat{\mathit{I}} \setminus \widecheck{\mathit{U}}\)
+	\item \(\overline{D} = \widehat{\varname{I}} \setminus \widecheck{\varname{U}}\)
 	\item \(I_S \subseteq I\)
 	\item \(U_S \subseteq U\)
-	\item \(D_S \subset D \coloneq \mathit{I_S} \subset I \lor \mathit{U_S} \subset U\)
-	\item \(P(D) = \forall (_\mathit{I_S \setminus U_S}) \in P(I) \times P(U)\)
-	\item \label{minimality} \(\mathit{minimal}(D) \coloneq \forall _\mathit{D_S} \in{\{\mathit{P(D) \setminus D}\}} \land \overline{D_S} \neq \overline{D}\)
+	\item \(D_S \subset D \coloneq \varname{I_S} \subset I \lor \varname{U_S} \subset U\)
+	\item \(P(D) = \forall (_\varname{I_S \setminus U_S}) \in P(I) \times P(U)\)
+	\item \label{minimality} \(\varname{minimal}(D) \coloneq \forall _\varname{D_S} \in{\{\varname{P(D) \setminus D}\}} \land \overline{D_S} \neq \overline{D}\)
 	\item TODO: PROVIDE A DEFINITION FOR M.
 \end{enumerate} 
 
@@ -50,27 +51,27 @@ From \ref{minimality}  follows that any \(D\) that evaluates to \(\overline{D}\)
 
 In addition, there exists at least one subset of \(D\) which gives \(\overline{D}\), namely \(D\). There can be more than one proper subset of \(D\) which also gives \(\overline{D}\). The set that includes all different subsets of \(D\) that evaluate to \(\overline{D}\), is called \({M}\). \(|M| \geq 1\). 
 
-The following examples illustrate the meaning of \emph{minimal} in a set difference (the elements are \(\mathit{FID})\)s. Given are the systems \\
-\( \mathit{SD}_1 = \{ 1, 2, 3 \} \), \\
-\( \mathit{SD}_2 = \{ 2, 3, 4 \} \), \\
-\( \mathit{SD}_3 = \{ 3, 4, 5 \}\), \\
-\( \mathit{SD}_4 = \{ 4, 5, 6 \}\), \\
-\( \mathit{SD}_5 = \{ 2, 7 \}\) and \\
-\( \mathit{SD}_6 = \{ 1, 8 \}\).
+The following examples illustrate the meaning of \emph{minimal} in a set difference (the elements are \(\varname{FID})\)s. Given are the systems \\
+\( \varname{SD}_1 = \{ 1, 2, 3 \} \), \\
+\( \varname{SD}_2 = \{ 2, 3, 4 \} \), \\
+\( \varname{SD}_3 = \{ 3, 4, 5 \}\), \\
+\( \varname{SD}_4 = \{ 4, 5, 6 \}\), \\
+\( \varname{SD}_5 = \{ 2, 7 \}\) and \\
+\( \varname{SD}_6 = \{ 1, 8 \}\).
 
-With respect to \(FID_2\), the following set intersections \(I\) are minimal as they isolate \(\mathit{FID}_2\). \\
-\(I_1 = \mathit{SD}_1 \cap \mathit{SD}_5\)\\
-\(I_2 = \mathit{SD}_2 \cap \mathit{SD}_5\)\\
-\(I_4 = \mathit{SD}_1 \cap \mathit{SD}_2 \cap \mathit{SD}_5\) is not minimal because \(I_1\) and \(I_2\) successfully isolate \(\mathit{FID}_2\) with less elements. With respect to \(D\), it is important to note that only evaluating \(I\) can give the desired result. Furthermore, \(I\) must not be \(\emptyset\) <-- HAS TO BE CHECKED.
+With respect to \(FID_2\), the following set intersections \(I\) are minimal as they isolate \(\varname{FID}_2\). \\
+\(I_1 = \varname{SD}_1 \cap \varname{SD}_5\)\\
+\(I_2 = \varname{SD}_2 \cap \varname{SD}_5\)\\
+\(I_4 = \varname{SD}_1 \cap \varname{SD}_2 \cap \varname{SD}_5\) is not minimal because \(I_1\) and \(I_2\) successfully isolate \(\varname{FID}_2\) with less elements. With respect to \(D\), it is important to note that only evaluating \(I\) can give the desired result. Furthermore, \(I\) must not be \(\emptyset\) <-- HAS TO BE CHECKED.
 
-With respect to \(\mathit{FID}_2\) the set differences \(D_1 = \mathit{SD}_1 \setminus \mathit{SD}_3 \cup \mathit{SD}_6\) and \(D_2 = \mathit{SD}_1 \cap \mathit{SD}_2 \setminus \mathit{SD}_3\) are also minimal as each isolates \(\mathit{FID}_2\).
+With respect to \(\varname{FID}_2\) the set differences \(D_1 = \varname{SD}_1 \setminus \varname{SD}_3 \cup \varname{SD}_6\) and \(D_2 = \varname{SD}_1 \cap \varname{SD}_2 \setminus \varname{SD}_3\) are also minimal as each isolates \(\varname{FID}_2\).
 
-\(D_3 = \mathit{SD}_1 \setminus \mathit{SD}_3 \cup \mathit{SD}_4 \cup \mathit{SD}_6\) is not minimal, as \(\mathit{SD}_3 \cup \mathit{SD}_6\) in \(U\) already removes all unwanted elements of \(I\). It has to be emphasized, that ---different from \(I\)--- \(U\) can be  \(\emptyset\).
+\(D_3 = \varname{SD}_1 \setminus \varname{SD}_3 \cup \varname{SD}_4 \cup \varname{SD}_6\) is not minimal, as \(\varname{SD}_3 \cup \varname{SD}_6\) in \(U\) already removes all unwanted elements of \(I\). It has to be emphasized, that ---different from \(I\)--- \(U\) can be  \(\emptyset\).
 
 \section{Functions, Datatypes and Variables}
 \begin{itemize}
-	\item The datatypes \code{feature\_ids\_t} and \code{system\_ids\_t} represent the set types for \(\mathit{FID}\)s and \(\mathit{SID}\)s.
-	\item The member variable \code{spl\_specification\_t::m\_avail\-able\_\-systems} which is of type  \code{sys\-tem\_ids\_t} contains the \(\mathit{SID}\)s of the actually available systems.
+	\item The datatypes \code{feature\_ids\_t} and \code{system\_ids\_t} represent the set types for \(\varname{FID}\)s and \(\varname{SID}\)s.
+	\item The member variable \code{spl\_specification\_t::m\_avail\-able\_\-systems} which is of type  \code{sys\-tem\_ids\_t} contains the \(\varname{SID}\)s of the actually available systems.
 	\item \code{difference\_t} is the type that represents a single set difference. It defines the data members \code{I} and \code{U}, both of type \code{system\_ids\_t}.They represent the operands \(I\) and \(U\) of a set difference that isolates a feature \(f_i\).
 	\item \code{minimal\_differences\_t} represents \(M\). It defines the data members \code{features} which is of type \code{feature\_ids\_t} and represents \(D\).
 \end{itemize}
