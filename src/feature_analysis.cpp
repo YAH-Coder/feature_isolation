@@ -24,7 +24,7 @@ namespace feature_isolation {
   feature_analysis_t::feature_analysis_t( unsigned_integer f, unsigned_integer max_rank, unsigned_integer feature_categories )
       : F { f }, N { F }, A { sum_of_combinations( F, two ) }, O { A }, AN { O }, ON { O }, ANF { sum_of_combinations( F, 1 ) - 1 }, ONF { ANF }, DF { f + 4 * A + 2 * ANF }, T { F + DF }, R { max_rank }, C { feature_categories }, S { power2( F ) },
         F_features { initialize_F_features() }, N_features { initialize_N_features() }, A_features { initialize_A_features() }, O_features { initialize_O_features() }, AN_features { initialize_AN_features() }, ON_features { initialize_ON_features() }, ANF_features { initialize_ANF_features() }, ONF_features { initialize_ONF_features() },
-        F_offset { zero }, N_offset { F_offset + F_offset }, A_offset { N_offset + N }, O_offset { A_offset + A }, AN_offset { O_offset + O }, ON_offset { AN_offset + AN }, ANF_offset { ON_offset + ON }, ONF_offset { ANF_offset + ANF },
+        F_offset { zero }, N_offset { F_offset + /*F_offset*/ F }, A_offset { N_offset + N }, O_offset { A_offset + A }, AN_offset { O_offset + O }, ON_offset { AN_offset + AN }, ANF_offset { ON_offset + ON }, ONF_offset { ANF_offset + ANF },
         feature_offsets { F_offset, N_offset, A_offset, O_offset, AN_offset, ON_offset, ANF_offset, ONF_offset },
         all_features { &F_features, &N_features, &A_features, &O_features, &AN_features, &ON_features, &ANF_features, &ONF_features },
         m_systems { initialize_systems() } {}
@@ -42,10 +42,14 @@ namespace feature_isolation {
   }
 
   void feature_analysis_t::print_features( std::ostream& os ) const {
-    os << "FEATURE ID" << separator() << "CATEGORY" << separator() << "DESCRIPTION" << std::endl;
+    os <<  "FEATURE ID" << separator() << "CATEGORY" << separator() << "DESCRIPTION" << std::endl;
+    /**/ for (auto c : feature_categories) std::cout << c << " "; std::cout << std::endl; /// FOR DEBUGGING ONLY
     for ( auto index { zero }; index < 8; ++index ) {
-      if ( C & ( 1 << index ) ) {
+      if ( C & ( 1 << index ) ) { /// IN DIESER SCHLEIFE WERDEN KEINE FEATURES
+                                  /// DER KATEGORIE N AUSGEGEBEN. ICH SEHE ABER
+                                  /// GERADE KEINEN FEHLER!
         for ( auto id { zero }; const auto& feature : *( all_features[index] ) ) {
+           /**/ if (feature_categories[index] == "N") std::cout << "NOT-FEATURE"; // DAS KOMMT NICHT!!! AUCH DIE FEATURES 4, 5 und 6 FEHLEN.
           os << ( ++id + feature_offsets[index] ) << separator() << feature_categories[index] << separator() << '\"';
           print_feature( os, feature );
           os << '\"' << std::endl;
@@ -68,7 +72,8 @@ namespace feature_isolation {
   }
 
   void feature_analysis_t::print_system_statistics( std::ostream& os, const system_t& system, unsigned_integer id ) const {
-    os << id << separator() << system.F_feature_ids.size() << separator()
+    os << id << separator() 
+       << system.F_feature_ids.size() << separator()
        << system.N_feature_ids.size() << separator()
        << system.A_feature_ids.size() << separator()
        << system.O_feature_ids.size() << separator()
@@ -102,44 +107,84 @@ namespace feature_isolation {
     os << "SYSTEM ID" << separator() << id << separator();
 
     // Print all feature IDs for this system
-    os << "F: ";
+/*    os << "F: ";
     for (const auto& feature_id : system.F_feature_ids) {
-        os << feature_id << " ";
+        os << feature_id + 1 << " ";
     }
 
     os << "| N: ";
     for (const auto& feature_id : system.N_feature_ids) {
-        os << feature_id << " ";
+        os << feature_id + 1 << " ";
     }
 
     os << "| A: ";
     for (const auto& feature_id : system.A_feature_ids) {
-        os << feature_id << " ";
+        os << feature_id + 1 << " ";
     }
 
     os << "| O: ";
     for (const auto& feature_id : system.O_feature_ids) {
-        os << feature_id << " ";
+        os << feature_id + 1 << " ";
     }
 
     os << "| AN: ";
     for (const auto& feature_id : system.AN_feature_ids) {
-        os << feature_id << " ";
+        os << feature_id + 1 << " ";
     }
 
     os << "| ON: ";
     for (const auto& feature_id : system.ON_feature_ids) {
-        os << feature_id << " ";
+        os << feature_id + 1 << " ";
     }
 
     os << "| ANF: ";
     for (const auto& feature_id : system.ANF_feature_ids) {
-        os << feature_id << " ";
+        os << feature_id + 1 << " ";
     }
 
     os << "| ONF: ";
     for (const auto& feature_id : system.ONF_feature_ids) {
-        os << feature_id << " ";
+        os << feature_id + 1 << " ";
+    }
+
+    os << std::endl;*/
+    for (const auto& feature_id : system.F_feature_ids) {
+        os << feature_id + 1 << " ";
+    }
+
+    os << separator();
+    for (const auto& feature_id : system.N_feature_ids) {
+        os << feature_id + 1 << " ";
+    }
+
+    os << separator();
+    for (const auto& feature_id : system.A_feature_ids) {
+        os << feature_id + 1 << " ";
+    }
+
+    os << separator();
+    for (const auto& feature_id : system.O_feature_ids) {
+        os << feature_id + 1 << " ";
+    }
+
+    os << separator();
+    for (const auto& feature_id : system.AN_feature_ids) {
+        os << feature_id + 1 << " ";
+    }
+
+    os << separator();
+    for (const auto& feature_id : system.ON_feature_ids) {
+        os << feature_id + 1 << " ";
+    }
+
+    os << separator();
+    for (const auto& feature_id : system.ANF_feature_ids) {
+        os << feature_id + 1 << " ";
+    }
+
+    os << separator();
+    for (const auto& feature_id : system.ONF_feature_ids) {
+        os << feature_id + 1 << " ";
     }
 
     os << std::endl;
@@ -154,7 +199,7 @@ namespace feature_isolation {
   }
 
   void feature_analysis_t::print( std::ostream& os ) const {
-    os << separator()
+    os << separator() << separator()
        << "F" << separator()
        << "N" << separator()
        << "A" << separator()
@@ -168,7 +213,7 @@ namespace feature_isolation {
        << "S" << separator()
        << "R" << separator()
        << "C" << separator()
-       << "\nIN PRINCIPLE" << separator()
+       << "\nIN PRINCIPLE" << separator() << separator()
        << F << separator()
        << N << separator()
        << A << separator()
@@ -183,7 +228,7 @@ namespace feature_isolation {
        << F << separator()
        << "F|N|A|O|AN|ON|ANF|ONF";
     auto actual_df { N_features.size() + A_features.size() + O_features.size() + AN_features.size() + ON_features.size() + ANF_features.size() + ONF_features.size() };
-    os << "\nACTUALLY" << separator()
+    os << separator() << "\nACTUALLY" << separator() << separator()
        << F_features.size() << separator()
        << N_features.size() << separator()
        << A_features.size() << separator()
