@@ -9,11 +9,12 @@ OBJDIR = ../obj
 it: $(OBJDIR)/it
 
 $(OBJDIR)/it: $(OBJDIR)/feature_analysis.o $(OBJDIR)/isolation.o
-	$(CXX) $(CXXFLAGS) $(OBJDIR)/feature_analysis.o $(OBJDIR)/isolation.o -lminisat -o $(OBJDIR)/it
+	$(CXX) $(CXXFLAGS) $(OBJDIR)/feature_analysis.o $(OBJDIR)/isolation.o -lz3 -o $(OBJDIR)/it #-lminisat -o $(OBJDIR)/it
+
 $(OBJDIR)/feature_analysis.o: $(SRCDIR)/feature_analysis.cpp $(INCDIR)/feature_analysis.hpp
 	$(CXX) $(CXXFLAGS) -c $(SRCDIR)/feature_analysis.cpp -o $(OBJDIR)/feature_analysis.o
 
-$(OBJDIR)/isolation.o: $(SRCDIR)/isolation_test.cpp $(INCDIR)/isolation.hpp
+$(OBJDIR)/isolation.o: $(SRCDIR)/isolation_test.cpp $(INCDIR)/isolation.hpp $(INCDIR)/spl_test.hpp
 	$(CXX) $(CXXFLAGS) -c $(SRCDIR)/isolation_test.cpp -o $(OBJDIR)/isolation.o
 
 clean:
