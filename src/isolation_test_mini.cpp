@@ -12,6 +12,11 @@ int main ()
    feature_isolation_t fi{ "../spl_specs/spl_isolation.csv" };
    ofstream os { "../src//spl_isolation_result.csv" };
    fi.m_features.print(os);
-   os << "IN THE FOLLOWING LIST TWO FEATURES ARE MISSING, NAMELY 00000000 and 11111111" << endl;
+   os << "THE 3 NOT FEATURES (IDS 4, 5 and 6) ARE MISSING" << endl;
    fi.m_features.print_features(os);
+   cout << "Number of N features = " << fi.m_features.N_features.size() << endl;
+   for (auto f : fi.m_features.N_features)
+   {
+      cout << to_string(f) << endl;
+   }
 }
