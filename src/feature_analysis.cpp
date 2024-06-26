@@ -12,6 +12,7 @@ namespace feature_isolation {
   feature_ids_t system_t::all_features() const {
     auto result { F_feature_ids };
     result.insert( N_feature_ids.begin(), N_feature_ids.end() );
+    // CHECKED, OK! /**/std::cout << "Number N features: " << N_feature_ids.size() << std::endl;
     result.insert( A_feature_ids.begin(), A_feature_ids.end() );
     result.insert( O_feature_ids.begin(), O_feature_ids.end() );
     result.insert( AN_feature_ids.begin(), AN_feature_ids.end() );
@@ -24,14 +25,19 @@ namespace feature_isolation {
   feature_analysis_t::feature_analysis_t( unsigned_integer f, unsigned_integer max_rank, unsigned_integer feature_categories )
       : F { f }, N { F }, A { sum_of_combinations( F, two ) }, O { A }, AN { O }, ON { O }, ANF { sum_of_combinations( F, 1 ) - 1 }, ONF { ANF }, DF { f + 4 * A + 2 * ANF }, T { F + DF }, R { max_rank }, C { feature_categories }, S { power2( F ) },
         F_features { initialize_F_features() }, N_features { initialize_N_features() }, A_features { initialize_A_features() }, O_features { initialize_O_features() }, AN_features { initialize_AN_features() }, ON_features { initialize_ON_features() }, ANF_features { initialize_ANF_features() }, ONF_features { initialize_ONF_features() },
-        F_offset { zero }, N_offset { F_offset + /*F_offset*/ F }, A_offset { N_offset + N }, O_offset { A_offset + A }, AN_offset { O_offset + O }, ON_offset { AN_offset + AN }, ANF_offset { ON_offset + ON }, ONF_offset { ANF_offset + ANF },
+        F_offset { zero }, N_offset { F_offset + F }, A_offset { N_offset + N }, O_offset { A_offset + A }, AN_offset { O_offset + O }, ON_offset { AN_offset + AN }, ANF_offset { ON_offset + ON }, ONF_offset { ANF_offset + ANF },
         feature_offsets { F_offset, N_offset, A_offset, O_offset, AN_offset, ON_offset, ANF_offset, ONF_offset },
         all_features { &F_features, &N_features, &A_features, &O_features, &AN_features, &ON_features, &ANF_features, &ONF_features },
         m_systems { initialize_systems() } {}
 
-  [[nodiscard]] feature_t feature_analysis_t::at( unsigned_integer id ) const {
+  [[nodiscard]] feature_t feature_analysis_t::at( unsigned_integer id ) const { // DIE
+                                                                                // METHODE
+                                                                                // ARBEITET
+                                                                                // FEHLERHAFT!!!
     auto index { zero };
-    while ( id < feature_offsets[index] ) {
+    std::cout << "ID " << id << " INDEX = " << index << " FEATURE_OFFSETS[INDEX] " << feature_offsets[index] << std::endl;
+    while ( id < feature_offsets[index] ) { // HIER IST DER FEHLER!
+       std::cout << "ID " << id << " INDEX " << index << std::endl;
       ++index;
     }
     return all_features[index]->at( feature_offsets[index] );
