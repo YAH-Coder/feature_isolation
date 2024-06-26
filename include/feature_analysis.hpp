@@ -73,7 +73,7 @@ namespace feature_isolation {
 
   class feature_analysis_t {
   public:
-    explicit feature_analysis_t( unsigned_integer f, unsigned_integer max_rank, unsigned_integer feature_categories = ::feature_isolation::ALL );
+    explicit feature_analysis_t( unsigned_integer f, unsigned_integer max_rank, unsigned_integer feature_categories_ = ::feature_isolation::ALL );
 
     using cui = const unsigned_integer;
     cui F, N, A, O, AN, ON, ANF, ONF, DF, T, R, C, S;
@@ -91,8 +91,8 @@ namespace feature_isolation {
 
   private:
     cui F_offset, N_offset, A_offset, O_offset, AN_offset, ON_offset, ANF_offset, ONF_offset;
-    std::array<cui, 8> feature_offsets;
-    std::array<const features_t*, 8> all_features;
+    std::array<cui, 8> m_feature_offsets;
+    std::array<const features_t*, 8> m_all_features;
   public:
     const systems_t m_systems;
   private:
