@@ -22,25 +22,28 @@ namespace feature_isolation {
     return result;
   }
 
-  feature_analysis_t::feature_analysis_t( unsigned_integer f, unsigned_integer max_rank, unsigned_integer feature_categories )
-      : F { f }, N { F }, A { sum_of_combinations( F, two ) }, O { A }, AN { O }, ON { O }, ANF { sum_of_combinations( F, 1 ) - 1 }, ONF { ANF }, DF { f + 4 * A + 2 * ANF }, T { F + DF }, R { max_rank }, C { feature_categories }, S { power2( F ) },
+  feature_analysis_t::feature_analysis_t( unsigned_integer f, unsigned_integer max_rank, unsigned_integer feature_categories_ )
+      : F { f }, N { F }, A { sum_of_combinations( F, two ) }, O { A }, AN { O }, ON { O }, ANF { sum_of_combinations( F, 1 ) - 1 }, ONF { ANF }, DF { f + 4 * A + 2 * ANF }, T { F + DF }, R { max_rank }, C { feature_categories_ }, S { power2( F ) },
         F_features { initialize_F_features() }, N_features { initialize_N_features() }, A_features { initialize_A_features() }, O_features { initialize_O_features() }, AN_features { initialize_AN_features() }, ON_features { initialize_ON_features() }, ANF_features { initialize_ANF_features() }, ONF_features { initialize_ONF_features() },
         F_offset { zero }, N_offset { F_offset + F }, A_offset { N_offset + N }, O_offset { A_offset + A }, AN_offset { O_offset + O }, ON_offset { AN_offset + AN }, ANF_offset { ON_offset + ON }, ONF_offset { ANF_offset + ANF },
-        feature_offsets { F_offset, N_offset, A_offset, O_offset, AN_offset, ON_offset, ANF_offset, ONF_offset },
-        all_features { &F_features, &N_features, &A_features, &O_features, &AN_features, &ON_features, &ANF_features, &ONF_features },
+        m_feature_offsets { F_offset, N_offset, A_offset, O_offset, AN_offset, ON_offset, ANF_offset, ONF_offset },
+        m_all_features { &F_features, &N_features, &A_features, &O_features, &AN_features, &ON_features, &ANF_features, &ONF_features },
         m_systems { initialize_systems() } {}
 
   [[nodiscard]] feature_t feature_analysis_t::at( unsigned_integer id ) const { // DIE
                                                                                 // METHODE
                                                                                 // ARBEITET
                                                                                 // FEHLERHAFT!!!
-    auto index { zero };
-    std::cout << "ID " << id << " INDEX = " << index << " FEATURE_OFFSETS[INDEX] " << feature_offsets[index] << std::endl;
-    while ( id < feature_offsets[index] ) { // HIER IST DER FEHLER!
+    //auto index { zero };
+    auto index { one };
+    std::cout << "ID " << id << " INDEX = " << index << " FEATURE_OFFSETS[INDEX] " << m_feature_offsets[index] << std::endl;
+    while ( id > m_feature_offsets[index] ) { // HIER IST DER FEHLER!
        std::cout << "ID " << id << " INDEX " << index << std::endl;
-      ++index;
+       id -= m_feature_offsets[index];
+       ++index;
+       std::cout << "ID " << id << " INDEX " << index << std::endl;
     }
-    return all_features[index]->at( feature_offsets[index] );
+    return m_all_features[index]->at( id );//feature_offsets[index] );
   }
 
   void feature_analysis_t::print_feature( std::ostream& os, const feature_t& feature ) const {
@@ -54,9 +57,9 @@ namespace feature_isolation {
       if ( C & ( 1 << index ) ) { /// IN DIESER SCHLEIFE WERDEN KEINE FEATURES
                                   /// DER KATEGORIE N AUSGEGEBEN. ICH SEHE ABER
                                   /// GERADE KEINEN FEHLER!
-        for ( auto id { zero }; const auto& feature : *( all_features[index] ) ) {
-           /**/ if (feature_categories[index] == "N") std::cout << "NOT-FEATURE"; // DAS KOMMT NICHT!!! AUCH DIE FEATURES 4, 5 und 6 FEHLEN.
-          os << ( ++id + feature_offsets[index] ) << separator() << feature_categories[index] << separator() << '\"';
+        for ( auto id { zero }; const auto& feature : *( m_all_features[index] ) ) {
+           std::cout << feature_categories[index] << std::endl;// /**/ if (feature_categories[index] == "N") std::cout << "NOT-FEATURE"; // DAS KOMMT NICHT!!! AUCH DIE FEATURES 4, 5 und 6 FEHLEN.
+          os << ( ++id + m_feature_offsets[index] ) << separator() << feature_categories[index] << separator() << '\"';
           print_feature( os, feature );
           os << '\"' << std::endl;
         }
