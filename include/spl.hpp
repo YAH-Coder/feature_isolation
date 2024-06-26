@@ -7,7 +7,7 @@
 #include <iostream>
 #include <limits>
 #include <map>
-//#include <minisat/core/Solver.h>
+#include <minisat/core/Solver.h>
 #include <set>
 #include <source_location>
 #include <sstream>

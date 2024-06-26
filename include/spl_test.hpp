@@ -42,16 +42,24 @@ namespace feature_isolation {
   private:
     std::string m_filename {};
     std::string m_spl_name;
+   public:
     unsigned_integer m_max_rank;
     unsigned_integer m_F;
+   private:
     unsigned_integer m_max_available_systems;
     feature_names_t m_feature_names;
+   public:
     unsigned_integer m_categories { F };
+   private:
     dependencies_t m_requires_all, m_requires_any, m_requires_one, m_excludes_all;
-    systems_t m_available_systems, m_missing_systems;
+   public:
+    systems_t m_available_systems;
+   private:
+     systems_t m_missing_systems;
 
     [[nodiscard]] std::optional<signed int> feature_index( const std::string& feature ) const;
     [[nodiscard]] systems_t effective_available_systems() const;
+   private:
     bool validate_systems();
     bool check_constraints( const std::string& constraint_type, const dependencies_t& constraints_map, unsigned_integer system_id, unsigned_integer system, z3::context& ctx );
 
