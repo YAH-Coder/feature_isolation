@@ -19,4 +19,7 @@ int main ()
    {
       cout << to_string(f) << endl;
    }
+   cout << to_string(fi.m_features.at(4)) << endl;
+   cout << to_string(fi.m_features.at(5)) << endl;
+   cout << to_string(fi.m_features.at(6)) << endl;
 }
