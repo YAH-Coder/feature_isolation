@@ -13,13 +13,9 @@ int main ()
    ofstream os { "../src//spl_isolation_result.csv" };
    fi.m_features.print(os);
    os << "THE 3 NOT FEATURES (IDS 4, 5 and 6) ARE MISSING" << endl;
-   fi.m_features.print_features(os);
-   cout << "Number of N features = " << fi.m_features.N_features.size() << endl;
-   for (auto f : fi.m_features.N_features)
+   fi.m_features.print_features(cout);
+   for (auto index { one }; index <= fi.m_features.T; ++index)
    {
-      cout << to_string(f) << endl;
+      cout << "FID " << index << " " << to_string( fi.m_features.at(index)) << endl;
    }
-   cout << to_string(fi.m_features.at(4)) << endl;
-   cout << to_string(fi.m_features.at(5)) << endl;
-   cout << to_string(fi.m_features.at(6)) << endl;
 }

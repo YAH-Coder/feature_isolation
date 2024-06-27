@@ -14,7 +14,7 @@ $(OBJDIR)/it: $(OBJDIR)/feature_analysis.o $(OBJDIR)/isolation.o
 $(OBJDIR)/feature_analysis.o: $(SRCDIR)/feature_analysis.cpp $(INCDIR)/feature_analysis.hpp
 	$(CXX) $(CXXFLAGS) -c $(SRCDIR)/feature_analysis.cpp -o $(OBJDIR)/feature_analysis.o
 
-$(OBJDIR)/isolation.o: $(SRCDIR)/isolation_test_mini.cpp $(INCDIR)/isolation.hpp $(INCDIR)/spl_mini.hpp
+$(OBJDIR)/isolation.o: $(SRCDIR)/isolation_test_mini.cpp $(INCDIR)/isolation.hpp $(INCDIR)/spl.hpp
 	$(CXX) $(CXXFLAGS) -c $(SRCDIR)/isolation_test_mini.cpp -o $(OBJDIR)/isolation.o
 
 clean:

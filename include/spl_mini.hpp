@@ -233,7 +233,7 @@ namespace feature_isolation {
       } else if ( token == kw::O && ( m_categories & O ) == 0 ) {
         m_categories |= O;
       } else if ( token == kw::N && ( m_categories & N ) == 0 ) {
-        m_categories |= N;
+        m_categories |= N; 
       } else if ( token == kw::AN && ( m_categories & AN ) == 0 ) {
         m_categories |= AN;
       } else if ( token == kw::ON && ( m_categories & ON ) == 0 ) {

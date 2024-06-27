@@ -11,8 +11,8 @@ namespace feature_isolation {
 
   feature_ids_t system_t::all_features() const {
     auto result { F_feature_ids };
+    result.insert( F_feature_ids.begin(), F_feature_ids.end() );
     result.insert( N_feature_ids.begin(), N_feature_ids.end() );
-    // CHECKED, OK! /**/std::cout << "Number N features: " << N_feature_ids.size() << std::endl;
     result.insert( A_feature_ids.begin(), A_feature_ids.end() );
     result.insert( O_feature_ids.begin(), O_feature_ids.end() );
     result.insert( AN_feature_ids.begin(), AN_feature_ids.end() );
@@ -30,20 +30,13 @@ namespace feature_isolation {
         m_all_features { &F_features, &N_features, &A_features, &O_features, &AN_features, &ON_features, &ANF_features, &ONF_features },
         m_systems { initialize_systems() } {}
 
-  [[nodiscard]] feature_t feature_analysis_t::at( unsigned_integer id ) const { // DIE
-                                                                                // METHODE
-                                                                                // ARBEITET
-                                                                                // FEHLERHAFT!!!
-    //auto index { zero };
+  [[nodiscard]] feature_t feature_analysis_t::at( unsigned_integer id ) const { 
     auto index { one };
-    std::cout << "ID " << id << " INDEX = " << index << " FEATURE_OFFSETS[INDEX] " << m_feature_offsets[index] << std::endl;
-    while ( id > m_feature_offsets[index] ) { // HIER IST DER FEHLER!
-       std::cout << "ID " << id << " INDEX " << index << std::endl;
-       id -= m_feature_offsets[index];
+    while ( id > m_feature_offsets[index] ) { 
        ++index;
-       std::cout << "ID " << id << " INDEX " << index << std::endl;
     }
-    return m_all_features[index]->at( id );//feature_offsets[index] );
+    auto result { m_all_features[index - 1]->at( id - m_feature_offsets[index - 1] - 1 ) };
+    return result;
   }
 
   void feature_analysis_t::print_feature( std::ostream& os, const feature_t& feature ) const {
@@ -52,13 +45,9 @@ namespace feature_isolation {
 
   void feature_analysis_t::print_features( std::ostream& os ) const {
     os <<  "FEATURE ID" << separator() << "CATEGORY" << separator() << "DESCRIPTION" << std::endl;
-    /**/ for (auto c : feature_categories) std::cout << c << " "; std::cout << std::endl; /// FOR DEBUGGING ONLY
     for ( auto index { zero }; index < 8; ++index ) {
-      if ( C & ( 1 << index ) ) { /// IN DIESER SCHLEIFE WERDEN KEINE FEATURES
-                                  /// DER KATEGORIE N AUSGEGEBEN. ICH SEHE ABER
-                                  /// GERADE KEINEN FEHLER!
+      if ( C & ( one << index ) ) { 
         for ( auto id { zero }; const auto& feature : *( m_all_features[index] ) ) {
-           std::cout << feature_categories[index] << std::endl;// /**/ if (feature_categories[index] == "N") std::cout << "NOT-FEATURE"; // DAS KOMMT NICHT!!! AUCH DIE FEATURES 4, 5 und 6 FEHLEN.
           os << ( ++id + m_feature_offsets[index] ) << separator() << feature_categories[index] << separator() << '\"';
           print_feature( os, feature );
           os << '\"' << std::endl;
