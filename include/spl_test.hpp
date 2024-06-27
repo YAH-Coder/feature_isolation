@@ -637,7 +637,7 @@ namespace feature_isolation {
   }
 
   bool parser_t::parse_categories( spl_specification_t& spec ) {
-    if ( spec.m_categories_specified ) {
+   if ( spec.m_categories_specified ) {
       return error( error_msgs::SPECIFIED_MORE_THAN_ONCE, std::cerr, std::string( kw::CATEGORIES ), spec.m_filename );
     }
 
@@ -653,7 +653,6 @@ namespace feature_isolation {
       if ( token_value == kw::END ) {
         break;
       }
-
       auto it = category_map.find( token_value );
       if ( it != category_map.end() ) {
         if ( category_set.find( token_value ) != category_set.end() ) {

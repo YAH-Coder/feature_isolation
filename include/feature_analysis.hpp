@@ -36,14 +36,14 @@ namespace feature_isolation {
   std::string to_string( const feature_t& fd );
 
   constexpr unsigned_integer F { one };
-  constexpr unsigned_integer N { feature_isolation::power2( 2 ) };
-  constexpr unsigned_integer A { feature_isolation::power2( 3 ) };
-  constexpr unsigned_integer O { feature_isolation::power2( 4 ) };
+  constexpr unsigned_integer N { feature_isolation::power2( 1 ) };
+  constexpr unsigned_integer A { feature_isolation::power2( 2 ) };
+  constexpr unsigned_integer O { feature_isolation::power2( 3 ) };
   constexpr unsigned_integer FN { F + N };
-  constexpr unsigned_integer AN { feature_isolation::power2( 5 ) };
-  constexpr unsigned_integer ON { feature_isolation::power2( 6 ) };
-  constexpr unsigned_integer ANF { feature_isolation::power2( 7 ) };
-  constexpr unsigned_integer ONF { feature_isolation::power2( 8 ) };
+  constexpr unsigned_integer AN { feature_isolation::power2( 4 ) };
+  constexpr unsigned_integer ON { feature_isolation::power2( 5 ) };
+  constexpr unsigned_integer ANF { feature_isolation::power2( 6 ) };
+  constexpr unsigned_integer ONF { feature_isolation::power2( 7 ) };
   constexpr unsigned_integer FAO { F + A + O };
   constexpr unsigned_integer FAON { FAO + N };
   constexpr unsigned_integer FAONANON { FAON + AN + ON };
