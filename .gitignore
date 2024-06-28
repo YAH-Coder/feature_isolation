@@ -36,3 +36,6 @@ obj/*
 # -----------------
 docs/html/*
 Doxyfile.in
+/external_documentation/*.aux
+/external_documentation/*.log
+/external_documentation/*.gz
