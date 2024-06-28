@@ -30,12 +30,12 @@ namespace feature_isolation {
         m_all_features { &F_features, &N_features, &A_features, &O_features, &AN_features, &ON_features, &ANF_features, &ONF_features },
         m_systems { initialize_systems() } {}
 
-  [[nodiscard]] feature_t feature_analysis_t::at( unsigned_integer id ) const { 
+  [[nodiscard]] feature_t feature_analysis_t::at( unsigned_integer feature_id ) const { 
     auto index { one };
-    while ( id > m_feature_offsets[index] ) { 
+    while ( feature_id > m_feature_offsets[index] ) { 
        ++index;
     }
-    auto result { m_all_features[index - 1]->at( id - m_feature_offsets[index - 1] - 1 ) };
+    auto result { m_all_features[index - 1]->at( feature_id - m_feature_offsets[index - 1] - 1 ) };
     return result;
   }
 
@@ -101,8 +101,8 @@ namespace feature_isolation {
     }
   }
 
- void feature_analysis_t::print_system_features(std::ostream& os, const system_t& system, unsigned_integer id) const {
-    os << "SYSTEM ID" << separator() << id << separator();
+ void feature_analysis_t::print_system_features(std::ostream& os, const system_t& system, unsigned_integer system_id) const {
+    os << "SYSTEM ID" << separator() << system_id << separator();
 
     // Print all feature IDs for this system
 /*    os << "F: ";
