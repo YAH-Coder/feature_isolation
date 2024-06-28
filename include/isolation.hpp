@@ -112,7 +112,7 @@ namespace feature_isolation {
       system_ids_t I,U;
       for (const auto& s : m_spl.m_available_systems)
       {
-         if (m_features.m_systems.at(s - 1).all_features().contains(feature_id - 1))
+         if (m_features.m_systems.at(s - 1).all_features().contains(feature_id))
          {
             I.insert(s);
          }

@@ -426,6 +426,9 @@ namespace feature_isolation {
   }
 
   void feature_analysis_t::insert_id( systems_t& systems, const feature_t& feature, unsigned_integer feature_id, unsigned_integer category ) const {
+    // Hier wird tatsaechlich einmal feature_id mit Wert 0 uebergeben!
+    // Sobald ich jedoch hier feature_id pauschal um Eins erhoehe,
+    // stimmen die folgenden Berechnungen nicht mehr.
     for ( auto system_id { zero }; auto system : feature ) {
       if ( system ) {
         switch ( category ) {
@@ -461,7 +464,7 @@ namespace feature_isolation {
 
   systems_t feature_analysis_t::initialize_systems() const {
     systems_t result( S, system_t {} );
-    auto feature_id { zero };
+    //auto feature_id { zero };
     // Lambda function to reverse the system IDs in the features
     auto reverse_feature = [&]( const features_t& features, unsigned_integer offset, unsigned_integer category ) {
       auto reversed_features = features;
@@ -470,7 +473,7 @@ namespace feature_isolation {
         for ( auto system_id { zero }; system_id < S; ++system_id ) {
           reversed_feature[S - system_id - 1] = feature[system_id];
         }
-        insert_id( result, reversed_feature, offset++/*feature_id++*/, category );
+        insert_id( result, reversed_feature, ++offset/*feature_id++*/, category );
       }
     };
 
@@ -478,34 +481,33 @@ namespace feature_isolation {
       reverse_feature( F_features, zero, ::feature_isolation::F );
     }
     if ( C & feature_isolation::N ) {
-      feature_id = F;
+      //feature_id = F;
       reverse_feature( N_features, F, ::feature_isolation::N );
     }
     if ( C & feature_isolation::A ) {
-      feature_id = F + N;
+      //feature_id = F + N;
       reverse_feature( A_features, F + N, ::feature_isolation::A );
     }
     if ( C & feature_isolation::O ) {
-      feature_id = F + N + A;
+      //feature_id = F + N + A;
       reverse_feature( O_features, F + N + A, ::feature_isolation::O );
     }
     if ( C & feature_isolation::AN ) {
-      feature_id = F + N + A + O;
+      //feature_id = F + N + A + O;
       reverse_feature( AN_features, F + N + A + O, ::feature_isolation::AN );
     }
     if ( C & feature_isolation::ON ) {
-      feature_id = F + N + A + O + AN;
+      //feature_id = F + N + A + O + AN;
       reverse_feature( ON_features, F + N + A + O + AN, ::feature_isolation::ON );
     }
     if ( C & feature_isolation::ANF ) {
-      feature_id = F + N + A + O + AN + ON;
+      //feature_id = F + N + A + O + AN + ON;
       reverse_feature( ANF_features, F + N + A + O + AN + ON, ::feature_isolation::ANF );
     }
     if ( C & feature_isolation::ONF ) {
-      feature_id = F + N + A + O + AN + ON + ANF;
+      //feature_id = F + N + A + O + AN + ON + ANF;
       reverse_feature( ONF_features, F + N + A + O + AN + ON + ANF, ::feature_isolation::ONF );
     }
-    std::cout << "???" << std::endl;
     return result;
   }
 
