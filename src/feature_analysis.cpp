@@ -462,7 +462,6 @@ namespace feature_isolation {
   systems_t feature_analysis_t::initialize_systems() const {
     systems_t result( S, system_t {} );
     auto feature_id { zero };
-
     // Lambda function to reverse the system IDs in the features
     auto reverse_feature = [&]( const features_t& features, unsigned_integer offset, unsigned_integer category ) {
       auto reversed_features = features;

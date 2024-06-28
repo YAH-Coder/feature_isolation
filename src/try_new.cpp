@@ -3,11 +3,12 @@
 using namespace feature_isolation;
 using namespace std;
 
-int main() {
-   spl_processor sp{"../spl_specs/spl_isolation.csv"};
+int main() 
+{
+   spl_processor sp { "../spl_specs/spl_isolation.csv" };
    cout << "Result of processing = " << sp.process() << endl;
-   auto spl{sp.get_specification()};
+   auto spl { sp.get_specification() };
    sp.print("result.txt");
-   Printer p{cout};
+   Printer p { cout };
    p.print_specification(spl);
 }
