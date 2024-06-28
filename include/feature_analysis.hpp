@@ -79,13 +79,13 @@ namespace feature_isolation {
     cui F, N, A, O, AN, ON, ANF, ONF, DF, T, R, C, S;
     const features_t F_features, N_features, A_features, O_features, AN_features, ON_features, ANF_features, ONF_features;
 
-    [[nodiscard]] feature_t at( unsigned_integer id ) const;
+    [[nodiscard]] feature_t at( unsigned_integer feature_id ) const;
     void print_feature( std::ostream& os, const feature_t& feature ) const;
     void print_features( std::ostream& os ) const;
     void print_categories( std::ostream& os ) const;
     void print_system_statistics( std::ostream& os, const system_t& system, unsigned_integer id ) const;
     void print_systems_statistics( std::ostream& os ) const;
-    void print_system_features( std::ostream& os, const system_t& system, unsigned_integer id ) const;
+    void print_system_features( std::ostream& os, const system_t& system, unsigned_integer system_id ) const;
     void print_systems_features( std::ostream& os ) const;
     void print( std::ostream& os ) const;
 

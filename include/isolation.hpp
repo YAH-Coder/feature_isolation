@@ -113,6 +113,8 @@ namespace feature_isolation {
          void print(std::ostream& os,unsigned_integer fid,bool feature_names) const;
          void print(std::ostream& os,bool feature_names = false) const;
          [[nodiscard]] std::string name(unsigned_integer fid) const;
+         static void print(std::ostream& os,const system_ids_t& sids);
+         static void print(std::ostream& os,const difference_t& d);
          const spl_specification_t m_spl;
          const feature_analysis_t m_features;
    };
@@ -122,7 +124,7 @@ namespace feature_isolation {
       system_ids_t I,U;
       for (const auto& s : m_spl.m_available_systems)
       {
-         if (m_features.m_systems.at(s - 1).all_features().contains(feature_id))
+         if (m_features.m_systems.at(s - 1).all_features().contains(feature_id - 1))
          {
             I.insert(s);
          }
@@ -190,7 +192,6 @@ namespace feature_isolation {
    isolation_result_t feature_isolation_t::minimal_differences(unsigned_integer feature_id) const
    {
       auto [i,u] { partition(feature_id) };
-      if (feature_id == 34) { ::feature_isolation::print("I",i);::feature_isolation::print("U",u); };
       isolation_result_t result { { flattened_difference(i,u) } };
       for (auto u_k { zero }; u_k <= u.size(); ++u_k)
       {
@@ -283,6 +284,22 @@ namespace feature_isolation {
        {
           print(os,fid,feature_names);
        }
+    }
+    void feature_isolation_t::print(std::ostream& os,const system_ids_t& sids)
+    {
+       os << "{";
+       for (auto i { zero };auto id : sids)
+       {
+          os << " " << id << (++i < sids.size() ? "," : "");
+       }
+       os << "}";
+    }
+    void feature_isolation_t::print(std::ostream& os,const difference_t& difference)
+    {
+       print(os,difference.I);
+       os << " \\ ";
+       print(os,difference.U);
+       os << std::endl;
     }
 } // namespace feature_isolation
 #endif // ISOLATION_HPP
