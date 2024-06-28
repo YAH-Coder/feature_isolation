@@ -21,7 +21,10 @@ namespace feature_isolation {
   using feature_t = std::vector<bool>;
   using features_t = std::vector<feature_t>;
   using ids_t = std::set<unsigned_integer>;
-  
+
+  template <typename T>
+  void print(std::string m,const T& c);
+   
   // feature_ids_t and system_ids_t are turned into their own types. 
   // This has the advantage that the compiler recognizes when the use of 
   // these types gets mixed up. The disadvantage is that list initialization 

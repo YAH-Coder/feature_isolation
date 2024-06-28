@@ -470,7 +470,7 @@ namespace feature_isolation {
         for ( auto system_id { zero }; system_id < S; ++system_id ) {
           reversed_feature[S - system_id - 1] = feature[system_id];
         }
-        insert_id( result, reversed_feature, feature_id++, category );
+        insert_id( result, reversed_feature, offset++/*feature_id++*/, category );
       }
     };
 
@@ -505,7 +505,7 @@ namespace feature_isolation {
       feature_id = F + N + A + O + AN + ON + ANF;
       reverse_feature( ONF_features, F + N + A + O + AN + ON + ANF, ::feature_isolation::ONF );
     }
-
+    std::cout << "???" << std::endl;
     return result;
   }
 
@@ -528,4 +528,15 @@ namespace feature_isolation {
     }
     return result;
   }
+   template <typename T>
+   void print(std::string m,const T& c)
+   {
+      auto s { c.size() };
+      std::cout << m << ": { ";
+      for (const auto& e : c)
+      {
+         std::cout << e << ((--s > 0) ? ", " : " ");
+      }
+      std::cout << "}" << std::endl;
+   }
 } // namespace feature_isolation
