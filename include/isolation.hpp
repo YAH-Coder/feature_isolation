@@ -84,11 +84,7 @@ namespace feature_isolation {
          explicit feature_isolation_t(const std::string& filename):
             m_spl { filename },
             m_features { m_spl.m_F,m_spl.m_max_rank,m_spl.m_categories }
-         {
-            m_spl.output_to_csv("SPL_RESULT.csv");
-            std::ofstream out { "SPL_FEATURES.csv" };
-            m_features.print(out);
-         }
+         {}
          [[nodiscard]] difference_t partition(unsigned_integer feature_id) const;
          [[nodiscard]] feature_ids_t flatten_by_intersection(const system_ids_t& sids) const;
          [[nodiscard]] feature_ids_t flatten_by_union(const system_ids_t& sids) const;
