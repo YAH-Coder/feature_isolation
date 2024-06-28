@@ -37,18 +37,6 @@ namespace feature_isolation {
    }
    
    template <typename T>
-   void print(std::string m,const T& c)
-   {
-      auto s { c.size() };
-      std::cout << m << ": { ";
-      for (const auto& e : c)
-      {
-         std::cout << e << ((--s > 0) ? ", " : " ");
-      }
-      std::cout << "}" << std::endl;
-   }
-   
-   template <typename T>
    [[nodiscard]] bool subset(const std::set<T>& s1,const std::set<T>& s2)
    // Returns true, if s2 is a subset of s1
    {
