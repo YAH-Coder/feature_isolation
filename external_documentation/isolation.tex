@@ -33,7 +33,7 @@ The isolation of a feature \(f_i\) specified by its \(\varname{FID}\) involves t
 	\item \(I\) is the set with \(\varname{SID}\)s of all systems that include \(\varname{FID_i}\).
 	\item \(U\) is the set with \(\varname{SID}\)s of all systems that do \emph{not} include  \(\varname{FID_i}\).
 	\item \(\widehat{\varname{I}} \setminus \widecheck{\varname{U}}\) gives the result of feature isolation which is denoted by \(\overline{D}\).
-	\(\overline{D}\) must not be equal to \(\emptyset\) as this would indicate a fundamental error during the preceding steps <-- HAS TO BE CHECKED!. \(\overline{D}\) can include exactly one element which then must be the \(\varname{FID_i}\). If \(\overline{D}\) includes more than one element, one of them must be \(\varname{FID_i}\).
+	\(\overline{D}\) must not be equal to \(\emptyset\) as this would indicate a fundamental error during the preceding steps. If \(\overline{D}\) includes exactly one element this must be the \(\varname{FID_i}\) of the feature to be isolated. If \(\overline{D}\) includes more than one element, one of them must be \(\varname{FID_i}\).
 \end{enumerate}
 \paragraph {Minimal set differences.} Given are the following equations and definitions:
 \begin{enumerate}
@@ -44,7 +44,7 @@ The isolation of a feature \(f_i\) specified by its \(\varname{FID}\) involves t
 	\item \(D_S \subset D \coloneq \varname{I_S} \subset I \lor \varname{U_S} \subset U\)
 	\item \(P(D) = \forall (_\varname{I_S \setminus U_S}) \in P(I) \times P(U)\)
 	\item \label{minimality} \(\varname{minimal}(D) \coloneq \forall _\varname{D_S} \in{\{\varname{P(D) \setminus D}\}} \land \overline{D_S} \neq \overline{D}\)
-	\item TODO: PROVIDE A DEFINITION FOR M.
+	\item \(M \coloneq \forall _\varname{D} \land \varname{minimal}(D)\).
 \end{enumerate} 
 
 From \ref{minimality}  follows that any \(D\) that evaluates to \(\overline{D}\) is  \emph{minimal} if there is no proper subset of \(D\) which gives \(\overline{D}\).
@@ -62,7 +62,7 @@ The following examples illustrate the meaning of \emph{minimal} in a set differe
 With respect to \(FID_2\), the following set intersections \(I\) are minimal as they isolate \(\varname{FID}_2\). \\
 \(I_1 = \varname{SD}_1 \cap \varname{SD}_5\)\\
 \(I_2 = \varname{SD}_2 \cap \varname{SD}_5\)\\
-\(I_4 = \varname{SD}_1 \cap \varname{SD}_2 \cap \varname{SD}_5\) is not minimal because \(I_1\) and \(I_2\) successfully isolate \(\varname{FID}_2\) with less elements. With respect to \(D\), it is important to note that only evaluating \(I\) can give the desired result. Furthermore, \(I\) must not be \(\emptyset\) <-- HAS TO BE CHECKED.
+\(I_4 = \varname{SD}_1 \cap \varname{SD}_2 \cap \varname{SD}_5\) is not minimal because \(I_1\) and \(I_2\) successfully isolate \(\varname{FID}_2\) with less elements. With respect to \(D\), it is important to note that only evaluating \(I\) can give the desired result. Furthermore, \(I\) must not be \(\emptyset\).
 
 With respect to \(\varname{FID}_2\) the set differences \(D_1 = \varname{SD}_1 \setminus \varname{SD}_3 \cup \varname{SD}_6\) and \(D_2 = \varname{SD}_1 \cap \varname{SD}_2 \setminus \varname{SD}_3\) are also minimal as each isolates \(\varname{FID}_2\).
 
