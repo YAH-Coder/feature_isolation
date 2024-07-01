@@ -13,6 +13,8 @@
 
 namespace feature_isolation {
 
+   std::string to_category_name(const unsigned_integer& category);
+   
    template <typename T>
    std::vector<typename T::value_type> to_vector(const T& c)
    {
@@ -101,6 +103,7 @@ namespace feature_isolation {
          static void print(std::ostream& os,const difference_t& d);
          const spl_specification_t m_spl;
          const feature_analysis_t m_features;
+         unsigned_integer category(const unsigned_integer& fid) const;
    };
 
    difference_t feature_isolation_t::partition(unsigned_integer feature_id) const
@@ -284,6 +287,46 @@ namespace feature_isolation {
        os << " \\ ";
        print(os,difference.U);
        os << std::endl;
+    }
+    unsigned_integer feature_isolation_t::category(const unsigned_integer& fid) const
+    {
+       auto feature_description { m_features.at(fid) };
+       auto ones { std::ranges::count(m_features.at(fid),true) };
+       auto lsb1 { feature_description.at(0) };
+       auto lsb0 { !lsb1 };
+       auto msb1 { feature_description.at(feature_description.size() - 1) };
+       auto msb0 { !msb1 };
+       auto o_eq_z { ones * 2 == feature_description.size() };
+       auto o_leq_2 { ones <= two };
+       auto o_geq_1 { ones >= one };
+//       std::cout << "FID " << fid << " ones " << ones << " lsb1 " << lsb1 << " msb1 " << msb1 << " o_eq_z " << o_eq_z << " o_leq_2 " << o_leq_2 << " o_geq_1 " << o_geq_1 << " z_leq_2 " << z_leq_2 << std::endl;       
+       if (lsb0 and msb0)
+          return ::feature_isolation::ANF;
+       if (lsb1 and msb1)
+          return ::feature_isolation::ONF;
+       if (lsb1 and o_eq_z)
+          return ::feature_isolation::F;
+       if (msb1 and o_eq_z)
+          return ::feature_isolation::N;
+       if (lsb1 and o_leq_2)
+          return ::feature_isolation::A;
+       if (lsb1 and o_geq_1)
+          return ::feature_isolation::O;
+       if (lsb0 and  o_leq_2)
+          return ::feature_isolation::AN;
+       if (msb1 and lsb0)
+          return ::feature_isolation::ON;
+       return ~zero;
+    }
+    std::string to_category_name(const unsigned_integer& category)
+    {
+       auto index { zero };
+       while (category != one << index)
+       {
+          ++index;
+       }
+       //std::cout << "INDEX " << index << std::endl;
+       return (index < 8 ? feature_categories[index] : "ILLEGAL CATEGORY");
     }
 } // namespace feature_isolation
 #endif // ISOLATION_HPP

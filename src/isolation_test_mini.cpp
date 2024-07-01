@@ -9,7 +9,7 @@ using namespace feature_isolation;
 
 int main ()
 {
-   feature_isolation_t fi { "../spl_specs/spl_isolation.csv" };
+   feature_isolation_t fi { "../spl_specs/spl_isolation4.csv" };
    ofstream os { "../src/spl_isolation_result.csv" };
    os << "=== SYSTEMS ===" << endl;
    fi.m_features.print(os);
@@ -18,7 +18,7 @@ int main ()
    os << "=== FEATURES BY INDEX ===" << endl;
    for (auto index { one }; index <= fi.m_features.T; ++index)
    {
-      os << index << separator() << separator() << to_string( fi.m_features.at(index)) << endl;
+      os << index << separator() << to_category_name(fi.category(index)) << separator() << to_string( fi.m_features.at(index)) << endl;
    };
    fi.print(os);
 }
