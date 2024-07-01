@@ -1,0 +1,27 @@
+// spl_isolation.csv	
+// SPL for testing feature_isolation_t	
+	
+SPL	TESTING_ISOLATION
+	
+FEATURES	4
+A	
+B	
+C	
+D	
+	
+CATEGORIES	
+F	
+A	
+O	
+N	
+AN	
+ON	
+ANF	
+ONF	
+END	
+	
+MAX_RANK	4
+	
+// No explicit dependencies.	
+// No missing systems.	
+// No available systems.	
