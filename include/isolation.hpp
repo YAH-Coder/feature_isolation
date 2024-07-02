@@ -92,13 +92,14 @@ namespace feature_isolation {
          [[nodiscard]] feature_ids_t flatten_by_intersection(const system_ids_t& sids) const;
          [[nodiscard]] feature_ids_t flatten_by_union(const system_ids_t& sids) const;
          [[nodiscard]] feature_ids_t flattened_difference(const system_ids_t& i,const system_ids_t& u) const;
-         [[nodiscard]] isolation_result_t minimal_differences(unsigned_integer feature_id) const;                          
+         [[nodiscard]] isolation_result_t minimal_differences(unsigned_integer feature_id) const;
+         [[nodiscard]] isolation_result_t minimal_difference(unsigned_integer feature_id) const;
          [[nodiscard]] feature_ids_t sid_to_fids(unsigned_integer sid) const;
          static void memorize_proper_difference_subset(differences_t& md,const system_ids_t& i,const system_ids_t& u);
          [[nodiscard]] static bool proper_difference_subset(const system_ids_t& i,const system_ids_t& u,const difference_t& d);
          static void print_header(std::ostream& os,bool feature_names = false);
-         void print(std::ostream& os,unsigned_integer fid,bool feature_names) const;
-         void print(std::ostream& os,bool feature_names = false) const;
+         void print(std::ostream& os,unsigned_integer fid,bool all_differences = false,bool feature_names = false) const;
+         void print(std::ostream& os,bool all_differences = false,bool feature_names = false) const;
          [[nodiscard]] std::string name(unsigned_integer fid) const;
          static void print(std::ostream& os,const system_ids_t& sids);
          static void print(std::ostream& os,const difference_t& d);
@@ -206,6 +207,35 @@ namespace feature_isolation {
       }
       return result;
    }
+   isolation_result_t feature_isolation_t::minimal_difference(unsigned_integer feature_id) const
+   {
+      auto [i,u] { partition(feature_id) };
+      isolation_result_t result { { flattened_difference(i,u) } };
+      for (auto u_k { zero }; u_k <= u.size(); ++u_k)
+      {
+         combination u_draw { to_vector(u),u_k };
+         do
+         {
+            for (auto i_k { one }; i_k <= i.size(); ++i_k)
+            {
+               combination i_draw { to_vector(i),i_k };
+               do
+               {
+                  system_ids_t i_s { to_set(i_draw()) };
+                  system_ids_t u_s { to_set(u_draw()) };
+                  auto d_f { flattened_difference(i_s,u_s) };
+                  if (d_f == result.features)
+                  {
+                     memorize_proper_difference_subset(result.differences,i_s,u_s);
+                     return result;
+                  }
+               }
+               while (i_draw.next());
+            }
+         } while(u_draw.next());
+      }
+      return result;
+   }
    bool feature_isolation_t::proper_difference_subset(const system_ids_t& i,const system_ids_t& u,const difference_t& d)
    {
      return proper_subset(i,d.I) or proper_subset(u,d.U);
@@ -228,9 +258,9 @@ namespace feature_isolation {
           << "# Min. Diff" << separator()
           << "Minimal Differences" << std::endl;
     }
-    void feature_isolation_t::print(std::ostream& os,unsigned_integer fid,bool feature_names) const
+    void feature_isolation_t::print(std::ostream& os,unsigned_integer fid,bool all_differences,bool feature_names) const
     {
-       auto result { minimal_differences(fid) };
+       auto result { all_differences ? minimal_differences(fid) : minimal_difference(fid) };
        os << (feature_names ? name(fid) : std::to_string(fid)) << separator()
           << "{ ";
        for (auto counter { zero };auto fid : result.features)
@@ -266,12 +296,12 @@ namespace feature_isolation {
        std::cerr << "feature_isolation::name(unsigned_integer fid) const" << "Not yet implemented" << std::endl;
        return "Not yet implemented";
     }
-    void feature_isolation_t::print(std::ostream& os,bool feature_names) const
+    void feature_isolation_t::print(std::ostream& os,bool all_differences,bool feature_names) const
     {
        print_header(os,feature_names);
        for (auto fid { one };fid <= m_features.T;++fid)
        {
-          print(os,fid,feature_names);
+          print(os,fid,all_differences,feature_names);
        }
     }
     void feature_isolation_t::print(std::ostream& os,const system_ids_t& sids)
