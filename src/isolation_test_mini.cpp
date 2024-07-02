@@ -18,7 +18,10 @@ int main ()
    os << "=== FEATURES BY INDEX ===" << endl;
    for (auto index { one }; index <= fi.m_features.T; ++index)
    {
-      os << index << separator() << to_category_name(fi.category(index)) << separator() << to_string( fi.m_features.at(index)) << endl;
+      os << index 
+         << separator() << fi.m_features.category_name(index)
+         << separator() << to_string( fi.m_features.at(index)) << endl;
    };
-   fi.print(os);
+   os << "=== ISOLATION RESULTS ===" << endl;
+   //fi.print(os);
 }
