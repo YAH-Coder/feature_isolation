@@ -39,6 +39,22 @@ namespace feature_isolation {
     return result;
   }
 
+  unsigned_integer feature_analysis_t::category(unsigned_integer feature_id) const
+  {
+    auto index { one };
+    while ( feature_id > m_feature_offsets[index] ) 
+    { 
+       ++index;
+    }
+    return (index - one);
+  }
+
+  std::string feature_analysis_t::category_name(unsigned_integer feature_id) const
+  {
+     auto index { category(feature_id) };
+     return (index < 8 ? feature_categories[index] : "ILLEGAL CATEGORY");
+  }
+
   void feature_analysis_t::print_feature( std::ostream& os, const feature_t& feature ) const {
     os << to_string( feature );
   }
@@ -192,7 +208,6 @@ namespace feature_isolation {
   void feature_analysis_t::print_systems_features( std::ostream& os ) const {
     for ( auto id { zero }; const auto& system : m_systems ) {
       print_system_features( os, system, ++id );
-      os << std::endl;
     }
   }
 

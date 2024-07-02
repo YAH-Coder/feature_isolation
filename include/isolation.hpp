@@ -13,7 +13,8 @@
 
 namespace feature_isolation {
 
-   std::string to_category_name(const unsigned_integer& category);
+/*   [[nodiscard]] std::string to_category_name(const unsigned_integer& category);
+   // Use feature_analysis_t::category_name() instead!!!*/
    
    template <typename T>
    std::vector<typename T::value_type> to_vector(const T& c)
@@ -103,7 +104,8 @@ namespace feature_isolation {
          static void print(std::ostream& os,const difference_t& d);
          const spl_specification_t m_spl;
          const feature_analysis_t m_features;
-         unsigned_integer category(const unsigned_integer& fid) const;
+         // unsigned_integer category(const unsigned_integer& fid) const; // ERRONEOUS!
+         // Use feature_analysis_t::category() instead!!!
    };
 
    difference_t feature_isolation_t::partition(unsigned_integer feature_id) const
@@ -288,7 +290,9 @@ namespace feature_isolation {
        print(os,difference.U);
        os << std::endl;
     }
-    unsigned_integer feature_isolation_t::category(const unsigned_integer& fid) const
+/*    unsigned_integer feature_isolation_t::category(const unsigned_integer& fid) const
+    // Use feature_analysis_t::category() instead!!!
+    // // It is also still erroneous!
     {
        auto feature_description { m_features.at(fid) };
        auto ones { std::ranges::count(m_features.at(fid),true) };
@@ -318,15 +322,16 @@ namespace feature_isolation {
           return ::feature_isolation::ON;
        return ~zero;
     }
-    std::string to_category_name(const unsigned_integer& category)
+    std::string to_category_name(const unsigned_integer& category) // Use
+                                                                   // feature_analysis_t::category_name()
+                                                                   // instead!!!
     {
        auto index { zero };
        while (category != one << index)
        {
           ++index;
        }
-       //std::cout << "INDEX " << index << std::endl;
        return (index < 8 ? feature_categories[index] : "ILLEGAL CATEGORY");
-    }
+    }*/
 } // namespace feature_isolation
 #endif // ISOLATION_HPP

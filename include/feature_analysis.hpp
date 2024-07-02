@@ -83,6 +83,8 @@ namespace feature_isolation {
     const features_t F_features, N_features, A_features, O_features, AN_features, ON_features, ANF_features, ONF_features;
 
     [[nodiscard]] feature_t at( unsigned_integer feature_id ) const;
+    [[nodiscard]] unsigned_integer category(unsigned_integer feature_id) const;
+    [[nodiscard]] std::string category_name(unsigned_integer feature_id) const;
     void print_feature( std::ostream& os, const feature_t& feature ) const;
     void print_features( std::ostream& os ) const;
     void print_categories( std::ostream& os ) const;
