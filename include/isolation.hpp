@@ -382,7 +382,7 @@ namespace feature_isolation
   }
 
   bool feature_and_not(const std::vector<bool>& and_not_feature,
-                   const std::vector<bool>& f_feature)
+                       const std::vector<bool>& f_feature)
   {
     for (auto index { zero }; index < and_not_feature.size(); ++index)
     {
@@ -395,11 +395,11 @@ namespace feature_isolation
   }
 
   bool feature_or_not(const std::vector<bool>& or_not_feature,
-                  const std::vector<bool>& f_feature)
+                      const std::vector<bool>& f_feature)
   {
     for (auto index { zero }; index < f_feature.size(); ++index)
     {
-      if (!f_feature[index] && or_not_feature[index])
+      if (!f_feature[index] && !or_not_feature[index])
       {
         return false;
       };
@@ -474,14 +474,13 @@ namespace feature_isolation
         }
         return result;
       case ::feature_isolation::ON :
-        result = "BAM ";
         for (auto index { zero }; const auto& f : m_features.F_features)
         {
           if (feature_or_not(f_desc, f))
           {
             if (first)
             {
-              result += "!" + m_spl.m_feature_names.at(index);
+              result = "!" + m_spl.m_feature_names.at(index);
               first  = false;
             }
             else
@@ -493,7 +492,35 @@ namespace feature_isolation
         }
         return result;
       case ::feature_isolation::ANF :
-        return "ANF";
+        for (auto index { zero }; const auto& f : m_features.F_features)
+        {
+          if (feature_and(f_desc, f))
+          {
+            if (first)
+            {
+              result = m_spl.m_feature_names.at(index);
+              first  = false;
+            }
+            else
+            {
+              result += " & " + m_spl.m_feature_names.at(index);
+            }
+          }
+          else if (feature_and_not(f_desc, f))
+          {
+            if (first)
+            {
+              result = "!" + m_spl.m_feature_names.at(index);
+              first  = false;
+            }
+            else
+            {
+              result += " & !" + m_spl.m_feature_names.at(index);
+            }
+          }
+          ++index;
+        }
+        return result;
       case ::feature_isolation::ONF :
         return "ONF";
     }
