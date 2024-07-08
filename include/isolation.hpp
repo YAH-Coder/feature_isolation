@@ -355,11 +355,149 @@ namespace feature_isolation
     os << std::endl;
   }
 
+  bool feature_and(const std::vector<bool>& and_feature,
+                   const std::vector<bool>& f_feature)
+  {
+    for (auto index { zero }; index < and_feature.size(); ++index)
+    {
+      if (and_feature[index] && !f_feature[index])
+      {
+        return false;
+      };
+    }
+    return true;
+  }
+
+  bool feature_or(const std::vector<bool>& or_feature,
+                  const std::vector<bool>& f_feature)
+  {
+    for (auto index { zero }; index < f_feature.size(); ++index)
+    {
+      if (f_feature[index] && !or_feature[index])
+      {
+        return false;
+      };
+    }
+    return true;
+  }
+
+  bool feature_and_not(const std::vector<bool>& and_not_feature,
+                   const std::vector<bool>& f_feature)
+  {
+    for (auto index { zero }; index < and_not_feature.size(); ++index)
+    {
+      if (and_not_feature[index] && f_feature[index])
+      {
+        return false;
+      };
+    }
+    return true;
+  }
+
+  bool feature_or_not(const std::vector<bool>& or_not_feature,
+                  const std::vector<bool>& f_feature)
+  {
+    for (auto index { zero }; index < f_feature.size(); ++index)
+    {
+      if (!f_feature[index] && or_not_feature[index])
+      {
+        return false;
+      };
+    }
+    return true;
+  }
+
   std::string feature_isolation_t::name(unsigned_integer fid) const
   {
-    std::cerr << "feature_isolation::name(unsigned_integer fid) const"
-              << "Not yet implemented" << std::endl;
-    return "Not yet implemented";
+    auto        cat { one << m_features.category(fid) };
+    bool        first { true };
+    auto        f_desc { m_features.at(fid) };
+    std::string result {};
+    switch (cat)
+    {
+      case ::feature_isolation::F :
+        return m_spl.m_feature_names.at(fid - one);
+      case ::feature_isolation::N :
+        return "!" + m_spl.m_feature_names.at(fid - m_features.F - one);
+      case ::feature_isolation::A :
+        for (auto index { zero }; const auto& f : m_features.F_features)
+        {
+          if (feature_and(f_desc, f))
+          {
+            if (first)
+            {
+              result = m_spl.m_feature_names.at(index);
+              first  = false;
+            }
+            else
+            {
+              result += " & " + m_spl.m_feature_names.at(index);
+            }
+          }
+          ++index;
+        }
+        return result;
+      case ::feature_isolation::O :
+        for (auto index { zero }; const auto& f : m_features.F_features)
+        {
+          if (feature_or(f_desc, f))
+          {
+            if (first)
+            {
+              result = m_spl.m_feature_names.at(index);
+              first  = false;
+            }
+            else
+            {
+              result += " | " + m_spl.m_feature_names.at(index);
+            }
+          }
+          ++index;
+        }
+        return result;
+      case ::feature_isolation::AN :
+        for (auto index { zero }; const auto& f : m_features.F_features)
+        {
+          if (feature_and_not(f_desc, f))
+          {
+            if (first)
+            {
+              result = "!" + m_spl.m_feature_names.at(index);
+              first  = false;
+            }
+            else
+            {
+              result += " & !" + m_spl.m_feature_names.at(index);
+            }
+          }
+          ++index;
+        }
+        return result;
+      case ::feature_isolation::ON :
+        result = "BAM ";
+        for (auto index { zero }; const auto& f : m_features.F_features)
+        {
+          if (feature_or_not(f_desc, f))
+          {
+            if (first)
+            {
+              result += "!" + m_spl.m_feature_names.at(index);
+              first  = false;
+            }
+            else
+            {
+              result += " | !" + m_spl.m_feature_names.at(index);
+            }
+          }
+          ++index;
+        }
+        return result;
+      case ::feature_isolation::ANF :
+        return "ANF";
+      case ::feature_isolation::ONF :
+        return "ONF";
+    }
+    return "Illegal feature id in feature_isolation_t::name()";
   }
 
   void feature_isolation_t::print(std::ostream& os,
