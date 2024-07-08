@@ -91,10 +91,17 @@ namespace feature_isolation
                                   = ::feature_isolation::ALL);
 
       using cui = const unsigned_integer;
-      cui              F, N, A, O, AN, ON, ANF, ONF, DF, T, R, C, S;
-      const features_t F_features, N_features, A_features, O_features,
-          AN_features, ON_features, ANF_features, ONF_features;
-
+      cui F, N, A, O, AN, ON, ANF, ONF, DF, T, R, C, S;
+      // clang-format off
+      const features_t F_features, 
+                       N_features, 
+                       A_features, 
+                       O_features,
+                       AN_features,
+                       ON_features,
+                       ANF_features, 
+                       ONF_features;
+      // clang-format on
       [[nodiscard]] feature_t at(unsigned_integer feature_id) const;
       [[nodiscard]] unsigned_integer
           category(unsigned_integer feature_id) const;
@@ -113,8 +120,16 @@ namespace feature_isolation
       void print_systems_features(std::ostream& os) const;
       void print(std::ostream& os) const;
     private:
-      cui F_offset, N_offset, A_offset, O_offset, AN_offset, ON_offset,
-          ANF_offset, ONF_offset;
+      // clang-format off
+      cui F_offset, 
+          N_offset, 
+          A_offset, 
+          O_offset, 
+          AN_offset, 
+          ON_offset,
+          ANF_offset,
+          ONF_offset;
+      // cang-format on
       std::array<cui, 8>               m_feature_offsets;
       std::array<const features_t*, 8> m_all_features;
     public:
