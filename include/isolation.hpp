@@ -494,12 +494,12 @@ namespace feature_isolation
       case ::feature_isolation::ANF :
         for (auto index { zero }; const auto& f : m_features.F_features)
         {
-          if (feature_and(f_desc, f))
+          if (feature_or(f,f_desc))
           {
             if (first)
             {
-              result = m_spl.m_feature_names.at(index);
-              first  = false;
+              result += m_spl.m_feature_names.at(index);
+              first   = false;
             }
             else
             {
@@ -510,8 +510,8 @@ namespace feature_isolation
           {
             if (first)
             {
-              result = "!" + m_spl.m_feature_names.at(index);
-              first  = false;
+              result += "!" + m_spl.m_feature_names.at(index);
+              first   = false;
             }
             else
             {
@@ -522,7 +522,35 @@ namespace feature_isolation
         }
         return result;
       case ::feature_isolation::ONF :
-        return "ONF";
+        for (auto index { zero }; const auto& f : m_features.F_features)
+        {
+          if (feature_or(f_desc, f))
+          {
+            if (first)
+            {
+              result += m_spl.m_feature_names.at(index);
+              first   = false;
+            }
+            else
+            {
+              result += " | " + m_spl.m_feature_names.at(index);
+            }
+          }
+          else if (feature_or_not(f_desc, f))
+          {
+            if (first)
+            {
+              result += "!" + m_spl.m_feature_names.at(index);
+              first   = false;
+            }
+            else
+            {
+              result += " | !" + m_spl.m_feature_names.at(index);
+            }
+          }
+          ++index;
+        }
+        return result;
     }
     return "Illegal feature id in feature_isolation_t::name()";
   }
