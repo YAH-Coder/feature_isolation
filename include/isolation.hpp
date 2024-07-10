@@ -431,7 +431,7 @@ namespace feature_isolation
             }
             else
             {
-              result += " & " + m_spl.m_feature_names.at(index);
+              result += " * " + m_spl.m_feature_names.at(index);
             }
           }
           ++index;
@@ -449,7 +449,7 @@ namespace feature_isolation
             }
             else
             {
-              result += " | " + m_spl.m_feature_names.at(index);
+              result += " + " + m_spl.m_feature_names.at(index);
             }
           }
           ++index;
@@ -467,7 +467,7 @@ namespace feature_isolation
             }
             else
             {
-              result += " & !" + m_spl.m_feature_names.at(index);
+              result += " * !" + m_spl.m_feature_names.at(index);
             }
           }
           ++index;
@@ -485,7 +485,7 @@ namespace feature_isolation
             }
             else
             {
-              result += " | !" + m_spl.m_feature_names.at(index);
+              result += " + !" + m_spl.m_feature_names.at(index);
             }
           }
           ++index;
@@ -503,7 +503,7 @@ namespace feature_isolation
             }
             else
             {
-              result += " & " + m_spl.m_feature_names.at(index);
+              result += " * " + m_spl.m_feature_names.at(index);
             }
           }
           else if (feature_and_not(f_desc, f))
@@ -515,7 +515,7 @@ namespace feature_isolation
             }
             else
             {
-              result += " & !" + m_spl.m_feature_names.at(index);
+              result += " * !" + m_spl.m_feature_names.at(index);
             }
           }
           ++index;
@@ -533,7 +533,7 @@ namespace feature_isolation
             }
             else
             {
-              result += " | " + m_spl.m_feature_names.at(index);
+              result += " + " + m_spl.m_feature_names.at(index);
             }
           }
           else if (feature_or_not(f_desc, f))
@@ -545,7 +545,7 @@ namespace feature_isolation
             }
             else
             {
-              result += " | !" + m_spl.m_feature_names.at(index);
+              result += " + !" + m_spl.m_feature_names.at(index);
             }
           }
           ++index;
