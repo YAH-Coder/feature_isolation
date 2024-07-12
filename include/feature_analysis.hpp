@@ -119,7 +119,7 @@ namespace feature_isolation
                                  unsigned_integer system_id) const;
       void print_systems_features(std::ostream& os) const;
       void print(std::ostream& os) const;
-    private:
+    public:
       // clang-format off
       cui F_offset, 
           N_offset, 
