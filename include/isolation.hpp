@@ -494,7 +494,7 @@ namespace feature_isolation
       case ::feature_isolation::ANF :
         for (auto index { zero }; const auto& f : m_features.F_features)
         {
-          if (feature_or(f,f_desc))
+          if (feature_and(f_desc,f))
           {
             if (first)
             {
@@ -506,7 +506,7 @@ namespace feature_isolation
               result += " * " + m_spl.m_feature_names.at(index);
             }
           }
-          else if (feature_and_not(f_desc, f))
+          else
           {
             if (first)
             {

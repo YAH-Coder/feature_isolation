@@ -23,5 +23,19 @@ int main()
   };
   os << "=== ISOLATION RESULTS ===" << endl;
   fi.print(os,false,true);
+  for (auto i { one };auto F : fi.m_features.F_features)
+  {
+     for (auto j { zero };auto N : fi.m_features.N_features)
+     {
+        cout << setw(3) << i << " " << to_string(F) << endl
+             << setw(3) << ++j + fi.m_features.N_features.size() << " " << to_string(N) << endl;
+        auto r { F };
+        for (auto k { zero }; k < F.size(); ++k)
+        {
+           r.at(k) = r.at(k) * N.at(k);
+        }
+        cout << "  * " << to_string(r) << endl << endl;
+     }
+     ++ i;
+  }
 }
- 
