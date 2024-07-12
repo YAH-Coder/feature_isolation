@@ -449,6 +449,7 @@ namespace feature_isolation
         {
           or_combine(result.at(feature_index),
                      F_features.at(indices.at(index)));
+          /**/std::cout  << index+1 << "+";
         }
         feature_t not_features(S, false);
         for (auto index { zero }; index < F; ++index)
@@ -456,10 +457,12 @@ namespace feature_isolation
           if (std::find(indices.begin(), indices.end(), index) == indices.end())
           {
             or_combine(not_features, N_features.at(index));
+            /**/std::cout << "!" << index+1 << "+";
           }
         }
         and_combine(result.at(feature_index), not_features);
         ++feature_index;
+    /**/std::cout << std::endl;
       }
       while (selection.next());
     }

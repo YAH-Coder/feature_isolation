@@ -7,6 +7,33 @@ using namespace std;
 
 using namespace feature_isolation;
 
+auto or_combine(feature_t f1,feature_t f2)
+{
+   for (auto i { zero };i < f1.size();++i)
+      f1.at(i) = f1.at(i) || f2.at(i);
+   return f1;
+}
+
+auto and_combine(feature_t f1,feature_t f2)
+{
+   for (auto i { zero };i < f1.size();++i)
+      f1.at(i) = f1.at(i) && f2.at(i);
+   return f1;
+}
+
+auto or_not_combine(feature_t f1,feature_t f2)
+{
+   for (auto i { zero };i < f1.size();++i)
+      f1.at(i) = f1.at(i) || !f2.at(i);
+   return f1;
+}
+
+auto and_not_combine(feature_t f1,feature_t f2)
+{
+   for (auto i { zero };i < f1.size();++i)
+      f1.at(i) = f1.at(i) && !f2.at(i);
+   return f1;
+}
 int main()
 {
   feature_isolation_t fi { "../spl_specs/spl_isolation4.csv" };
@@ -23,19 +50,14 @@ int main()
   };
   os << "=== ISOLATION RESULTS ===" << endl;
   fi.print(os,false,true);
-  for (auto i { one };auto F : fi.m_features.F_features)
-  {
-     for (auto j { zero };auto N : fi.m_features.N_features)
-     {
-        cout << setw(3) << i << " " << to_string(F) << endl
-             << setw(3) << ++j + fi.m_features.N_features.size() << " " << to_string(N) << endl;
-        auto r { F };
-        for (auto k { zero }; k < F.size(); ++k)
-        {
-           r.at(k) = r.at(k) * N.at(k);
-        }
-        cout << "  * " << to_string(r) << endl << endl;
-     }
-     ++ i;
-  }
+  for (auto i { one }; i <= fi.m_features.ANF; ++i)
+     for (auto j { one }; j <= fi.m_features.F; ++j)
+        cout << setw(3) << (i+fi.m_features.ANF_offset) << " " << to_string(fi.m_features.at(fi.m_features.ANF_offset+i)) << endl
+             << setw(3) << j << " " << to_string(fi.m_features.at(j)) << endl
+             //<< " +  " << to_string(or_combine(fi.m_features.at(fi.m_features.ANF_offset+i),fi.m_features.at(j))) << endl
+             << " +! " << to_string(or_not_combine(fi.m_features.at(fi.m_features.ANF_offset+i),fi.m_features.at(j))) << endl
+             //<< " *  " << to_string(and_combine(fi.m_features.at(fi.m_features.ANF_offset+i),fi.m_features.at(j))) << endl
+             //<< " *! " << to_string(and_not_combine(fi.m_features.at(fi.m_features.ANF_offset+i),fi.m_features.at(j))) << endl
+             << endl;
+
 }
