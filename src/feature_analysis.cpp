@@ -170,7 +170,7 @@ namespace feature_isolation
       const system_t&  system,
       unsigned_integer system_id) const
   {
-    os << "SYSTEM ID" << separator() << system_id << separator();
+    os << system_id << separator();
 
     // Print all feature IDs for this system
     for (const auto& feature_id : system.F_feature_ids)
@@ -225,6 +225,9 @@ namespace feature_isolation
 
   void feature_analysis_t::print_systems_features(std::ostream& os) const
   {
+    os << "\nSYSTEM ID" << separator() << "F" << separator() << "N" << separator()
+       << "A" << separator() << "O" << separator() << "AN" << separator()
+       << "ON" << separator() << "ANF" << separator() << "ONF" << std::endl;
     for (auto id { zero }; const auto& system : m_systems)
     {
       print_system_features(os, system, ++id);
@@ -233,7 +236,7 @@ namespace feature_isolation
 
   void feature_analysis_t::print(std::ostream& os) const
   {
-    os << separator() << separator() << "F" << separator() << "N" << separator()
+/*    os << separator() << separator() << "F" << separator() << "N" << separator()
        << "A" << separator() << "O" << separator() << "AN" << separator()
        << "ON" << separator() << "ANF" << separator() << "ONF" << separator()
        << "DF" << separator() << "T" << separator() << "S" << separator() << "R"
@@ -256,10 +259,33 @@ namespace feature_isolation
        << R << separator();
     print_categories(os);
     os << std::endl;
-    os << "HIER SOLLTEN FEATURE IDs KOMMEN \n";
     print_systems_features(os);
+    os << std::endl;*/
+    os << separator() << "F" << separator() << "N" << separator()
+       << "A" << separator() << "O" << separator() << "AN" << separator()
+       << "ON" << separator() << "ANF" << separator() << "ONF" << separator()
+       << "DF" << separator() << "T" << separator() << "S" << separator() << "R"
+       << separator() << "C" << "\nIN PRINCIPLE"
+       << separator() << F << separator() << N << separator() << A
+       << separator() << O << separator() << AN << separator() << ON
+       << separator() << ANF << separator() << ONF << separator() << DF
+       << separator() << T << separator() << S << separator() << F
+       << separator() << "F|N|A|O|AN|ON|ANF|ONF";
+    auto actual_df { N_features.size() + A_features.size() + O_features.size()
+                     + AN_features.size() + ON_features.size()
+                     + ANF_features.size() + ONF_features.size() };
+    os << "\nACTUALLY" << separator()
+       << F_features.size() << separator() << N_features.size() << separator()
+       << A_features.size() << separator() << O_features.size() << separator()
+       << AN_features.size() << separator() << ON_features.size() << separator()
+       << ANF_features.size() << separator() << ONF_features.size()
+       << separator() << actual_df << separator()
+       << (F_features.size() + actual_df) << separator() << S << separator()
+       << R << separator();
+    print_categories(os);
     os << std::endl;
-  }
+    print_systems_features(os);
+    os << std::endl;  }
 
   [[nodiscard]] features_t feature_analysis_t::initialize_F_features() const
   {
