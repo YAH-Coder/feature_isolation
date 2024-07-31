@@ -451,105 +451,21 @@ namespace feature_isolation
           if (std::find(indices.begin(), indices.end(), index) == indices.end())
           {
             or_combine(not_features, N_features.at(index));
-            /**/std::cout << "!" << index+1 << "*";
           }
           else
           {
             or_combine(result.at(feature_index),
-                       F_features.at(index));//indices.at(index)));
-          /**/std::cout  << index+1 << "*";
+                       F_features.at(index));
           }
         }
         and_combine(result.at(feature_index), not_features);
         ++feature_index;
-    /**/std::cout << std::endl;
       }
       while (selection.next());
     }
     return result;
   }
 
-/*  [[nodiscard]] features_t feature_analysis_t::initialize_ANF_features() const
-  {
-    if (R > F)
-    {
-      throw std::invalid_argument(
-          "R > F in feature_analysis_t::initialize_ANF_features()");
-    }
-    auto result
-        = features_t(sum_of_combinations(F, 1) - 1, feature_t(S, false));
-    std::vector<unsigned_integer> feature_indices(F);
-    std::iota(feature_indices.begin(), feature_indices.end(), zero);
-    auto feature_index { zero };
-    for (auto drawing_size { one }; drawing_size < F; ++drawing_size)
-    {
-      combination selection { feature_indices, drawing_size };
-      do
-      {
-        auto indices { selection() };
-        for (auto index { zero }; index < indices.size(); ++index)
-        {
-          or_combine(result.at(feature_index),
-                     F_features.at(indices.at(index)));
-          std::cout  << index+1 << "*";
-        }
-        feature_t not_features(S, false);
-        for (auto index { zero }; index < F; ++index)
-        {
-          if (std::find(indices.begin(), indices.end(), index) == indices.end())
-          {
-            or_combine(not_features, N_features.at(index));
-            std::cout << "!" << index+1 << "+";
-          }
-        }
-        and_combine(result.at(feature_index), not_features);
-        ++feature_index;
-    std::cout << std::endl;
-      }
-      while (selection.next());
-    }
-    return result;
-  }
-*/
-/*  [[nodiscard]] features_t feature_analysis_t::initialize_ONF_features() const
-  {
-    if (R > F)
-    {
-      throw std::invalid_argument(
-          "R > F in feature_analysis_t::initialize_ANF_features()");
-    }
-    auto result
-        = features_t(sum_of_combinations(F, 1) - 1, feature_t(S, false));
-    std::vector<unsigned_integer> feature_indices(F);
-    std::iota(feature_indices.begin(), feature_indices.end(), zero);
-    auto feature_index { zero };
-    for (auto drawing_size { one }; drawing_size < F; ++drawing_size)
-    {
-      combination selection { feature_indices, drawing_size };
-      do
-      {
-        auto indices { selection() };
-        for (auto index { zero }; index < indices.size(); ++index)
-        {
-          or_combine(result.at(feature_index),
-                     F_features.at(indices.at(index)));
-        }
-        feature_t not_features(S, false);
-        for (auto index { zero }; index < F; ++index)
-        {
-          if (std::find(indices.begin(), indices.end(), index) == indices.end())
-          {
-            or_combine(not_features, N_features.at(index));
-          }
-        }
-        or_combine(result.at(feature_index), not_features);
-        ++feature_index;
-      }
-      while (selection.next());
-    }
-    return result;
-  }
-*/
   [[nodiscard]] features_t feature_analysis_t::initialize_ONF_features() const
   {
     if (R > F)
@@ -574,18 +490,15 @@ namespace feature_isolation
           if (std::find(indices.begin(), indices.end(), index) == indices.end())
           {
             or_combine(not_features, N_features.at(index));
-            /**/std::cout << "!" << index+1 << "+";
           }
           else
           {
             or_combine(result.at(feature_index),
-                       F_features.at(index));//indices.at(index)));
-          /**/std::cout  << index+1 << "+";
+                       F_features.at(index));
           }
         }
         or_combine(result.at(feature_index), not_features);
         ++feature_index;
-    /**/std::cout << std::endl;
       }
       while (selection.next());
     }
