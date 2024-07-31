@@ -50,14 +50,4 @@ int main()
   };
   os << "=== ISOLATION RESULTS ===" << endl;
   fi.print(os,false,true);
-  for (auto i { one }; i <= fi.m_features.ANF; ++i)
-     for (auto j { one }; j <= fi.m_features.F; ++j)
-        cout << setw(3) << (i+fi.m_features.ANF_offset) << " " << to_string(fi.m_features.at(fi.m_features.ANF_offset+i)) << endl
-             << setw(3) << j << " " << to_string(fi.m_features.at(j)) << endl
-             //<< " +  " << to_string(or_combine(fi.m_features.at(fi.m_features.ANF_offset+i),fi.m_features.at(j))) << endl
-             << " +! " << to_string(or_not_combine(fi.m_features.at(fi.m_features.ANF_offset+i),fi.m_features.at(j))) << endl
-             //<< " *  " << to_string(and_combine(fi.m_features.at(fi.m_features.ANF_offset+i),fi.m_features.at(j))) << endl
-             //<< " *! " << to_string(and_not_combine(fi.m_features.at(fi.m_features.ANF_offset+i),fi.m_features.at(j))) << endl
-             << endl;
-
 }
