@@ -49,5 +49,5 @@ int main()
        << separator() << to_string(fi.m_features.at(index)) << endl;
   };
   os << "=== ISOLATION RESULTS ===" << endl;
-  fi.print(os,false,true);
+  fi.print(os,true,false);
 }
