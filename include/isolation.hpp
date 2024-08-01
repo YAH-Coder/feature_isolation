@@ -117,8 +117,9 @@ namespace feature_isolation
                                       bool          all_differences = false,
                                       bool feature_names = false) const;
       [[nodiscard]] std::string name(unsigned_integer fid) const;
-      static void print(std::ostream& os, const system_ids_t& sids);
-      static void print(std::ostream& os, const difference_t& d);
+      static void
+          print(std::ostream& os, const system_ids_t& sids, char operation);
+      static void               print(std::ostream& os, const difference_t& d);
       const spl_specification_t m_spl;
       const feature_analysis_t  m_features;
   };
@@ -308,16 +309,16 @@ namespace feature_isolation
     md.insert(difference_t { i, u });
   }
 
-/*  void feature_isolation_t::print_header(std::ostream& os,
-                                         bool          all_differences,
-                                         bool          feature_names)
-  {
-    os << (feature_names ? "Feature Name" : "Feature ID") << separator()
-       << "Isolation Result" << separator()
-       << (all_differences ? "# Min. Diff" : "") << separator()
-       << (all_differences ? "Minimal Differences" : "Some Difference")
-       << std::endl;
-  }*/
+  /*  void feature_isolation_t::print_header(std::ostream& os,
+                                           bool          all_differences,
+                                           bool          feature_names)
+    {
+      os << (feature_names ? "Feature Name" : "Feature ID") << separator()
+         << "Isolation Result" << separator()
+         << (all_differences ? "# Min. Diff" : "") << separator()
+         << (all_differences ? "Minimal Differences" : "Some Difference")
+         << std::endl;
+    }*/
 
   void feature_isolation_t::print_header(std::ostream& os,
                                          bool          all_differences,
@@ -327,60 +328,59 @@ namespace feature_isolation
        << "ISOLATION RESULT" << separator();
     if (all_differences)
     {
-       os << "#MIN. DIFF" << separator() << "MINIMAL DIFFERENCES";
+      os << "#MIN. DIFF" << separator() << "MINIMAL DIFFERENCES";
     }
     else
     {
-       os << "SOME DIFFERENCE";
+      os << "SOME DIFFERENCE";
     }
     os << separator();
   }
 
-/*  void feature_isolation_t::print(std::ostream&    os,
-                                  unsigned_integer fid,
-                                  bool             all_differences,
-                                  bool             feature_names) const
-  {
-    auto result { all_differences ? minimal_differences(fid)
-                                  : some_difference(fid) };
-    os << (feature_names ? name(fid) : std::to_string(fid)) << separator()
-       << "{ ";
-    for (auto counter { zero }; auto fid : result.features)
+  /*  void feature_isolation_t::print(std::ostream&    os,
+                                    unsigned_integer fid,
+                                    bool             all_differences,
+                                    bool             feature_names) const
     {
-      os << (feature_names ? name(fid) : std::to_string(fid))
-         << (++counter < result.features.size() ? ", " : "");
-    }
-    os << " }" << separator() << result.differences.size() << separator();
-    for (auto counter { zero }; auto difference : result.differences)
-    {
-      os << "{ ";
+      auto result { all_differences ? minimal_differences(fid)
+                                    : some_difference(fid) };
+      os << (feature_names ? name(fid) : std::to_string(fid)) << separator()
+         << "{ ";
+      for (auto counter { zero }; auto fid : result.features)
+      {
+        os << (feature_names ? name(fid) : std::to_string(fid))
+           << (++counter < result.features.size() ? ", " : "");
+      }
+      os << " }" << separator() << result.differences.size() << separator();
+      for (auto counter { zero }; auto difference : result.differences)
+      {
+        os << "{ ";
 
-      for (auto counter { zero }; auto sid : difference.I)
-      {
-        os << sid << (++counter < difference.I.size() ? ", " : "");
+        for (auto counter { zero }; auto sid : difference.I)
+        {
+          os << sid << (++counter < difference.I.size() ? ", " : "");
+        }
+        os << " } \\ { ";
+        for (auto counter { zero }; auto sid : difference.U)
+        {
+          os << sid << (++counter < difference.U.size() ? ", " : "");
+        }
+        os << " }";
+        os << (++counter << result.differences.size()
+                   ? std::string { separator() }
+                   : "");
       }
-      os << " } \\ { ";
-      for (auto counter { zero }; auto sid : difference.U)
-      {
-        os << sid << (++counter < difference.U.size() ? ", " : "");
-      }
-      os << " }";
-      os << (++counter << result.differences.size()
-                 ? std::string { separator() }
-                 : "");
-    }
-    os << std::endl;
-  }*/
+      os << std::endl;
+    }*/
 
   void feature_isolation_t::print(std::ostream&    os,
                                   unsigned_integer fid,
                                   bool             all_differences,
                                   bool             feature_names) const
   {
-     auto result { all_differences ? minimal_differences(fid)
+    auto result { all_differences ? minimal_differences(fid)
                                   : some_difference(fid) };
-    os << fid << separator() << name(fid) << separator()
-       << "{ ";
+    os << fid << separator() << name(fid) << separator() << "{ ";
     for (auto counter { zero }; auto fid : result.features)
     {
       os << (feature_names ? name(fid) : std::to_string(fid))
@@ -389,22 +389,24 @@ namespace feature_isolation
     os << " }" << separator();
     if (all_differences)
     {
-       os << result.differences.size() << separator();
+      os << result.differences.size() << separator();
     }
-    for (auto counter { zero }; auto difference : result.differences)
+    // for (auto counter { zero }; auto difference : result.differences)
+    for (auto counter { zero }; const auto& difference : result.differences)
     {
-      os << "{ ";
+      /*      os << "{ ";
 
-      for (auto counter { zero }; auto sid : difference.I)
-      {
-        os << sid << (++counter < difference.I.size() ? ", " : "");
-      }
-      os << " } \\ { ";
-      for (auto counter { zero }; auto sid : difference.U)
-      {
-        os << sid << (++counter < difference.U.size() ? ", " : "");
-      }
-      os << " }";
+            for (auto counter { zero }; auto sid : difference.I)
+            {
+              os << sid << (++counter < difference.I.size() ? ", " : "");
+            }
+            os << " } \\ { ";
+            for (auto counter { zero }; auto sid : difference.U)
+            {
+              os << sid << (++counter < difference.U.size() ? ", " : "");
+            }
+            os << " }";*/
+      print(os, difference);
       os << (++counter << result.differences.size()
                  ? std::string { separator() }
                  : "");
@@ -551,7 +553,7 @@ namespace feature_isolation
       case ::feature_isolation::ANF :
         for (auto index { zero }; const auto& f : m_features.F_features)
         {
-          if (feature_and(f_desc,f))
+          if (feature_and(f_desc, f))
           {
             if (first)
             {
@@ -620,16 +622,18 @@ namespace feature_isolation
     os << std::endl;
     for (auto fid { one }; fid <= m_features.T; ++fid)
     {
-       print(os, fid, all_differences, feature_names);
+      print(os, fid, all_differences, feature_names);
     }
   }
 
-  void feature_isolation_t::print(std::ostream& os, const system_ids_t& sids)
+  void feature_isolation_t::print(std::ostream&       os,
+                                  const system_ids_t& sids,
+                                  char                operation)
   {
     os << "{";
     for (auto i { zero }; auto id : sids)
     {
-      os << " " << id << (++i < sids.size() ? "," : "");
+      os << ' ' << id << ' '<< (++i < sids.size() ? operation : ' ');
     }
     os << "}";
   }
@@ -637,10 +641,9 @@ namespace feature_isolation
   void feature_isolation_t::print(std::ostream&       os,
                                   const difference_t& difference)
   {
-    print(os, difference.I);
+    print(os, difference.I, '&');
     os << " \\ ";
-    print(os, difference.U);
-    os << std::endl;
+    print(os, difference.U, '|');
   }
 } // namespace feature_isolation
 #endif // ISOLATION_HPP
