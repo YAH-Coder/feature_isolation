@@ -36,8 +36,8 @@ auto and_not_combine(feature_t f1,feature_t f2)
 }
 int main()
 {
-  feature_isolation_t fi { "../spl_specs/spl_isolation4.csv" };
-  ofstream            os { "../src/spl_isolation_result.csv" };
+  feature_isolation_t fi { "../spl_specs/spl_isolation3.csv" };
+  ofstream            os { "../src/spl_isolation_result3.csv" };
   os << "=== SYSTEMS ===" << endl;
   fi.m_features.print(os);
   os << "=== FEATURES BY CATEGORY ===" << endl;

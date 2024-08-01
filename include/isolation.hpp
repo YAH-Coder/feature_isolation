@@ -377,7 +377,7 @@ namespace feature_isolation
                                   bool             all_differences,
                                   bool             feature_names) const
   {
-    auto result { all_differences ? minimal_differences(fid)
+     auto result { all_differences ? minimal_differences(fid)
                                   : some_difference(fid) };
     os << fid << separator() << name(fid) << separator()
        << "{ ";
@@ -617,9 +617,10 @@ namespace feature_isolation
                                   bool          feature_names) const
   {
     print_header(os, all_differences, feature_names);
+    os << std::endl;
     for (auto fid { one }; fid <= m_features.T; ++fid)
     {
-      print(os, fid, all_differences, feature_names);
+       print(os, fid, all_differences, feature_names);
     }
   }
 
