@@ -42,24 +42,31 @@ namespace feature_isolation {
   private:
     std::string m_filename {};
     std::string m_spl_name;
-   public:
+
+  public:
     unsigned_integer m_max_rank;
     unsigned_integer m_F;
-   private:
+
+  private:
     unsigned_integer m_max_available_systems;
     feature_names_t m_feature_names;
-   public:
+
+  public:
     unsigned_integer m_categories { F };
-   private:
+
+  private:
     dependencies_t m_requires_all, m_requires_any, m_requires_one, m_excludes_all;
-   public:
+
+  public:
     systems_t m_available_systems;
-   private:
-     systems_t m_missing_systems;
+
+  private:
+    systems_t m_missing_systems;
 
     [[nodiscard]] std::optional<signed int> feature_index( const std::string& feature ) const;
     [[nodiscard]] systems_t effective_available_systems() const;
-   private:
+
+  private:
     bool validate_systems();
     bool check_constraints( const std::string& constraint_type, const dependencies_t& constraints_map, unsigned_integer system_id, unsigned_integer system, z3::context& ctx );
 
@@ -236,7 +243,7 @@ namespace feature_isolation {
       return m_available_systems;
     } else if ( m_missing_systems_specified ) {
       systems_t eff_available_systems;
-      for ( unsigned_integer i = 0; i < m_max_available_systems; ++i ) {
+      for ( unsigned_integer i = 1; i < m_max_available_systems; ++i ) {
         if ( std::find( m_missing_systems.begin(), m_missing_systems.end(), i ) == m_missing_systems.end() ) {
           eff_available_systems.push_back( i );
         }
@@ -244,7 +251,7 @@ namespace feature_isolation {
       return eff_available_systems;
     } else {
       systems_t eff_available_systems;
-      for ( unsigned_integer i = 0; i < m_max_available_systems; ++i ) {
+      for ( unsigned_integer i = 1; i < m_max_available_systems; ++i ) {
         eff_available_systems.push_back( i );
       }
       return eff_available_systems;
@@ -271,7 +278,7 @@ namespace feature_isolation {
         }
 
         if ( solver.check() != z3::sat ) {
-          return error( error_msgs::SYSTEM_CONSTRAINT, std::cerr, std::to_string( system_id + 1 ), constraint_type, std::string( kw::ROOT ), m_feature_names[*deps.begin()] );
+          return error( error_msgs::SYSTEM_CONSTRAINT, std::cerr, std::to_string( system_id ), constraint_type, std::string( kw::ROOT ), m_feature_names[*deps.begin()] );
         }
       } else {
         z3::expr feature_expr = ctx.bool_val( system & ( 1 << feature ) );
@@ -309,7 +316,7 @@ namespace feature_isolation {
               detail_solver.add( implies( feature_expr, !dep_expr ) );
             }
             if ( detail_solver.check() != z3::sat ) {
-              return error( error_msgs::SYSTEM_CONSTRAINT, std::cerr, std::to_string( system_id + 1 ), constraint_type, std::string( kw::ROOT ), m_feature_names[*deps.begin()] );
+              return error( error_msgs::SYSTEM_CONSTRAINT, std::cerr, std::to_string( system_id ), constraint_type, std::string( kw::ROOT ), m_feature_names[*deps.begin()] );
             }
           }
         }
@@ -323,7 +330,7 @@ namespace feature_isolation {
     z3::context ctx;
 
     for ( const auto& system_id : eff_available_systems ) {
-      unsigned_integer system = system_id;
+      unsigned_integer system = system_id - 1;
 
       if ( !check_constraints( std::string( kw::REQUIRES_ALL ), m_requires_all, system_id, system, ctx ) )
         return false;
@@ -637,7 +644,7 @@ namespace feature_isolation {
   }
 
   bool parser_t::parse_categories( spl_specification_t& spec ) {
-   if ( spec.m_categories_specified ) {
+    if ( spec.m_categories_specified ) {
       return error( error_msgs::SPECIFIED_MORE_THAN_ONCE, std::cerr, std::string( kw::CATEGORIES ), spec.m_filename );
     }
 
