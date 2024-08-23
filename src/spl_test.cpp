@@ -30,9 +30,9 @@ bool compare_files( const std::string& file1, const std::string& file2 ) {
 }
 
 TEST_CASE( "Process valid SPL specification", "[spl_processor_t]" ) {
-  std::string input_filename = "../testing_csv/functional_spec.csv"; // Input file for valid SPL specification
-  std::string output1_filename = "../testing_csv/output1.csv";
-  std::string output2_filename = "../testing_csv/output2.csv";
+  std::string input_filename = "testing_csv/functional_spec.csv"; // Input file for valid SPL specification
+  std::string output1_filename = "testing_csv/output1.csv";
+  std::string output2_filename = "testing_csv/output2.csv";
 
   // First run: Process input file to create output1
   spl_processor_t processor1( input_filename );
@@ -53,7 +53,7 @@ TEST_CASE( "Process valid SPL specification", "[spl_processor_t]" ) {
 }
 
 TEST_CASE( "Process invalid SPL specification and check error message", "[spl_processor_t]" ) {
-  std::string wrong_filename = "../testing_csv/wrong_spl_specification.csv"; // Input file for invalid SPL specification
+  std::string wrong_filename = "testing_csv/wrong_spl_specification.csv"; // Input file for invalid SPL specification
 
   spl_processor_t processor( wrong_filename );
 
@@ -68,12 +68,12 @@ TEST_CASE( "Process invalid SPL specification and check error message", "[spl_pr
   std::cerr.rdbuf( old_cerr );
 
   // Check that the correct error message was output to stderr
-  std::string expected_error = "Unexpected : Software at line 1, column 14\nFailed to parse SPL specification in file: wrong_spl_specification.csv\n";
+  std::string expected_error = "Unexpected : Software at line 1, column 14\nFailed to parse SPL specification in file: " + wrong_filename + "\n";
   REQUIRE( error_output.str() == expected_error );
 }
 
 TEST_CASE( "Process SPL specification with missing feature amount and check error message", "[spl_processor_t]" ) {
-  std::string missing_feature_amount_filename = "../testing_csv/no_feature_amount_specified.csv"; // Input file with missing feature amount
+  std::string missing_feature_amount_filename = "testing_csv/no_feature_amount_specified.csv"; // Input file with missing feature amount
 
   spl_processor_t processor( missing_feature_amount_filename );
 
@@ -88,12 +88,12 @@ TEST_CASE( "Process SPL specification with missing feature amount and check erro
   std::cerr.rdbuf( old_cerr );
 
   // Check that the correct error message was output to stderr
-  std::string expected_error = "Error occurred when reading number of independent features in file \nUnexpected : Logging at line 8, column 0\nFailed to parse SPL specification in file: no_feature_amount_specified.csv\n";
+  std::string expected_error = "Error occurred when reading number of independent features in file \nUnexpected : Logging at line 8, column 0\nFailed to parse SPL specification in file: " + missing_feature_amount_filename + "\n";
   REQUIRE( error_output.str() == expected_error );
 }
 
 TEST_CASE( "Process invalid system configuration and check error message", "[spl_processor_t]" ) {
-  std::string invalid_system_config_filename = "../testing_csv/invalid_system_config.csv"; // Input file with invalid system configuration
+  std::string invalid_system_config_filename = "testing_csv/invalid_system_config.csv"; // Input file with invalid system configuration
 
   spl_processor_t processor( invalid_system_config_filename );
 
@@ -108,6 +108,6 @@ TEST_CASE( "Process invalid system configuration and check error message", "[spl
   std::cerr.rdbuf( old_cerr );
 
   // Check that the correct error message was output to stderr
-  std::string expected_error = "System 4 violates REQUIRES_ONE constraint for feature ROOT and dependent feature Iterative\nFailed to validate systems , because invalid system configuration in file: invalid_system_config.csv\n";
+  std::string expected_error = "System 4 violates REQUIRES_ONE constraint for feature ROOT and dependent feature Iterative\nFailed to validate systems , because invalid system configuration in file: " + invalid_system_config_filename + "\n";
   REQUIRE( error_output.str() == expected_error );
 }
