@@ -1,0 +1,14 @@
+SPL	Factorial
+
+FEATURES	4
+Checked
+Logging
+Iterative
+Recursive
+
+EXPLICIT_DEPENDENCIES
+ROOT	REQUIRES_ONE	Iterative	Recursive	END
+END
+
+AVAILABLE_SYSTEMS
+4

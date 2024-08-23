@@ -1,0 +1,21 @@
+SPL Factorial
+
+FEATURES
+Checked
+Logging
+Iterative
+Recursive
+
+EXPLICIT_DEPENDENCIES
+ROOT REQUIRES_ONE Iterative Recursive END // This means only one of the two can be present in a system
+END
+
+AVAILABLE_SYSTEMS
+5 // 0100 
+6 // 0101
+7 // 0110
+8 // 0111
+9 // 1000
+10 // 1001
+11 // 1010
+12 // 1011
