@@ -173,7 +173,7 @@ namespace feature_isolation {
 
   constexpr unsigned_integer sum_of_combinations( unsigned_integer n,
                                                   unsigned_integer k ) {
-    return sum_of_combinations( n, k, n );
+    return sum_of_combinations( n, 0, k );
   }
 
   template <class T>
