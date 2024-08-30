@@ -33,11 +33,11 @@ namespace feature_isolation
                                          unsigned_integer feature_categories_)
       : F { f }
       , N { F }
-      , A { sum_of_combinations(F, two) }
+      , A { sum_of_combinations(F, two, F) }
       , O { A }
       , AN { O }
       , ON { O }
-      , ANF { sum_of_combinations(F, 1) - 1 }
+      , ANF { sum_of_combinations(F, 1, F) - 1 }
       , ONF { ANF }
       , DF { f + 4 * A + 2 * ANF }
       , T { F + DF }
@@ -51,7 +51,8 @@ namespace feature_isolation
       , AN_features { initialize_AN_features() }
       , ON_features { initialize_ON_features() }
       , ANF_features { initialize_ANF_features() }
-      , ONF_features { initialize_ONF_features() }
+      , ONF_features { initialize_ONF_features() } // enthaelt ebenfalls einen
+                                                   // Fehler
       , F_offset { zero }
       , N_offset { F_offset + F }
       , A_offset { N_offset + N }
@@ -175,49 +176,49 @@ namespace feature_isolation
     // Print all feature IDs for this system
     for (const auto& feature_id : system.F_feature_ids)
     {
-      os << feature_id + 1 << " ";
+      os << feature_id << " ";
     }
 
     os << separator();
     for (const auto& feature_id : system.N_feature_ids)
     {
-      os << feature_id + 1 << " ";
+      os << feature_id << " ";
     }
 
     os << separator();
     for (const auto& feature_id : system.A_feature_ids)
     {
-      os << feature_id + 1 << " ";
+      os << feature_id << " ";
     }
 
     os << separator();
     for (const auto& feature_id : system.O_feature_ids)
     {
-      os << feature_id + 1 << " ";
+      os << feature_id << " ";
     }
 
     os << separator();
     for (const auto& feature_id : system.AN_feature_ids)
     {
-      os << feature_id + 1 << " ";
+      os << feature_id << " ";
     }
 
     os << separator();
     for (const auto& feature_id : system.ON_feature_ids)
     {
-      os << feature_id + 1 << " ";
+      os << feature_id << " ";
     }
 
     os << separator();
     for (const auto& feature_id : system.ANF_feature_ids)
     {
-      os << feature_id + 1 << " ";
+      os << feature_id << " ";
     }
 
     os << separator();
     for (const auto& feature_id : system.ONF_feature_ids)
     {
-      os << feature_id + 1 << " ";
+      os << feature_id << " ";
     }
 
     os << std::endl;
@@ -261,6 +262,7 @@ namespace feature_isolation
     os << std::endl;
     print_systems_features(os);
     os << std::endl;*/
+     //os << "*********" << std::endl;
     os << separator() << "F" << separator() << "N" << separator()
        << "A" << separator() << "O" << separator() << "AN" << separator()
        << "ON" << separator() << "ANF" << separator() << "ONF" << separator()
@@ -461,12 +463,13 @@ namespace feature_isolation
           "R > F in feature_analysis_t::initialize_ANF_features()");
     }
     auto result
-        = features_t(sum_of_combinations(F, 1) - 1, feature_t(S, false));
+        = features_t(sum_of_combinations(F, 1, F) - 1, feature_t(S, false));
     std::vector<unsigned_integer> feature_indices(F);
     std::iota(feature_indices.begin(), feature_indices.end(), zero);
     auto feature_index { zero };
     for (auto drawing_size { one }; drawing_size < F; ++drawing_size)
     {
+      //auto feature_index { zero };
       combination selection { feature_indices, drawing_size };
       do
       {
@@ -497,15 +500,16 @@ namespace feature_isolation
     if (R > F)
     {
       throw std::invalid_argument(
-          "R > F in feature_analysis_t::initialize_ANF_features()");
+          "R > F in feature_analysis_t::initialize_ONF_features()");
     }
     auto result
-        = features_t(sum_of_combinations(F, 1) - 1, feature_t(S, false));
+        = features_t(sum_of_combinations(F, 1, F) - 1, feature_t(S, false));
     std::vector<unsigned_integer> feature_indices(F);
     std::iota(feature_indices.begin(), feature_indices.end(), zero);
     auto feature_index { zero };
     for (auto drawing_size { one }; drawing_size < F; ++drawing_size)
     {
+      //auto feature_index { zero };
       combination selection { feature_indices, drawing_size };
       do
       {

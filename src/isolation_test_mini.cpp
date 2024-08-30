@@ -36,8 +36,11 @@ auto and_not_combine(feature_t f1,feature_t f2)
 }
 int main()
 {
-  feature_isolation_t fi { "../spl_specs/spl_isolation3.csv" };
-  ofstream            os { "../src/spl_isolation_result3.csv" };
+//  feature_isolation_t fi { "../spl_specs/spl_isolation3.csv" };
+//  ofstream            os { "../src/spl_isolation_result3.csv" };
+  feature_isolation_t fi { "../spl_specs/factorial.csv" };
+  cout << "3" << endl;
+  ofstream            os { "./temp.csv" };
   os << "=== SYSTEMS ===" << endl;
   fi.m_features.print(os);
   os << "=== FEATURES BY CATEGORY ===" << endl;
@@ -49,5 +52,5 @@ int main()
        << separator() << to_string(fi.m_features.at(index)) << endl;
   };
   os << "=== ISOLATION RESULTS ===" << endl;
-  fi.print(os,true,false);
+  fi.print(os,true,false); 
 }
