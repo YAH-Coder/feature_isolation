@@ -469,7 +469,6 @@ namespace feature_isolation
     auto feature_index { zero };
     for (auto drawing_size { one }; drawing_size < F; ++drawing_size)
     {
-      //auto feature_index { zero };
       combination selection { feature_indices, drawing_size };
       do
       {
@@ -509,7 +508,6 @@ namespace feature_isolation
     auto feature_index { zero };
     for (auto drawing_size { one }; drawing_size < F; ++drawing_size)
     {
-      //auto feature_index { zero };
       combination selection { feature_indices, drawing_size };
       do
       {

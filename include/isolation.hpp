@@ -565,7 +565,7 @@ namespace feature_isolation
               result += " * " + m_spl.m_feature_names.at(index);
             }
           }
-          else
+          else 
           {
             if (first)
             {
