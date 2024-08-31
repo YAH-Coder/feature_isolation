@@ -85,7 +85,7 @@ namespace feature_isolation
     public:
       explicit feature_isolation_t(const std::string& filename)
           : m_spl { filename }
-          , m_features {m_spl.m_F, m_spl.m_max_rank, m_spl.m_categories }
+          , m_features { m_spl.m_F, m_spl.m_max_rank, m_spl.m_categories }
       { }
       [[nodiscard]] difference_t partition(unsigned_integer feature_id) const;
       [[nodiscard]] feature_ids_t
@@ -414,6 +414,27 @@ namespace feature_isolation
     os << std::endl;
   }
 
+  bool feature_present(const std::vector<bool>& anf_feature,
+                       const std::vector<bool>& f_feature,unsigned_integer F)
+  {
+     auto counter { zero };
+     auto half { F / 2 };
+     std::cout << "F = " << F << " F/2 = " << half << std::endl;
+     for (auto index { zero }; index < anf_feature.size(); ++index)
+     {
+        if (anf_feature[index] && f_feature[index])
+        {
+           if (++counter > half)
+           {
+              std::cout << counter << std::endl;
+              return true;
+           }
+        }
+     }
+     return false;
+  }
+
+
   bool feature_and(const std::vector<bool>& and_feature,
                    const std::vector<bool>& f_feature)
   {
@@ -551,9 +572,39 @@ namespace feature_isolation
         }
         return result;
       case ::feature_isolation::ANF :
-        for (auto index { zero }; const auto& f : m_features.F_features)
+/*        for (auto index { zero }; const auto& f : m_features.F_features)
         {
           if (feature_and(f_desc, f))
+          {
+            if (first)
+            {
+              result += m_spl.m_feature_names.at(index);
+              first   = false;
+            }
+            else
+            {
+              result += " * " + m_spl.m_feature_names.at(index);
+            }
+          }
+          else 
+          {
+            if (first)
+            {
+              result += "!" + m_spl.m_feature_names.at(index);
+              first   = false;
+            }
+            else
+            {
+              result += " * !" + m_spl.m_feature_names.at(index);
+            }
+          }
+          ++index;
+        }
+        return result;*/
+        // WARNING: NOT GUARANTEED TO WORK FOR ANY F! JUST A TRY.
+        for (auto index { zero }; const auto& f : m_features.F_features)
+        {
+          if (feature_present(f_desc, f, m_features.F))
           {
             if (first)
             {
@@ -630,10 +681,11 @@ namespace feature_isolation
                                   const system_ids_t& sids,
                                   char                operation)
   {
+    std::string op { operation };
     os << "{";
     for (auto i { zero }; auto id : sids)
     {
-      os << ' ' << id << ' '<< (++i < sids.size() ? operation : ' ');
+      os << ' ' << id << ' '<< (++i < sids.size() ? op : "");
     }
     os << "}";
   }
