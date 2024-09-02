@@ -540,6 +540,19 @@ namespace feature_isolation
      return std::ranges::count(v,true);  
   }
 
+  bool feature_bool_and(const std::vector<bool>& f1,
+                        const std::vector<bool>& f2)
+  {
+    for (auto index { zero }; index < f1.size(); ++index)
+    {
+      if (f1[index] && f2[index])
+      {
+        return true;
+      };
+    }
+    return false;
+  }
+
   std::string feature_isolation_t::name(unsigned_integer fid) const
   {
     auto        cat { one << m_features.category(fid) };
@@ -625,91 +638,29 @@ namespace feature_isolation
         }
         return result;
       case ::feature_isolation::ANF :
-// The following code is error prone!
-/*        for (auto index { zero }; const auto& f : m_features.F_features)
-        {
-          if (feature_and(f_desc, f))
-          {
-            if (first)
-            {
-              result += m_spl.m_feature_names.at(index);
-              first   = false;
-            }
-            else
-            {
-              result += " * " + m_spl.m_feature_names.at(index);
-            }
-          }
-          else 
-          {
-            if (first)
-            {
-              result += "!" + m_spl.m_feature_names.at(index);
-              first   = false;
-            }
-            else
-            {
-              result += " * !" + m_spl.m_feature_names.at(index);
-            }
-          }
-          ++index;
-        }
-        return result;*/
-        // WARNING: NOT GUARANTEED TO WORK FOR ANY F! JUST A TRY.
-/*        for (auto index { zero }; const auto& f : m_features.F_features)
-        {
-          if (feature_present(f_desc, f, m_features.F))
-          {
-            if (first)
-            {
-              result += m_spl.m_feature_names.at(index);
-              first   = false;
-            }
-            else
-            {
-              result += " * " + m_spl.m_feature_names.at(index);
-            }
-          }
-          else 
-          {
-            if (first)
-            {
-              result += "!" + m_spl.m_feature_names.at(index);
-              first   = false;
-            }
-            else
-            {
-              result += " * !" + m_spl.m_feature_names.at(index);
-            }
-          }
-          ++index;
-        }
-        return result; */
-        // The following code implements the explicit way (not verified, not
-        // tested).
+        // The following is the implementation of a heuristic
+        // which works well for correct ANF features. It does
+        // not deal correctly with features that aren't ANF features!
         for (auto index { zero }; const auto& f : m_features.F_features)
         {
-          auto f_count { dot_product(f_desc & f) },
-               n_count { dot_product(f_desc & ~f) };
-          std::cout << "F " << f_count << " N " << n_count << std::endl;
-          if (f_count > n_count)
+          if (feature_bool_and(f_desc, f))
           {
             if (first)
             {
-              result += m_spl.m_feature_names.at(index);
-              first   = false;
+              result = m_spl.m_feature_names.at(index);
+              first  = false;
             }
             else
             {
               result += " * " + m_spl.m_feature_names.at(index);
             }
           }
-          else 
+          else
           {
             if (first)
             {
-              result += "!" + m_spl.m_feature_names.at(index);
-              first   = false;
+              result = "!" + m_spl.m_feature_names.at(index);
+              first  = false;
             }
             else
             {

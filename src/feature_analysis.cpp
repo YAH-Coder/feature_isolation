@@ -489,6 +489,7 @@ namespace feature_isolation
         }
         and_combine(result.at(feature_index), not_features);
         ++feature_index;*/
+      // The following should be the correct implementation!
         auto indices { selection() };
         feature_t anf_feature(S,true);
         for (auto index { zero }; index < F; ++index)
