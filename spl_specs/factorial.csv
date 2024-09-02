@@ -1,0 +1,22 @@
+// Case study FACTORIAL
+// Available systems specified.
+
+SPL Factorial
+
+FEATURES 3
+Logging
+Checked
+Iterative
+
+CATEGORIES
+F
+A
+O
+N
+AN
+ON
+ANF
+ONF
+END
+
+MAX_RANK 3
