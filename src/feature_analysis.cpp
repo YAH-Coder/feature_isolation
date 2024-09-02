@@ -472,7 +472,8 @@ namespace feature_isolation
       combination selection { feature_indices, drawing_size };
       do
       {
-        auto indices { selection() };
+         // Due to a hint of Janik Eriksson the following implementation is wrong!
+/*        auto indices { selection() };
         feature_t not_features(S, false);
         for (auto index { zero }; index < F; ++index)
         {
@@ -487,6 +488,20 @@ namespace feature_isolation
           }
         }
         and_combine(result.at(feature_index), not_features);
+        ++feature_index;*/
+        auto indices { selection() };
+        feature_t anf_feature(S,true);
+        for (auto index { zero }; index < F; ++index)
+        {
+           if (std::ranges::find(indices, index) == indices.end())
+           {
+              and_combine(anf_feature,N_features.at(index));           }
+           else
+           {
+              and_combine(anf_feature,F_features.at(index));
+           }
+        }
+        result.at(feature_index) = anf_feature;
         ++feature_index;
       }
       while (selection.next());
