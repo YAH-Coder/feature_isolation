@@ -49,6 +49,7 @@ namespace feature_isolation {
 
   private:
     unsigned_integer m_max_available_systems;
+  public:
     feature_names_t m_feature_names;
 
   public:
