@@ -1,7 +1,8 @@
 # Makefile feature isolation testing
 
-CXX = g++
-CXXFLAGS = -std=c++20 -Wall -pedantic 
+CXX = g++-14
+# CXX = clang++
+CXXFLAGS = -std=c++2b -Wall -pedantic 
 INCDIR = ../include
 SRCDIR = ../src
 OBJDIR = ../obj
