@@ -1,6 +1,5 @@
 #include "../include/spl_z3.hpp"
 #include "../include/isolation.hpp"
-#include <stacktrace>
 
 using namespace std;
 
@@ -20,7 +19,6 @@ int main()
   feature_isolation_t fi { "../spl_specs/factorial.csv" };
   } catch (const overflow_error& e)
   {
-     cerr << stacktrace::current() << '\n';
      cerr << e.what() << endl;
   }
   ofstream            os { "./temp.csv" };
