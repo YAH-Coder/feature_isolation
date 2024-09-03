@@ -1,3 +1,10 @@
+#define DEBUG
+
+#ifdef DEBUG
+#define R(EXPRESSION) (std::cerr << #EXPRESSION << std::endl,EXPRESSION)
+#define V(EXPRESSION)  (std::cerr << EXPRESSION << std::endl,EXPRESSION)
+#endif // DEBUG
+
 #include "../include/feature_analysis.hpp"
 
 namespace feature_isolation
@@ -27,8 +34,48 @@ namespace feature_isolation
     result.insert(ONF_feature_ids.begin(), ONF_feature_ids.end());
     return result;
   }
-
+#ifdef DEBUG
   feature_analysis_t::feature_analysis_t(unsigned_integer f,
+                                         unsigned_integer max_rank,
+                                         unsigned_integer feature_categories_)
+      : F { R(f) }
+      , N { R(F) }
+      , A { R(sum_of_combinations(V(F), V(two), V(F))) }
+      , O { R(A) }
+      , AN { R(O) }
+      , ON { R(O) }
+      , ANF { R(sum_of_combinations(F, 1, F) - 1) }
+      , ONF { R(ANF) }
+      , DF { R(f + 4 * A + 2 * ANF) }
+      , T { R(F + DF) }
+      , R { R(max_rank) }
+      , C { R(feature_categories_) }
+      , S { R(power2(F)) }
+      , F_features { R(initialize_F_features()) }
+      , N_features { R(initialize_N_features()) }
+      , A_features { R(initialize_A_features()) }
+      , O_features { R(initialize_O_features()) }
+      , AN_features { R(initialize_AN_features()) }
+      , ON_features { R(initialize_ON_features()) }
+      , ANF_features { R(initialize_ANF_features()) }
+      , ONF_features { R(initialize_ONF_features()) } 
+      , F_offset { R(zero) }
+      , N_offset { R(F_offset + F) }
+      , A_offset { R(N_offset + N) }
+      , O_offset { R(A_offset + A) }
+      , AN_offset { R(O_offset + O) }
+      , ON_offset { R(AN_offset + AN) }
+      , ANF_offset { R(ON_offset + ON) }
+      , ONF_offset { R(ANF_offset + ANF) }
+      , m_feature_offsets { R(F_offset),  R(N_offset),  R(A_offset),   R(O_offset),
+                            R(AN_offset), R(ON_offset), R(ANF_offset), R(ONF_offset) }
+      , m_all_features { &F_features,   &N_features,  &A_features,
+                         &O_features,   &AN_features, &ON_features,
+                         &ANF_features, &ONF_features }
+      , m_systems { initialize_systems() }
+  { }
+#else 
+    feature_analysis_t::feature_analysis_t(unsigned_integer f,
                                          unsigned_integer max_rank,
                                          unsigned_integer feature_categories_)
       : F { f }
@@ -51,8 +98,7 @@ namespace feature_isolation
       , AN_features { initialize_AN_features() }
       , ON_features { initialize_ON_features() }
       , ANF_features { initialize_ANF_features() }
-      , ONF_features { initialize_ONF_features() } // enthaelt ebenfalls einen
-                                                   // Fehler
+      , ONF_features { initialize_ONF_features() }
       , F_offset { zero }
       , N_offset { F_offset + F }
       , A_offset { N_offset + N }
@@ -68,7 +114,7 @@ namespace feature_isolation
                          &ANF_features, &ONF_features }
       , m_systems { initialize_systems() }
   { }
-
+#endif // DEBUG
   [[nodiscard]] feature_t
       feature_analysis_t::at(unsigned_integer feature_id) const
   {

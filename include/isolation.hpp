@@ -1,5 +1,10 @@
 #ifndef ISOLATION_HPP
 #define ISOLATION_HPP
+#define DEBUG
+
+#ifdef DEBUG
+#define R(EXPRESSION) (std::cerr << #EXPRESSION << std::endl,EXPRESSION)
+#endif // DEBUG
 
 #include "feature_analysis.hpp"
 #include "spl.hpp"
@@ -84,9 +89,17 @@ namespace feature_isolation
   {
     public:
          explicit feature_isolation_t(const std::string& filename):
-            m_spl { spl_processor_t { filename  }.get_specification() },
-            m_features { m_spl.m_F,m_spl.m_max_rank,m_spl.m_categories }
+#ifdef DEBUG
+            m_spl { R(spl_processor_t { filename  }.get_specification()) },
+            m_features { R(m_spl.m_F),R(m_spl.m_max_rank),R(m_spl.m_categories) }
+#else
+            m_spl { R(spl_processor_t { filename  }.get_specification()) },
+            m_features { R(m_spl.m_F),R(m_spl.m_max_rank),R(m_spl.m_categories) }
+#endif // DEBUG
          {
+#ifdef DEBUG
+            std::cout << "feature_isolation_t::feature_isolation_t()" << std::endl;
+#endif // DEBUG
             std::ofstream out { "EVERYTHING.csv" };
             printer_t printer { out };
             printer.print_specification(m_spl);
