@@ -94,8 +94,8 @@ namespace feature_isolation
             m_spl { R(spl_processor_t { filename  }.get_specification()) },
             m_features { V(m_spl.m_F),R(m_spl.m_max_rank),R(m_spl.m_categories) }
 #else
-            m_spl { R(spl_processor_t { filename  }.get_specification()) },
-            m_features { R(m_spl.m_F),R(m_spl.m_max_rank),R(m_spl.m_categories) }
+            m_spl { spl_processor_t { filename  }.get_specification() },
+            m_features {(m_spl.m_F,m_spl.m_max_rank,m_spl.m_categories }
 #endif // DEBUG
          {
 #ifdef DEBUG
