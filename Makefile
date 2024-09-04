@@ -2,7 +2,7 @@
 # Variables
 CXX = g++
 CXXSTANDARD = -std=c++20
-CXXFLAGS = -Wall -Iinclude
+CXXFLAGS = -Wall -pedantic -Iinclude
 OUTPUT_DIR = testing
 OUTPUT_DIR_MATH = mathhelper
 OUTPUT_DIR_SPL = spl

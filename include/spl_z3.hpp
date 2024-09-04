@@ -2,6 +2,8 @@
 #define SPL_HPP
 
 #include "feature_analysis.hpp"
+#include <exception>
+#include <stdexcept>
 
 #define FMT_HEADER_ONLY
 
@@ -49,6 +51,7 @@ namespace feature_isolation {
 
   private:
     unsigned_integer m_max_available_systems;
+
   public:
     feature_names_t m_feature_names;
 
@@ -196,15 +199,15 @@ namespace feature_isolation {
   };
 
   class spl_processor_t final {
-  public:
-    spl_processor_t( const std::string& filename );
-    bool process();
-    void print( const std::string& output_filename ) const;
-    const spl_specification_t& get_specification() const;
-
   private:
     std::string m_filename;
     spl_specification_t m_spec;
+
+  public:
+    spl_processor_t( const std::string& filename );
+    spl_specification_t process() const;
+    void print( const std::string& output_filename ) const;
+    const spl_specification_t& get_specification() const;
   };
 
   template <typename... Args>
@@ -822,25 +825,26 @@ namespace feature_isolation {
   }
 
   spl_processor_t::spl_processor_t( const std::string& filename )
-      : m_filename( filename ) {};
+      : m_filename( filename ), m_spec( process() ) {};
 
-  bool spl_processor_t::process() {
+  spl_specification_t spl_processor_t::process() const {
+    spl_specification_t spl_specification;
     std::ifstream input_file( m_filename );
     if ( !input_file.is_open() ) {
       error( error_msgs::FAILED_TO, std::cerr, "open", "input", m_filename );
-      return false;
+      throw std::logic_error( "Failed to open input file" );
     }
 
     parser_t parser( input_file );
-    if ( !parser.parse_specification( m_spec ) ) {
+    if ( !parser.parse_specification( spl_specification ) ) {
       error( error_msgs::FAILED_TO, std::cerr, "parse", std::string( kw::SPL ) + " specification in file", m_filename );
-      return false;
+      throw std::logic_error( "Failed to parse SPL specification" );
     }
-    if ( !m_spec.validate_systems() ) {
+    if ( !spl_specification.validate_systems() ) {
       error( error_msgs::FAILED_TO, std::cerr, "validate systems", ", because invalid system configuration in file", m_filename );
     }
 
-    return true;
+    return spl_specification;
   }
 
   void spl_processor_t::print( const std::string& output_filename ) const {
