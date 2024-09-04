@@ -4,6 +4,7 @@
 
 #ifdef DEBUG
 #define R(EXPRESSION) (std::cerr << #EXPRESSION << std::endl,EXPRESSION)
+#define V(EXPRESSION)  (std::cerr << EXPRESSION << std::endl,EXPRESSION)
 #endif // DEBUG
 
 #include "feature_analysis.hpp"
@@ -91,7 +92,7 @@ namespace feature_isolation
          explicit feature_isolation_t(const std::string& filename):
 #ifdef DEBUG
             m_spl { R(spl_processor_t { filename  }.get_specification()) },
-            m_features { R(m_spl.m_F),R(m_spl.m_max_rank),R(m_spl.m_categories) }
+            m_features { V(m_spl.m_F),R(m_spl.m_max_rank),R(m_spl.m_categories) }
 #else
             m_spl { R(spl_processor_t { filename  }.get_specification()) },
             m_features { R(m_spl.m_F),R(m_spl.m_max_rank),R(m_spl.m_categories) }

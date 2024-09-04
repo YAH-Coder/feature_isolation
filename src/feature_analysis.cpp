@@ -38,8 +38,8 @@ namespace feature_isolation
   feature_analysis_t::feature_analysis_t(unsigned_integer f,
                                          unsigned_integer max_rank,
                                          unsigned_integer feature_categories_)
-      : F { R(f) }
-      , N { R(F) }
+      : F { V(f) }
+      , N { V(F) }
       , A { R(sum_of_combinations(V(F), V(two), V(F))) }
       , O { R(A) }
       , AN { R(O) }
