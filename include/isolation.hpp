@@ -73,16 +73,16 @@ namespace feature_isolation {
 
   class feature_isolation_t final {
   public:
-    // explicit feature_isolation_t( const std::string& filename )
-    //     : m_spl { spl_processor_t { filename }.get_specification() },
-    //       m_features { m_spl.m_F, m_spl.m_max_rank, m_spl.m_categories } {
+    explicit feature_isolation_t( const std::string& filename )
+        : m_spl { spl_processor_t { filename }.get_specification() },
+          m_features { m_spl.m_F, m_spl.m_max_rank, m_spl.m_categories } {
     //   std::ofstream out { "EVERYTHING.csv" };
     //   printer_t printer { out };
     //   printer.print_specification( m_spl );
     //   printer.print_features( m_spl );
-    // }
-    explicit feature_isolation_t( const std::string& filename )
-        : m_spl { filename }, m_features { m_spl.m_F, m_spl.m_max_rank, m_spl.m_categories } {}
+    }
+    /*explicit feature_isolation_t( const std::string& filename )
+        : m_spl { filename }, m_features { m_spl.m_F, m_spl.m_max_rank, m_spl.m_categories } {}*/
     [[nodiscard]] difference_t partition( unsigned_integer feature_id ) const;
     [[nodiscard]] feature_ids_t
     flatten_by_intersection( const system_ids_t& sids ) const;
