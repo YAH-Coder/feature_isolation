@@ -255,7 +255,7 @@ namespace feature_isolation {
       return eff_available_systems;
     } else {
       systems_t eff_available_systems;
-      for ( unsigned_integer i = 1; i < m_max_available_systems; ++i ) {
+      for ( unsigned_integer i = 1; i <= m_max_available_systems; ++i ) {
         eff_available_systems.push_back( i );
       }
       return eff_available_systems;
