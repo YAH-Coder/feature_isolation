@@ -6,10 +6,10 @@ INCDIR = ../include
 SRCDIR = ../src
 OBJDIR = ../obj
 
-it: $(OBJDIR)/it
+it: a.out
 
-$(OBJDIR)/it: $(OBJDIR)/feature_analysis.o $(OBJDIR)/isolation.o
-	$(CXX) $(CXXFLAGS) $(OBJDIR)/feature_analysis.o $(OBJDIR)/isolation.o -lz3 -o $(OBJDIR)/it
+a.out: $(OBJDIR)/feature_analysis.o $(OBJDIR)/isolation.o
+	$(CXX) $(CXXFLAGS) $(OBJDIR)/feature_analysis.o $(OBJDIR)/isolation.o -lz3
 
 $(OBJDIR)/feature_analysis.o: $(SRCDIR)/feature_analysis.cpp $(INCDIR)/feature_analysis.hpp
 	$(CXX) $(CXXFLAGS) -c $(SRCDIR)/feature_analysis.cpp -o $(OBJDIR)/feature_analysis.o
@@ -18,5 +18,4 @@ $(OBJDIR)/isolation.o: $(SRCDIR)/isolation_test_z3.cpp $(INCDIR)/isolation.hpp $
 	$(CXX) $(CXXFLAGS) -c $(SRCDIR)/isolation_test_z3.cpp -o $(OBJDIR)/isolation.o
 
 clean:
-	rm -f $(OBJDIR)/*
-
+	rm -f $(OBJDIR)/* a.out
