@@ -772,6 +772,7 @@ namespace feature_isolation {
         }
       }
       m_os << kw::END << std::endl;
+      m_os << std::endl;
     }
   }
 
