@@ -9,7 +9,10 @@ int main()
 {
   feature_isolation_t fi { "../spl_specs/factorial.csv" };
   ofstream            os { "./temp.csv" };
-  os << "=== SYSTEMS ===" << endl;
+  os << "=== SPL SPECIFICATION ===" << endl;
+  printer_t printer { os };
+  printer.print_specification(fi.m_spl);
+  os << "\n=== SYSTEMS ===" << endl;
   fi.m_features.print(os);
   os << "=== FEATURES BY CATEGORY ===" << endl;
   fi.m_features.print_features(os);
