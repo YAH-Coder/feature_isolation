@@ -9,10 +9,10 @@ using namespace feature_isolation;
 
 int main(int argc,char * argv[])
 {
-  if (argc != 3)
+  if (argc != 5)
   {
-     cerr << "Invalid number of arguments, expected 3, got " << argc
-          << "\nMust be called with program-name spl-specification-file result-file."
+     cerr << "Invalid number of arguments, expected 5, got " << argc
+          << "\nMust be called with program-name spl-specification-file result-file -min-diffs=[false|true] -feature-names=[false|true]."
           << "\nProgram terminated." << endl;
      return 1;
   }
@@ -34,6 +34,42 @@ int main(int argc,char * argv[])
           << "\".\nProgram terminated." << endl;
      return 3;
   }
+  string diff_option { argv[3] },
+         names_option { argv[4] };
+  bool min_diffs { },
+       names { };
+  if (diff_option == "-min-diffs=false")
+  {
+     min_diffs = false;
+  }
+  else if (diff_option == "-min-diffs=true")
+  {
+     min_diffs = true;
+  }
+  else
+  {
+     cerr << "Unknown option \"" << diff_option << "\".\n"
+          << "Expected \"-min-diffs=false\" or  \"-min-diffs=true\".\n"
+          << "Program terminated."
+          << endl;
+     return 4;
+  }
+  if (names_option == "-feature-names=false")
+  {
+     names = false;
+  }
+  else if (names_option == "-feature-names=true")
+  {
+     names = true;
+  }
+  else
+  {
+     cerr << "Unknown option \"" << names_option << "\".\n"
+          << "Expected \"-feature-names=false\" or  \"-feature-names=true\".\n"
+          << "Program terminated."
+          << endl;
+     return 5;
+  }
   feature_isolation_t fi { argv[1] };
   result_file << "=== SPL SPECIFICATION ===" << endl;
   printer_t printer { result_file };
@@ -49,5 +85,5 @@ int main(int argc,char * argv[])
        << separator() << to_string(fi.m_features.at(index)) << endl;
   };
   result_file << "=== ISOLATION RESULTS ===" << endl;
-  fi.print(result_file,true,false); 
+  fi.print(result_file,min_diffs,names); 
 }
