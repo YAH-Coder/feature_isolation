@@ -2,7 +2,7 @@
 #define ISOLATION_HPP
 
 #include "feature_analysis.hpp"
-#include "spl_z3.hpp"
+#include "spl.hpp"
 #include <algorithm>
 #include <compare>
 #include <fstream>
