@@ -9,7 +9,7 @@ OBJDIR = ../obj
 it: feature_isolation
 
 feature_isolation: $(OBJDIR)/feature_analysis.o $(OBJDIR)/isolation.o
-	$(CXX) $(CXXFLAGS) $(OBJDIR)/feature_analysis.o $(OBJDIR)/isolation.o -lz3
+	$(CXX) $(CXXFLAGS) $(OBJDIR)/feature_analysis.o $(OBJDIR)/isolation.o -lz3 -o feature_isolation
 
 $(OBJDIR)/feature_analysis.o: $(SRCDIR)/feature_analysis.cpp $(INCDIR)/feature_analysis.hpp
 	$(CXX) $(CXXFLAGS) -c $(SRCDIR)/feature_analysis.cpp -o $(OBJDIR)/feature_analysis.o
