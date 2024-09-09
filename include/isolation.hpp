@@ -76,10 +76,10 @@ namespace feature_isolation {
     explicit feature_isolation_t( const std::string& filename )
         : m_spl { spl_processor_t { filename }.get_specification() },
           m_features { m_spl.m_F, m_spl.m_max_rank, m_spl.m_categories } {
-      std::ofstream out { "EVERYTHING.csv" };
+/*      std::ofstream out { "EVERYTHING.csv" };
       printer_t printer { out };
       printer.print_specification( m_spl );
-      printer.print_features( m_spl );
+      printer.print_features( m_spl );*/
     }
     // explicit feature_isolation_t( const std::string& filename )
     //     : m_spl { filename }, m_features { m_spl.m_F, m_spl.m_max_rank, m_spl.m_categories } {}
