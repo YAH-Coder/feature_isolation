@@ -6,10 +6,8 @@ INCDIR = ../include
 SRCDIR = ../src
 OBJDIR = ../obj
 
-it: feature_isolation
-
-feature_isolation: $(OBJDIR)/feature_analysis.o $(OBJDIR)/isolation.o
-	$(CXX) $(CXXFLAGS) $(OBJDIR)/feature_analysis.o $(OBJDIR)/isolation.o -lz3 -o feature_isolation
+it: $(OBJDIR)/feature_analysis.o $(OBJDIR)/isolation.o
+	$(CXX) $(CXXFLAGS) $(OBJDIR)/feature_analysis.o $(OBJDIR)/isolation.o -lz3 -o $(OBJDIR)/feature_isolation
 
 $(OBJDIR)/feature_analysis.o: $(SRCDIR)/feature_analysis.cpp $(INCDIR)/feature_analysis.hpp
 	$(CXX) $(CXXFLAGS) -c $(SRCDIR)/feature_analysis.cpp -o $(OBJDIR)/feature_analysis.o
@@ -18,4 +16,4 @@ $(OBJDIR)/isolation.o: $(SRCDIR)/feature_isolation.cpp $(INCDIR)/isolation.hpp $
 	$(CXX) $(CXXFLAGS) -c $(SRCDIR)/feature_isolation.cpp -o $(OBJDIR)/isolation.o
 
 clean:
-	rm -f $(OBJDIR)/* feature_isolation
+	rm -f $(OBJDIR)/*
