@@ -6,6 +6,7 @@ CXXFLAGS = -Wall -pedantic -Iinclude
 OUTPUT_DIR = testing
 OUTPUT_DIR_MATH = mathhelper
 OUTPUT_DIR_SPL = spl
+OUTPUT_DIR_ANALYSIS = analysis
 DOXYGEN = doxygen
 
 # Targets
@@ -21,7 +22,14 @@ test_spl: src/spl_test.cpp include/spl.hpp
 	$(CXX) $(CXXSTANDARD) $(CXXFLAGS) $< -o $(OUTPUT_DIR)/$(OUTPUT_DIR_SPL)/$@ -lz3
 	./$(OUTPUT_DIR)/$(OUTPUT_DIR_SPL)/$@
 
-test: test_math test_spl
+test_analysis: src/analysis_test.cpp src/feature_analysis.cpp
+	mkdir -p $(OUTPUT_DIR)/$(OUTPUT_DIR_ANALYSIS)/
+	$(CXX) $(CXXSTANDARD) $(CXXFLAGS) -c src/feature_analysis.cpp -o $(OUTPUT_DIR)/$(OUTPUT_DIR_ANALYSIS)/feature_analysis.o
+	$(CXX) $(CXXSTANDARD) $(CXXFLAGS) -c src/analysis_test.cpp -o $(OUTPUT_DIR)/$(OUTPUT_DIR_ANALYSIS)/analysis_test.o
+	$(CXX) $(CXXSTANDARD) $(CXXFLAGS) $(OUTPUT_DIR)/$(OUTPUT_DIR_ANALYSIS)/feature_analysis.o $(OUTPUT_DIR)/$(OUTPUT_DIR_ANALYSIS)/analysis_test.o -o $(OUTPUT_DIR)/$(OUTPUT_DIR_ANALYSIS)/test_analysis
+	./$(OUTPUT_DIR)/$(OUTPUT_DIR_ANALYSIS)/test_analysis
+
+test: test_math test_spl test_analysis
 
 benchmark: src/mathhelper_benchmark.cpp include/fi_mathhelper.hpp
 	mkdir -p $(OUTPUT_DIR)/$(OUTPUT_DIR_MATH)/
