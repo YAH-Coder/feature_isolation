@@ -16,7 +16,7 @@ test_math: src/mathhelper_test.cpp include/fi_mathhelper.hpp
 	$(CXX) $(CXXSTANDARD) $(CXXFLAGS) $< -o $(OUTPUT_DIR)/$(OUTPUT_DIR_MATH)/$@ 
 	./$(OUTPUT_DIR)/$(OUTPUT_DIR_MATH)/$@
 
-test_spl: src/spl_test.cpp include/spl_z3.hpp
+test_spl: src/spl_test.cpp include/spl.hpp
 	mkdir -p $(OUTPUT_DIR)/$(OUTPUT_DIR_SPL)/
 	$(CXX) $(CXXSTANDARD) $(CXXFLAGS) $< -o $(OUTPUT_DIR)/$(OUTPUT_DIR_SPL)/$@ -lz3
 	./$(OUTPUT_DIR)/$(OUTPUT_DIR_SPL)/$@
