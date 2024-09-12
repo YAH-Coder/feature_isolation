@@ -47,7 +47,8 @@ TEST_CASE( "Test feature_analysis_t initialization", "[feature_analysis_t]" ) {
 }
 
 TEST_CASE( "Test feature_analysis_t category functions", "[feature_analysis_t]" ) {
-  unsigned_integer F = 3;
+  unsigned_integer F = 3; // local F hides feature_isolation::F --> ok
+  unsigned_integer N { F };
   unsigned_integer max_rank = 2;
   unsigned_integer feature_categories = 255; // Include all categories
 
@@ -58,6 +59,9 @@ TEST_CASE( "Test feature_analysis_t category functions", "[feature_analysis_t]" 
 
   // Adjusted tests to reflect correct feature offsets
   REQUIRE( analysis.category( F + 1 ) == 1 );     // N category (starts after F)
+  /* The following N ist NOT declared locally, hence feature_isolation::N is
+   * taken. Therefore, N should be initialized with F above.
+   */
   REQUIRE( analysis.category( F + N + 1 ) == 2 ); // A category (starts after F + N)
 
   // Test category_name()
