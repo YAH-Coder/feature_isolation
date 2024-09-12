@@ -48,7 +48,8 @@ docs: Doxyfile
 clean:
 	rm -f $(OUTPUT_DIR)/$(OUTPUT_DIR_MATH)/test_math $(OUTPUT_DIR)/$(OUTPUT_DIR_MATH)/benchmark
 	rm -f $(OUTPUT_DIR)/$(OUTPUT_DIR_SPL)/test_spl
-	rm -f $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/test_isolation
+	rm -f $(OUTPUT_DIR)/$(OUTPUT_DIR_ANALYSIS)/test_analysis $(OUTPUT_DIR)/$(OUTPUT_DIR_ANALYSIS)/feature_analysis.o $(OUTPUT_DIR)/$(OUTPUT_DIR_ANALYSIS)/analysis_test.o
+	rm -f $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/test_isolation $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/feature_analysis.o $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/isolation_test.o
 	rm -rf docs/html
 
 .PHONY: all docs clean test test_math test_spl test_analysis test_isolation benchmark
