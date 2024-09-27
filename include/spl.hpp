@@ -447,10 +447,8 @@ namespace feature_isolation {
     position_t current_position;
 
     while ( m_is.get( c ) ) {
-      // Set current_position before updating m_position
       current_position = m_position;
 
-      // Update m_position after reading character
       if ( c == '\n' ) {
         m_position.first++;    // Increment line number
         m_position.second = 1; // Reset column number
@@ -458,22 +456,14 @@ namespace feature_isolation {
         m_position.second++; // Increment column number
       }
 
-      // Process character c at current_position
-
       if ( std::isalnum( c ) || c == '_' || c == '#' || c == '-' || c == '.' ) {
         if ( token.empty() ) {
-          // Start of new token
           token_begin = current_position;
         }
         token += c;
-        // Update token_end to current character position
         token_end = current_position;
       } else {
         if ( !token.empty() ) {
-          // Token ends here
-          // token_end already set to position of last character in token
-
-          // Process the token
           if ( std::all_of( token.begin(), token.end(), ::isdigit ) ) {
             token_t result( token_type_t::VALUE, token, token_begin, token_end );
             debug_token( result );
@@ -499,7 +489,7 @@ namespace feature_isolation {
           // Handle comment
           // Consume the second '/'
           m_is.get( c );
-          m_position.second++; // Update position for the second '/'
+          m_position.second++; 
 
           // Read until end of line, updating positions
           while ( m_is.get( c ) ) {
@@ -512,9 +502,7 @@ namespace feature_isolation {
             }
           }
           continue;
-        } else {
-          // Handle other non-token characters if necessary
-        }
+        } 
       }
     }
 
@@ -613,7 +601,6 @@ namespace feature_isolation {
 
     max_available_systems = ( 1 << F ); // Calculate max_available_systems based on F
 
-    // Calculate available systems using effective_available_systems()
     spl_specification_t::systems_t calculated_available_systems = effective_available_systems(
         max_available_systems,
         available_systems,
