@@ -132,7 +132,7 @@ namespace feature_isolation {
   [[nodiscard]] std::string toupper( std::string s );
 
   template <typename... Args>
-  bool error( const std::string_view& msg, std::ostream& output = std::cerr, Args&&... args );
+  [[noreturn]] void error( const std::string_view& msg, Args&&... args );
 
   using position_t = std::pair<std::size_t, std::size_t>;
 
@@ -226,9 +226,9 @@ namespace feature_isolation {
   };
 
   template <typename... Args>
-  bool error( const std::string_view& msg, std::ostream& output, Args&&... args ) {
-    output << fmt::format( fmt::runtime( msg ), std::forward<Args>( args )... ) << std::endl;
-    return false;
+  [[noreturn]] void error( const std::string_view& msg, Args&&... args ) {
+    std::string formatted_msg = fmt::format( fmt::runtime( msg ), std::forward<Args>( args )... );
+    throw std::runtime_error( formatted_msg );
   }
 
   std::string toupper( std::string s ) {
@@ -244,6 +244,7 @@ namespace feature_isolation {
     }
     return z3::sum( k ) == ctx.int_val( n );
   }
+
   spl_specification_t::spl_specification_t( const std::string& filename,
                                             const std::optional<std::string>& spl_name,
                                             std::optional<unsigned_integer> max_rank,
@@ -287,7 +288,7 @@ namespace feature_isolation {
 
     // Validate systems during object creation
     if ( !validate_systems() ) {
-      throw std::runtime_error( "Failed to validate systems during SPL specification construction." );
+      error( "Failed to validate systems during SPL specification construction." );
     }
   }
 
@@ -311,7 +312,7 @@ namespace feature_isolation {
         }
 
         if ( solver.check() != z3::sat ) {
-          return error( error_msgs::SYSTEM_CONSTRAINT, std::cerr, std::to_string( system_id ), constraint_type, std::string( kw::ROOT ), m_feature_names[*deps.begin()] );
+          error( error_msgs::SYSTEM_CONSTRAINT, std::to_string( system_id ), constraint_type, std::string( kw::ROOT ), m_feature_names[*deps.begin()] );
         }
       } else {
         z3::expr feature_expr = ctx.bool_val( system & ( 1 << feature ) );
@@ -349,7 +350,7 @@ namespace feature_isolation {
               detail_solver.add( implies( feature_expr, !dep_expr ) );
             }
             if ( detail_solver.check() != z3::sat ) {
-              return error( error_msgs::SYSTEM_CONSTRAINT, std::cerr, std::to_string( system_id ), constraint_type, std::string( kw::ROOT ), m_feature_names[*deps.begin()] );
+              error( error_msgs::SYSTEM_CONSTRAINT, std::to_string( system_id ), constraint_type, std::string( kw::ROOT ), m_feature_names[*deps.begin()] );
             }
           }
         }
@@ -382,21 +383,21 @@ namespace feature_isolation {
 
   [[nodiscard]] const std::string token_t::value() const {
     if ( m_token_type == token_type_t::EMPTY ) {
-      throw std::runtime_error( "token_t::value() MUST not be called if m_token_type == token_type_t::EMPTY." );
+      error( "token_t::value() MUST not be called if m_token_type == token_type_t::EMPTY." );
     }
     return m_value;
   }
 
   [[nodiscard]] const position_t& token_t::begin() const {
     if ( m_token_type == token_type_t::EMPTY ) {
-      throw std::runtime_error( "token_t::begin() MUST not be called if m_token_type == token_type_t::EMPTY." );
+      error( "token_t::begin() MUST not be called if m_token_type == token_type_t::EMPTY." );
     }
     return m_begin;
   }
 
   [[nodiscard]] const position_t& token_t::end() const {
     if ( m_token_type == token_type_t::EMPTY ) {
-      throw std::runtime_error( "token_t::end() MUST not be called if m_token_type == token_type_t::EMPTY." );
+      error( "token_t::end() MUST not be called if m_token_type == token_type_t::EMPTY." );
     }
     return m_end;
   }
@@ -408,6 +409,7 @@ namespace feature_isolation {
   [[nodiscard]] const std::string token_t::position_column() const {
     return ( std::to_string( m_begin.second ) );
   }
+
   std::string tokenTypeToString( token_type_t type ) { // DEBUG
     switch ( type ) {
     case token_type_t::EMPTY:
@@ -426,6 +428,7 @@ namespace feature_isolation {
       return "UNKNOWN";
     }
   }
+
   void debug_token( const token_t& token ) { // DEBUG
     if ( token.type() != token_type_t::EMPTY ) {
       std::cerr << "Type: " << tokenTypeToString( token.type() )
@@ -466,19 +469,16 @@ namespace feature_isolation {
         if ( !token.empty() ) {
           if ( std::all_of( token.begin(), token.end(), ::isdigit ) ) {
             token_t result( token_type_t::VALUE, token, token_begin, token_end );
-            debug_token( result );
             return result;
           }
 
           auto keyword_check = check_keyword( toupper( token ) );
           if ( keyword_check.has_value() ) {
             token_t result( keyword_check->type(), token, token_begin, token_end );
-            debug_token( result );
             return result;
           }
 
           token_t result( token_type_t::NAME, token, token_begin, token_end );
-          debug_token( result );
           return result;
         }
 
@@ -489,7 +489,7 @@ namespace feature_isolation {
           // Handle comment
           // Consume the second '/'
           m_is.get( c );
-          m_position.second++; 
+          m_position.second++;
 
           // Read until end of line, updating positions
           while ( m_is.get( c ) ) {
@@ -502,7 +502,7 @@ namespace feature_isolation {
             }
           }
           continue;
-        } 
+        }
       }
     }
 
@@ -512,25 +512,21 @@ namespace feature_isolation {
 
       if ( std::all_of( token.begin(), token.end(), ::isdigit ) ) {
         token_t result( token_type_t::VALUE, token, token_begin, token_end );
-        debug_token( result );
         return result;
       }
 
       auto keyword_check = check_keyword( toupper( token ) );
       if ( keyword_check.has_value() ) {
         token_t result( keyword_check->type(), token, token_begin, token_end );
-        debug_token( result );
         return result;
       }
 
       token_t result( token_type_t::NAME, token, token_begin, token_end );
-      debug_token( result );
       return result;
     }
 
     // Return empty token at EOF
     token_t result( token_type_t::EMPTY, "", m_position, m_position );
-    debug_token( result );
     return result;
   }
 
@@ -592,10 +588,10 @@ namespace feature_isolation {
           missing_systems = parse_missing_systems();
           missing_systems_specified = true;
         } else {
-          error( error_msgs::UNEXPECTED, std::cerr, "keyword", token.value(), token.position_line(), token.position_column() );
+          error( error_msgs::UNEXPECTED, "keyword", token.value(), token.position_line(), token.position_column() );
         }
       } else {
-        error( error_msgs::UNEXPECTED, std::cerr, "", token.value(), token.position_line(), token.position_column() );
+        error( error_msgs::UNEXPECTED, "", token.value(), token.position_line(), token.position_column() );
       }
     }
 
@@ -631,6 +627,7 @@ namespace feature_isolation {
         categories // Pass categories
     );
   }
+
   spl_specification_t::systems_t parser_t::effective_available_systems( unsigned_integer max_available_systems,
                                                                         const spl_specification_t::systems_t& available_systems,
                                                                         const spl_specification_t::systems_t& missing_systems,
@@ -662,8 +659,7 @@ namespace feature_isolation {
 
     auto it = std::find( feature_names.begin(), feature_names.end(), feature );
     if ( it == feature_names.end() ) {
-      error( error_msgs::FEATUREINDEX_NOT_FOUND, std::cerr, feature );
-      return std::nullopt;
+      error( error_msgs::FEATUREINDEX_NOT_FOUND, feature );
     }
     return std::distance( feature_names.begin(), it );
   }
@@ -676,15 +672,23 @@ namespace feature_isolation {
   std::optional<unsigned_integer> parser_t::parse_max_rank() {
     auto token = m_tokenizer.next();
     if ( token.type() != token_type_t::VALUE ) {
-      error( error_msgs::EXPECTED_BUT_GOT, std::cerr, std::string( kw::MAX_RANK ), "value", token.value() );
-      return std::nullopt;
+      error( error_msgs::EXPECTED_BUT_GOT, std::string( kw::MAX_RANK ), "value", token.value() );
     }
     return std::stoull( token.value() );
   }
 
   std::pair<unsigned_integer, feature_names_t> parser_t::parse_features() {
     auto token = m_tokenizer.next();
-    unsigned_integer f { std::stoull( token.value() ) };
+    unsigned_integer f;
+
+    try {
+      f = std::stoull( token.value() );
+    } catch ( const std::invalid_argument& ) {
+      error( "Failed to parse SPL specification: expected a numeric feature count, but got '{}'", token.value() );
+    } catch ( const std::out_of_range& ) {
+      error( "Failed to parse SPL specification: feature count '{}' is out of range.", token.value() );
+    }
+
     feature_names_t feature_names( f );
     for ( auto& feature : feature_names ) {
       token = m_tokenizer.next();
@@ -692,7 +696,6 @@ namespace feature_isolation {
     }
     return { f, feature_names };
   }
-
   unsigned_integer parser_t::parse_categories() {
     std::unordered_set<std::string> category_set;
     unsigned_integer categories = 0; // Temporary variable to accumulate categories
@@ -701,8 +704,7 @@ namespace feature_isolation {
     do {
       token = m_tokenizer.next();
       if ( token.type() != token_type_t::KEYWORD ) {
-        error( error_msgs::UNEXPECTED, std::cerr, "category", token.value(), token.position_line(), token.position_column() );
-        continue;
+        error( error_msgs::UNEXPECTED, "category", token.value(), token.position_line(), token.position_column() );
       }
 
       std::string token_value = toupper( token.value() );
@@ -713,13 +715,12 @@ namespace feature_isolation {
       auto it = category_map.find( token_value );
       if ( it != category_map.end() ) {
         if ( category_set.find( token_value ) != category_set.end() ) {
-          error( error_msgs::DUPLICATE_FOUND, std::cerr, "category", token.value(), token.position_line(), token.position_column() );
-          continue;
+          error( error_msgs::DUPLICATE_FOUND, "category", token.value(), token.position_line(), token.position_column() );
         }
         category_set.insert( token_value );
         categories |= it->second; // Use temporary variable to accumulate categories
       } else {
-        error( error_msgs::UNEXPECTED, std::cerr, "category", token.value(), token.position_line(), token.position_column() );
+        error( error_msgs::UNEXPECTED, "category", token.value(), token.position_line(), token.position_column() );
       }
     } while ( token.value() != kw::END );
 
@@ -739,8 +740,7 @@ namespace feature_isolation {
       std::string feature_name = token.value();
       auto feature_index_opt = feature_index( feature_name, feature_names );
       if ( !feature_index_opt.has_value() ) {
-        error( error_msgs::FEATURE_NOT_FOUND, std::cerr, feature_name, token.position_line(), token.position_column() );
-        continue;
+        error( error_msgs::FEATURE_NOT_FOUND, feature_name, token.position_line(), token.position_column() );
       }
 
       signed int feature_index = feature_index_opt.value();
@@ -748,8 +748,7 @@ namespace feature_isolation {
       // Parse dependency type (REQUIRES_ALL, REQUIRES_ANY, etc.)
       token = m_tokenizer.next();
       if ( token.type() != token_type_t::KEYWORD ) {
-        error( error_msgs::EXPECTED_BUT_GOT, std::cerr, "a dependency keyword", token.value(), token.position_line(), token.position_column() );
-        continue;
+        error( error_msgs::EXPECTED_BUT_GOT, "a dependency keyword", token.value(), token.position_line(), token.position_column() );
       }
 
       std::string dependency_type = toupper( token.value() );
@@ -766,13 +765,11 @@ namespace feature_isolation {
         if ( token.type() == token_type_t::NAME || token.type() == token_type_t::VALUE ) {
           auto index_opt = this->feature_index( token.value(), feature_names );
           if ( !index_opt.has_value() ) {
-            error( error_msgs::FEATURE_NOT_FOUND, std::cerr, token.value(), token.position_line(), token.position_column() );
-            continue;
+            error( error_msgs::FEATURE_NOT_FOUND, token.value(), token.position_line(), token.position_column() );
           }
           dependent_features.insert( static_cast<unsigned_integer>( index_opt.value() ) );
         } else {
-          error( error_msgs::UNEXPECTED, std::cerr, "token", token.value(), token.position_line(), token.position_column() );
-          continue;
+          error( error_msgs::UNEXPECTED, "token", token.value(), token.position_line(), token.position_column() );
         }
       }
 
@@ -786,7 +783,7 @@ namespace feature_isolation {
       } else if ( dependency_type == kw::EXCLUDES_ALL ) {
         dependencies.excludes_all[feature_index] = dependent_features;
       } else {
-        error( error_msgs::UNEXPECTED, std::cerr, "dependency type", dependency_type, token.position_line(), token.position_column() );
+        error( error_msgs::UNEXPECTED, "dependency type", dependency_type, token.position_line(), token.position_column() );
       }
     }
 
@@ -800,10 +797,8 @@ namespace feature_isolation {
       if ( token.type() == token_type_t::EMPTY ) {
         break;
       }
-      std::cerr << token.value() << std::endl;
       if ( token.type() != token_type_t::VALUE ) {
-        error( error_msgs::EXPECTED_BUT_GOT, std::cerr, "system id", token.value() );
-        continue;
+        error( error_msgs::EXPECTED_BUT_GOT, "system id", token.value() );
       }
       systems.push_back( std::stoull( token.value() ) );
     }
@@ -818,8 +813,7 @@ namespace feature_isolation {
         break;
       }
       if ( token.type() != token_type_t::VALUE ) {
-        error( error_msgs::EXPECTED_BUT_GOT, std::cerr, "system id", token.value() );
-        continue;
+        error( error_msgs::EXPECTED_BUT_GOT, "system id", token.value() );
       }
       systems.push_back( std::stoull( token.value() ) );
     }
@@ -926,8 +920,7 @@ namespace feature_isolation {
   spl_specification_t spl_processor_t::process() {
     std::ifstream input_file( m_filename );
     if ( !input_file.is_open() ) {
-      error( error_msgs::FAILED_TO, std::cerr, "open", "input", m_filename );
-      throw std::logic_error( "Failed to open input file" );
+      error( error_msgs::FAILED_TO, "open", "input", m_filename );
     }
 
     parser_t parser( input_file, m_filename );
@@ -938,8 +931,7 @@ namespace feature_isolation {
   void spl_processor_t::print( const std::string& output_filename ) const {
     std::ofstream output_file( output_filename );
     if ( !output_file.is_open() ) {
-      error( error_msgs::FAILED_TO, std::cerr, "open", "output", output_filename );
-      return;
+      error( error_msgs::FAILED_TO, "open", "output", output_filename );
     }
 
     printer_t printer( output_file );
