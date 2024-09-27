@@ -442,29 +442,38 @@ namespace feature_isolation {
   token_t tokenizer_t::next() {
     std::string token;
     char c;
-    position_t token_begin = m_position;
+    position_t token_begin;
+    position_t token_end;
+    position_t current_position;
 
     while ( m_is.get( c ) ) {
+      // Set current_position before updating m_position
+      current_position = m_position;
+
+      // Update m_position after reading character
       if ( c == '\n' ) {
-        m_position.first++;
-        m_position.second = 0;
+        m_position.first++;    // Increment line number
+        m_position.second = 1; // Reset column number
       } else {
-        m_position.second++;
+        m_position.second++; // Increment column number
       }
+
+      // Process character c at current_position
 
       if ( std::isalnum( c ) || c == '_' || c == '#' || c == '-' || c == '.' ) {
         if ( token.empty() ) {
-          token_begin = m_position;
-          token_begin.second -= 1;
+          // Start of new token
+          token_begin = current_position;
         }
         token += c;
+        // Update token_end to current character position
+        token_end = current_position;
       } else {
         if ( !token.empty() ) {
-          m_is.unget();
-          m_position.second--;
+          // Token ends here
+          // token_end already set to position of last character in token
 
-          position_t token_end = m_position;
-
+          // Process the token
           if ( std::all_of( token.begin(), token.end(), ::isdigit ) ) {
             token_t result( token_type_t::VALUE, token, token_begin, token_end );
             debug_token( result );
@@ -473,7 +482,7 @@ namespace feature_isolation {
 
           auto keyword_check = check_keyword( toupper( token ) );
           if ( keyword_check.has_value() ) {
-            token_t result = keyword_check.value();
+            token_t result( keyword_check->type(), token, token_begin, token_end );
             debug_token( result );
             return result;
           }
@@ -484,25 +493,34 @@ namespace feature_isolation {
         }
 
         if ( std::isspace( c ) ) {
+          // Skip whitespace
           continue;
-        }
+        } else if ( c == '/' && m_is.peek() == '/' ) {
+          // Handle comment
+          // Consume the second '/'
+          m_is.get( c );
+          m_position.second++; // Update position for the second '/'
 
-        if ( c == '/' && m_is.peek() == '/' ) {
-          while ( m_is.get( c ) && c != '\n' ) {
-          }
-          if ( c == '\n' ) {
-            m_position.first++;
-            m_position.second = 0;
+          // Read until end of line, updating positions
+          while ( m_is.get( c ) ) {
+            if ( c == '\n' ) {
+              m_position.first++;
+              m_position.second = 1;
+              break;
+            } else {
+              m_position.second++;
+            }
           }
           continue;
+        } else {
+          // Handle other non-token characters if necessary
         }
-
-        token.clear();
       }
     }
 
+    // Handle any remaining token at EOF
     if ( !token.empty() ) {
-      position_t token_end = m_position;
+      // token_end already set to last character position
 
       if ( std::all_of( token.begin(), token.end(), ::isdigit ) ) {
         token_t result( token_type_t::VALUE, token, token_begin, token_end );
@@ -512,7 +530,7 @@ namespace feature_isolation {
 
       auto keyword_check = check_keyword( toupper( token ) );
       if ( keyword_check.has_value() ) {
-        token_t result = keyword_check.value();
+        token_t result( keyword_check->type(), token, token_begin, token_end );
         debug_token( result );
         return result;
       }
@@ -522,6 +540,7 @@ namespace feature_isolation {
       return result;
     }
 
+    // Return empty token at EOF
     token_t result( token_type_t::EMPTY, "", m_position, m_position );
     debug_token( result );
     return result;
@@ -542,7 +561,7 @@ namespace feature_isolation {
     std::optional<std::string> spl_name;
     std::optional<unsigned_integer> max_rank;
     unsigned_integer max_available_systems = 0;
-    unsigned_integer F = 0;
+    unsigned_integer F = 3;
     feature_names_t feature_names;
     unsigned_integer categories = feature_isolation::F; // Default value
     dependency_maps_t dependencies;                     // Temporary struct to hold dependency maps
