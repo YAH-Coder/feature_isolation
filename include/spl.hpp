@@ -34,7 +34,7 @@ namespace feature_isolation {
     const std::string SPECIFIED_MORE_THAN_ONCE = "{} specified more than once in file {}";
     const std::string EXPECTED_BUT_GOT = "Expected {} but got: {}";
     const std::string ERROR_READING = "Error occurred when reading {} in file {}";
-    const std::string DUPLICATE_FOUND = "Duplicate {} found in file {}: {} at line {}, column {}";
+    const std::string DUPLICATE_FOUND = "Duplicate {} found: {} at line {}, column {}";
     const std::string FAILED_TO = "Failed to {} {}: {}";
   } // namespace error_msgs
 
@@ -703,8 +703,8 @@ namespace feature_isolation {
 
     do {
       token = m_tokenizer.next();
-      if ( token.type() != token_type_t::KEYWORD ) {
-        error( error_msgs::UNEXPECTED, "category", token.value(), token.position_line(), token.position_column() );
+      if ( category_set.find( token.value() ) != category_set.end() ) {
+        error( error_msgs::DUPLICATE_FOUND, "category", token.value(), token.position_line(), token.position_column() );
       }
 
       std::string token_value = toupper( token.value() );
