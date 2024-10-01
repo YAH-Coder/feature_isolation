@@ -1,534 +1,429 @@
 /**
- * @mainpage Feature Isolation Mathematical Helper Functions
- * 
+ * @file fi_mathhelper.hpp
+ * @brief Provides mathematical helper functions and classes for feature isolation computations.
+ *
+ * @page fi_mathhelper Mathematical Helper Library
+ *
+ * @tableofcontents
+ *
  * @section introduction Introduction
  *
- * This library provides a robust set of mathematical functions and utilities, with a 
- * particular emphasis on safety and precision in integer calculations. It is designed
- * to be a helpful tool in applications where arithmetic errors would have significant 
- * consequences.
+ * The `fi_mathhelper.hpp` library offers a collection of mathematical functions and utilities
+ * essential for combinatorial computations and feature isolation tasks. It includes both
+ * checked and unchecked arithmetic operations, power functions, factorials, combinations,
+ * and a template class for generating combinations of elements.
  *
- * @section features Key Features
+* @section components Key Components
  *
- * * **Checked Arithmetic:** 
- *    -  Functions for addition, subtraction, and multiplication that rigorously check 
- *       for potential integer overflow and underflow.
- *    -  Throws `std::overflow_error` or `std::underflow_error` if calculations would
- *       produce invalid results. 
- *    -  Helps prevent silent, unexpected errors caused by exceeding the limits of
- *       integer representation.
- * * **Unchecked Arithmetic:** 
- *    -  Standard arithmetic operations without overflow/underflow checks.
- *    -  Prioritizes performance in scenarios where the developer can guarantee 
- *       error-free calculations or where the risk of overflow/underflow is negligible.
- * * **Power Calculations:**
- *    -  Efficiently calculates powers (base raised to an exponent).
- *    -  Includes a specialized function for calculating powers of 2. 
- * * **Factorials:**
- *    -  Computes factorials of non-negative integers.
- * * **Combinations:** 
- *    -  Calculates the number of combinations of k elements from a set of size n (C(n, k)).
- *    -  Calculates the sum of all the number of combinations of varying sizes up to k elements 
- *       (k = 0, 1, ..., k).
- * * **Combinations Generator:** 
- *    -  Class (`combinationT`) for iteratively generating all combinations of a given size 
- *       from a set of elements.
- * 
+ * - **Namespace `feature_isolation`:** Contains all mathematical helper functions and classes.
+ * - **Namespace `feature_isolation::checked_arithmetic`:** Provides arithmetic operations with overflow and underflow checks.
+ * - **Namespace `feature_isolation::unchecked_arithmetic`:** Provides arithmetic operations without overflow and underflow checks.
+ * - **Class `feature_isolation::combination_t`:** Template class for generating combinations of elements.
+ * - **Helper Functions:** Utility functions like `power`, `factorial`, `combinations`, and `to_unsigned_integer`.
+ *
  * @section usage Usage
  *
- * 1. **Include the header:**
- *    ```c
- *    #include <fi_mathhelper.hpp>
- *    ```
- * 2. **Choose the namespace:**
- *    ```c
- *    namespace arithmetic = feature_isolation::checked_arithmetic; // For safety 
- *    // OR
- *    namespace arithmetic = feature_isolation::unchecked_arithmetic; // For performance
- *    ```
- *
- * \note To use the unchecked namespace for advanced functions like power, power2, product, factorial, combinations, sum_of_combinations, define the macro `USE_UNCHECKED_ARITHMETIC`.    
- * 
- * 3. **Utilize the functions**
- *    ```c
- *    unsignedInteger safeResult = arithmetic::add(a, b); 
- *    unsignedInteger factorialValue = arithmetic::factorial(5);
- *    ```
+ * 1. Include the header:
+ * ```cpp
+ * #include "fi_mathhelper.hpp"
+ * ```
+ * 2. Select Arithmetic Mode (Optional):
+ *    Define `USE_UNCHECKED_ARITHMETIC` before including the header to use unchecked arithmetic.
+ * ```cpp
+ * #define USE_UNCHECKED_ARITHMETIC
+ * #include "fi_mathhelper.hpp"
+ * ```
+ * 3. Use the Functions:
+ * ```cpp
+ * feature_isolation::unsigned_integer result = feature_isolation::power(2, 10); // Computes 2^10
+ * ```
  *
  * @section example Example
  *
- * ```c
+ * **Checked Arithmetic Example:**
+ * ```cpp
  * #include <iostream>
  * #include "fi_mathhelper.hpp"
  *
  * int main() {
- *   using namespace feature_isolation::checked_arithmetic;
+ *   using namespace feature_isolation;
  *
  *   try {
- *       unsignedInteger result = multiply(1000000, 1000000);  
- *       std::cout << "Result: " << result << std::endl;
+ *     unsigned_integer max = std::numeric_limits<unsigned_integer>::max();
+ *     unsigned_integer result = arithmetic::add(max, 1); // Throws overflow_error
  *   } catch (const std::overflow_error& e) {
- *       std::cerr << "Overflow error: " << e.what() << std::endl;
+ *     std::cerr << "Error: " << e.what() << std::endl;
  *   }
+ *
  *   return 0;
  * }
  * ```
  *
- * **Customization:**
- * Control whether checked or unchecked operations are used by default through the `USE_UNCHECKED_ARITHMETIC` preprocessor macro.  
+ * **Unchecked Arithmetic Example:**
+ * ```cpp
+ * #include <iostream>
+ * #define USE_UNCHECKED_ARITHMETIC
+ * #include "fi_mathhelper.hpp"
+ *
+ * int main() {
+ *   using namespace feature_isolation;
+ *
+ *   unsigned_integer base = 5;
+ *   unsigned_integer exponent = 3;
+ *   unsigned_integer result = power(base, exponent); // Computes 5^3
+ *
+ *   std::cout << base << "^" << exponent << " = " << result << std::endl;
+ *
+ *   return 0;
+ * }
+ * ```
+ *
+ * **Combination Class Example:**
+ * ```cpp
+ * #include <iostream>
+ * #include <vector>
+ * #include "fi_mathhelper.hpp"
+ *
+ * int main() {
+ *   using namespace feature_isolation;
+ *
+ *   std::vector<char> symbols = {'A', 'B', 'C'};
+ *   combination<char> comb(symbols, 2);
+ *
+ *   do {
+ *     auto combo = comb();
+ *     for (char c : combo) {
+ *       std::cout << c << ' ';
+ *     }
+ *     std::cout << std::endl;
+ *   } while (comb.next());
+ *
+ *   return 0;
+ * }
+ * ```
+ *
+ * @section customization Customization
+ *
+ * - **Arithmetic Mode:**
+ *   - By default, the library uses checked arithmetic to prevent overflows and underflows.
+ *   - Define `USE_UNCHECKED_ARITHMETIC` before including the header to switch to unchecked arithmetic.
+ *
+ * @section notes Additional Notes
+ *
+ * - **Exception Handling:**
+ *   - In checked arithmetic mode, arithmetic functions throw `std::overflow_error` or `std::underflow_error` on errors.
+ * - **Template Class `combination<T>`:**
+ *   - Allows iteration over all combinations of a given size from a set of elements.
+ *   - Provides `next()` method to advance to the next combination.
+ * - **Bit Manipulation:**
+ *   - `to_unsigned_integer` function converts a `std::bitset` to an `unsigned_integer` for easier manipulation.
  */
 
-/**
- * @file fi_mathhelper.hpp
- * @brief This header provides mathematical helper functions, including 
- *        safe arithmetic operations, power calculations, factorials, 
- *        combinations, and a combinations generator class.
- * 
- * @details The header offers both checked and unchecked arithmetic 
- *          variants. Checked arithmetic includes overflow and underflow 
- *          detection, while unchecked provides standard operations.
- *
- * **Controlling Safe vs. Unsafe:**
- *  The choice between checked and unchecked operations is determined by a 
- *  preprocessor macro.  Define the macro `USE_UNCHECKED_ARITHMETIC` to 
- *  enable the less-safe unchecked operations.  By default, checked 
- *  operations are used.
- */
 
 /**
  * @namespace feature_isolation
- * @brief Provides utilities for safe and efficient mathematical operations.
+ * @brief Contains all mathematical helper functions and classes.
  *
- * This namespace contains facilities for:
- * - Checked and unchecked arithmetic operations to manage overflow/underflow.
- * - Common mathematical functions (factorial, combinations, etc.).
- * - A combinatorial generator class for symbol combinations.
+ * This namespace provides facilities for:
+ * - Arithmetic operations with checked and unchecked modes.
+ * - Mathematical functions like power, factorial, and combinations.
+ * - A template class for generating combinations.
+ * - Bit manipulation utilities.
  */
 
 /**
- * @var typedef feature_isolation::unsignedInteger
- * @brief A typedef for std::uintmax_t.
+ * @typedef feature_isolation::unsigned_integer
+ * @brief A typedef for the largest unsigned integer type (`std::uintmax_t`).
  */
 
 /**
- * @var constexpr unsignedInteger feature_isolation::zero
- * @brief A constexpr variable representing zero.
+ * @var feature_isolation::zero
+ * @brief Constant representing zero (`0` as `unsigned_integer`).
  */
 
 /**
- * @var constexpr unsignedInteger feature_isolation::one
- * @brief A constexpr variable representing one.
+ * @var feature_isolation::one
+ * @brief Constant representing one (`1` as `unsigned_integer`).
  */
 
 /**
- * @var constexpr unsignedInteger feature_isolation::two
- * @brief A constexpr variable representing two.
+ * @var feature_isolation::two
+ * @brief Constant representing two (`2` as `unsigned_integer`).
  */
 
 /**
  * @namespace feature_isolation::checked_arithmetic
  * @brief Provides arithmetic operations with overflow and underflow checks.
  *
- * This namespace offers a set of arithmetic operations designed for situations where the 
- * prevention of integer overflow and underflow is critical. Unlike standard arithmetic 
- * operators, the functions within this namespace rigorously check for potential overflow 
- * or underflow conditions before performing calculations. If a result would exceed the 
- * representable range of the `unsignedInteger` type, appropriate exceptions 
- * (`std::overflow_error` or `std::underflow_error`) are thrown. 
+ * Functions in this namespace throw exceptions if an overflow or underflow occurs.
  *
- * **Use Cases:**
- *   * Operations involving very large numbers or unpredictable inputs
- *   * Code where the consequences of arithmetic errors are severe
- *
- * **Design Considerations:**  
- *   * Prioritizes safety and correctness over raw performance.
- *   * Provides both in-place modification functions (e.g., `add_asign`) and functions
- *     that return new values (e.g., `add`).  
+ * **Exceptions:**
+ * - `std::overflow_error` on overflow.
+ * - `std::underflow_error` on underflow.
  */
 
 /**
- * @fn constexpr unsignedInteger feature_isolation::checked_arithmetic::add(unsignedInteger a, unsignedInteger b)
- * @brief Performs safe addition of two unsigned integers.
+ * @fn constexpr unsigned_integer feature_isolation::checked_arithmetic::add(unsigned_integer a, unsigned_integer b)
+ * @brief Safely adds two unsigned integers with overflow check.
  *
- * This function adds two unsigned integers in a safe manner. It checks for potential overflow before performing the addition. If an overflow is detected, it throws a `std::overflow_error` exception.
- *
- * @param a An unsigned integer to be added.
- * @param b An unsigned integer to be added.
- * 
- * @return The result of adding `a` and `b` if no overflow occurs.
- *
- * @throws std::overflow_error If the addition of `a` and `b` would result in an overflow.
+ * @param a First operand.
+ * @param b Second operand.
+ * @return The sum of `a` and `b`.
+ * @throws std::overflow_error if the result overflows.
  */
 
 /**
- * @fn constexpr unsignedInteger feature_isolation::checked_arithmetic::add_assign(unsignedInteger& a, unsignedInteger b)
- * @brief Performs safe addition and assignment of two unsigned integers.
+ * @fn constexpr unsigned_integer feature_isolation::checked_arithmetic::add_assign(unsigned_integer& a, unsigned_integer b)
+ * @brief Safely adds `b` to `a` with overflow check and assigns the result to `a`.
  *
- * This function adds an unsigned integer `b` to another unsigned integer `a` in a safe manner. 
- * It checks for potential overflow before performing the addition. If an overflow is detected, it throws a `std::overflow_error` exception. 
- * The result of the addition is then assigned to `a`.
- *
- * @param a A reference to an unsigned integer to which the result will be assigned.
- * @param b An unsigned integer to be added to `a`.
- * 
- * @return The result of adding `a` and `b` if no overflow occurs.
- *
- * @throws std::overflow_error If the addition of `a` and `b` would result in an overflow.
+ * @param a First operand (will be modified).
+ * @param b Second operand.
+ * @return The new value of `a`.
+ * @throws std::overflow_error if the result overflows.
  */
 
 /**
- * @fn constexpr unsignedInteger feature_isolation::checked_arithmetic::subtract(unsignedInteger a, unsignedInteger b)
- * @brief Performs safe subtraction of two unsigned integers.
+ * @fn constexpr unsigned_integer feature_isolation::checked_arithmetic::subtract(unsigned_integer a, unsigned_integer b)
+ * @brief Safely subtracts `b` from `a` with underflow check.
  *
- * This function subtracts an unsigned integer `b`from another unsigned integer `a` in a safe manner.
- * It checks for potential underflow before performing the subtraction. If an underflow is detected, it throws a `std::underflow_error` exception.
- * The result of the subtraction is then returned.
- *
- * @param a An unsigned integer from which the `b`will be subtracted.
- * @param b An unsigned integer to be subtracted from `a`.
- *
- * @return The result of subtracting `b` from `a` if no underflow occurs.
- *
- * @throws std::underflow_error If the subtraction of `a` and `b`would result in an underflow.
+ * @param a Minuend.
+ * @param b Subtrahend.
+ * @return The result of `a - b`.
+ * @throws std::underflow_error if the result underflows.
  */
 
 /**
- * @fn constexpr unsignedInteger feature_isolation::checked_arithmetic::subtract_asign(unsignedInteger& a, unsignedInteger b)
- * @brief Performs safe subtraction and assignment of two unsigned integers.
+ * @fn constexpr unsigned_integer feature_isolation::checked_arithmetic::subtract_assign(unsigned_integer& a, unsigned_integer b)
+ * @brief Safely subtracts `b` from `a` with underflow check and assigns the result to `a`.
  *
- * This function subtracts an unsigned integer `b`from another unsigned integer `a` in a safe manner.
- * It checks for potential underflow before performing the subtraction. If an underflow is detected, it throws a `std::underflow_error` exception.
- * The result of the subtraction is then assigned to `a`.
- *
- * @param a An unsigned integer from which the `b`will be subtracted.
- * @param b An unsigned integer to be subtracted from `a`.
- *
- * @return The result of subtracting `b` from `a` if no underflow occurs.
- *
- * @throws std::underflow_error If the subtraction of `a` and `b`would result in an underflow.
+ * @param a Minuend (will be modified).
+ * @param b Subtrahend.
+ * @return The new value of `a`.
+ * @throws std::underflow_error if the result underflows.
  */
 
 /**
- * @fn constexpr unsignedInteger feature_isolation::checked_arithmetic::subtract_asign_return(unsignedInteger& a, unsignedInteger b)
- * @brief Performs safe subtraction and assignment of two unsigned integers. Returns the original value of the first integer.
+ * @fn constexpr unsigned_integer feature_isolation::checked_arithmetic::subtract_assign_return(unsigned_integer& a, unsigned_integer b)
+ * @brief Safely subtracts `b` from `a`, assigns the result to `a`, and returns the original value of `a`.
  *
- * This function subtracts an unsigned integer `b`from another unsigned integer `a` in a safe manner.
- * It checks for potential underflow before performing the subtraction. If an underflow is detected, it throws a `std::underflow_error` exception.
- * The result of the subtraction is then assigned to `a` and the original value of `a` is returned.
- *
- * @param a An unsigned integer from which the `b`will be subtracted.
- * @param b An unsigned integer to be subtracted from `a`.
- *
- * @return The original value of `a` before the subtraction.
- *
- * @throws std::underflow_error If the subtraction of `a` and `b`would result in an underflow.
+ * @param a Minuend (will be modified).
+ * @param b Subtrahend.
+ * @return The original value of `a` before subtraction.
+ * @throws std::underflow_error if the result underflows.
  */
 
 /**
- * @fn constexpr unsignedInteger feature_isolation::checked_arithmetic::multiply(unsignedInteger a, unsignedInteger b)
- * @brief Performs safe multiplication of two unsigned integers.
+ * @fn constexpr unsigned_integer feature_isolation::checked_arithmetic::multiply(unsigned_integer a, unsigned_integer b)
+ * @brief Safely multiplies two unsigned integers with overflow check.
  *
- * This function multiplies two unsigned integers, `a` and `b` in a safe manner. 
- * It checks for potential overflow before performing the multiplication. If an overflow is detected, it throws a `std::overflow_error` exception. 
- * The result of the multiplication is then returned.
- *
- * @param a An unsigned integer factor.
- * @param b An unsigned integer factor.
- *
- * @return The result of multiplying `a` and `b`, if no overflow occurs.
- *
- * @throws std::overflow_error If the multiplication of `a` and `b` would result in an overflow.
+ * @param a First operand.
+ * @param b Second operand.
+ * @return The product of `a` and `b`.
+ * @throws std::overflow_error if the result overflows.
  */
 
 /**
- * @fn constexpr unsignedInteger feature_isolation::checked_arithmetic::multiply_asign(unsignedInteger& a, unsignedInteger b)
- * @brief Performs safe multiplication and assignment of two unsigned integers.
+ * @fn constexpr unsigned_integer feature_isolation::checked_arithmetic::multiply_assign(unsigned_integer& a, unsigned_integer b)
+ * @brief Safely multiplies `a` by `b` with overflow check and assigns the result to `a`.
  *
- * This function multiplies two unsigned integers, `a` and `b` in a safe manner. 
- * It checks for potential overflow before performing the multiplication. If an overflow is detected, it throws a `std::overflow_error` exception. 
- * The result of the multiplication is then assigned to `a`.
- *
- * @param a An unsigned integer factor.
- * @param b An unsigned integer factor.
- *
- * @return The result of multiplying `a` and `b`, if no overflow occurs.
- *
- * @throws std::overflow_error If the multiplication of `a` and `b` would result in an overflow.
+ * @param a First operand (will be modified).
+ * @param b Second operand.
+ * @return The new value of `a`.
+ * @throws std::overflow_error if the result overflows.
  */
 
 /**
  * @namespace feature_isolation::unchecked_arithmetic
- * @brief Provides arithmetic operations without overflow or underflow checks. 
+ * @brief Provides arithmetic operations without overflow and underflow checks.
  *
- * This namespace offers a set of arithmetic operations that mirror the standard C++ 
- * arithmetic behavior. It does not incorporate overflow or underflow checks. 
- * Consequently, these operations might lead to silent wrapping of results if integer 
- * overflow or underflow occurs.
- *
- * **Use Cases:**
- *  * Performance-critical sections where the developer can guarantee the absence 
- *    of overflow/underflow.
- *  * Code where the potential for overflow or underflow is known to be negligible.
- *
- * **Design Considerations:**
- *  * Prioritizes raw performance over safety.
- *  * Provides both in-place modification functions (e.g., `add_asign`) and functions
- *    that return new values (e.g., `add`). 
+ * Functions in this namespace perform faster computations but do not check for overflows or underflows.
  */
 
 /**
- * @fn constexpr unsignedInteger feature_isolation::unchecked_arithmetic::add(unsignedInteger a, unsignedInteger b)
- * @brief Performs standard addition of two unsigned integers.
+ * @fn constexpr unsigned_integer feature_isolation::unchecked_arithmetic::add(unsigned_integer a, unsigned_integer b)
+ * @brief Adds two unsigned integers without overflow check.
  *
- * This function adds two unsigned integers.
- *
- * @param a An unsigned integer to be added.
- * @param b An unsigned integer to be added.
- * 
- * @return The result of adding `a` and `b`.
+ * @param a First operand.
+ * @param b Second operand.
+ * @return The sum of `a` and `b`.
  */
 
 /**
- * @fn constexpr unsignedInteger feature_isolation::unchecked_arithmetic::add_asign(unsignedInteger& a, unsignedInteger b)
- * @brief Performs addition and assignment of two unsigned integers.
+ * @fn constexpr unsigned_integer feature_isolation::unchecked_arithmetic::add_assign(unsigned_integer& a, unsigned_integer b)
+ * @brief Adds `b` to `a` without overflow check and assigns the result to `a`.
  *
- * This function adds an unsigned integer `b` to another unsigned integer `a`. 
- * The result of the addition is assigned to `a`.
- *
- * @param a A reference to an unsigned integer to which the result will be assigned.
- * @param b An unsigned integer to be added to `a`.
- * 
- * @return The result of adding `a` and `b`.
+ * @param a First operand (will be modified).
+ * @param b Second operand.
+ * @return The new value of `a`.
  */
 
 /**
- * @fn constexpr unsignedInteger feature_isolation::unchecked_arithmetic::subtract(unsignedInteger a, unsignedInteger b)
- * @brief Performs standard subtraction of two unsigned integers.
+ * @fn constexpr unsigned_integer feature_isolation::unchecked_arithmetic::subtract(unsigned_integer a, unsigned_integer b)
+ * @brief Subtracts `b` from `a` without underflow check.
  *
- * This function subtracts an unsigned integer `b` from another unsigned integer `a`. 
- *
- * @param a An unsigned integer from which `b` will be subtracted.
- * @param b An unsigned integer to be subtracted from `a`.
- *
- * @return The result of subtracting `b` from `a`.
+ * @param a Minuend.
+ * @param b Subtrahend.
+ * @return The result of `a - b`.
  */
 
 /**
- * @fn constexpr unsignedInteger feature_isolation::unchecked_arithmetic::subtract_asign(unsignedInteger& a, unsignedInteger b)
- * @brief Performs subtraction and assignment of two unsigned integers.
+ * @fn constexpr unsigned_integer feature_isolation::unchecked_arithmetic::subtract_assign(unsigned_integer& a, unsigned_integer b)
+ * @brief Subtracts `b` from `a` without underflow check and assigns the result to `a`.
  *
- * This function subtracts an unsigned integer `b` from another unsigned integer `a`. 
- * The result of the subtraction is assigned to `a`.
- *
- * @param a A reference to an unsigned integer from which `b` will be subtracted.
- * @param b An unsigned integer to be subtracted from `a`.
- *
- * @return The result of subtracting `b` from `a`.
+ * @param a Minuend (will be modified).
+ * @param b Subtrahend.
+ * @return The new value of `a`.
  */
 
 /**
- * @fn constexpr unsignedInteger feature_isolation::unchecked_arithmetic::subtract_asign_return(unsignedInteger& a, unsignedInteger b)
- * @brief Performs subtraction and assignment of two unsigned integers. Returns the original value of the first integer.
+ * @fn constexpr unsigned_integer feature_isolation::unchecked_arithmetic::subtract_assign_return(unsigned_integer& a, unsigned_integer b)
+ * @brief Subtracts `b` from `a`, assigns the result to `a`, and returns the original value of `a`.
  *
- * This function subtracts an unsigned integer `b` from another unsigned integer `a`.
- * The result of the subtraction is assigned to `a` and the original value of `a` is returned.
- *
- * @param a A reference to an unsigned integer from which `b` will be subtracted.
- * @param b An unsigned integer to be subtracted from `a`.
- *
- * @return The original value of `a`  before the subtraction.
+ * @param a Minuend (will be modified).
+ * @param b Subtrahend.
+ * @return The original value of `a` before subtraction.
  */
 
 /**
- * @fn constexpr unsignedInteger feature_isolation::unchecked_arithmetic::multiply(unsignedInteger a, unsignedInteger b)
- * @brief Performs standard multiplication of two unsigned integers.
+ * @fn constexpr unsigned_integer feature_isolation::unchecked_arithmetic::multiply(unsigned_integer a, unsigned_integer b)
+ * @brief Multiplies two unsigned integers without overflow check.
  *
- * This function multiplies two unsigned integers, `a` and `b`.
- *
- * @param a An unsigned integer factor.
- * @param b An unsigned integer factor.
- *
- * @return The result of multiplying `a` and `b`.
+ * @param a First operand.
+ * @param b Second operand.
+ * @return The product of `a` and `b`.
  */
 
 /**
- * @fn constexpr unsignedInteger feature_isolation::unchecked_arithmetic::multiply_asign(unsignedInteger& a, unsignedInteger b)
- * @brief Performs multiplication and assignment of two unsigned integers.
+ * @fn constexpr unsigned_integer feature_isolation::unchecked_arithmetic::multiply_assign(unsigned_integer& a, unsigned_integer b)
+ * @brief Multiplies `a` by `b` without overflow check and assigns the result to `a`.
  *
- * This function multiplies two unsigned integers, `a` and `b`.
- * The result of the multiplication is then assigned to `a`.
- *
- * @param a A reference to an unsigned integer to which the result will be assigned.
- * @param b An unsigned integer to be multiplied to `a`.
- *
- * @return The result of multiplying `a` and `b`.
+ * @param a First operand (will be modified).
+ * @param b Second operand.
+ * @return The new value of `a`.
  */
 
 /**
- * @fn constexpr unsignedInteger feature_isolation::power(unsignedInteger base, unsignedInteger exponent)
- * @brief Calculates the result of raising a base to a given exponent.
+ * @namespace feature_isolation::arithmetic
+ * @brief Alias for either `checked_arithmetic` or `unchecked_arithmetic` based on compilation flags.
  *
- * This function calculates the value of `base` raised to the power of `exponent`.
- * For efficiency, it uses an iterative squaring approach.
+ * - If `USE_UNCHECKED_ARITHMETIC` is defined, `arithmetic` refers to `unchecked_arithmetic`.
+ * - Otherwise, it refers to `checked_arithmetic`.
+ */
+
+/**
+ * @fn constexpr unsigned_integer feature_isolation::power(unsigned_integer base, unsigned_integer exponent)
+ * @brief Computes the power of a base raised to an exponent.
  *
- * @param base The base value.
- * @param exponent The exponent value.
- *
+ * @param base The base number.
+ * @param exponent The exponent.
  * @return The result of `base` raised to the power of `exponent`.
+ * @throws std::overflow_error if an overflow occurs in checked arithmetic mode.
  */
 
 /**
- * @fn constexpr unsignedInteger feature_isolation::power2(unsignedInteger exponent)
- * @brief Calculates 2 raised to the given exponent.
+ * @fn constexpr unsigned_integer feature_isolation::power2(unsigned_integer exponent)
+ * @brief Computes 2 raised to the given exponent.
  *
- * This function calculates the value of 2 raised to the power of `exponent`.
- * It is a convenience function that simplifies calculating powers of two.
- *
- * @param exponent The exponent value.
- * 
- * @return 2 raised to the power of `exponent`.
+ * @param exponent The exponent.
+ * @return The result of `2` raised to the power of `exponent`.
+ * @throws std::overflow_error if an overflow occurs in checked arithmetic mode.
  */
 
 /**
- * @fn constexpr unsignedInteger feature_isolation::product(unsignedInteger from, unsignedInteger to)
- * @brief Calculates the product of a range of unsigned integers.
+ * @fn constexpr unsigned_integer feature_isolation::product(unsigned_integer from, unsigned_integer to)
+ * @brief Computes the product of all integers in the range `[from, to]`.
  *
- * This function calculates the product of all unsigned integers in the inclusive range 
- * from `from` to `to`.  Handles edge cases, returns zero if the range is empty `from == zero`
- * or `to == zero`, or if `from > to`.
- *
- * @param from The starting value of the range (inclusive).
- * @param to The ending value of the range (inclusive).
- *
- * @return The product of all integers from `from` to `to`, or 0 for invalid ranges.
+ * @param from The starting integer.
+ * @param to The ending integer.
+ * @return The product of integers from `from` to `to`.
+ * @throws std::overflow_error if an overflow occurs in checked arithmetic mode.
  */
 
 /**
- * @fn constexpr unsignedInteger feature_isolation::factorial(unsignedInteger n)
- * @brief Calculates the factorial of an unsigned integer.
+ * @fn constexpr unsigned_integer feature_isolation::factorial(unsigned_integer n)
+ * @brief Computes the factorial of `n`.
  *
- * This function calculates the factorial of the non-negative integer `n`. 
- * The factorial is defined as the product of all integers from 1 to `n`.  
- * For n = 0, the function returns 1.
- *
- * @param n The number for which to calculate the factorial.
- *
- * @return The factorial of `n` (n!).
+ * @param n The number to compute the factorial of.
+ * @return The factorial of `n`.
+ * @throws std::overflow_error if an overflow occurs in checked arithmetic mode.
  */
 
 /**
- * @fn constexpr unsignedInteger feature_isolation::combinations(unsignedInteger n, unsignedInteger k)
- * @brief Calculates the number of combinations of k elements from a set of n elements.
- * 
- * This function calculates the number of ways to choose `k` elements from a set of `n` 
- * elements, without regard to order.  Also known as "n choose k", often written C(n, k).
+ * @fn constexpr unsigned_integer feature_isolation::combinations(unsigned_integer n, unsigned_integer k)
+ * @brief Computes the number of combinations (n choose k).
  *
- * @param n The size of the set.
- * @param k The number of elements to choose.
- *
- * @return The number of combinations of `k` elements from a set of size `n`.  Returns 1 if
- *         `k` == 0 or `k` == `n`.
+ * @param n The total number of items.
+ * @param k The number of items to choose.
+ * @return The number of combinations.
+ * @throws std::overflow_error if an overflow occurs in checked arithmetic mode.
  */
 
 /**
- * @fn constexpr unsignedInteger feature_isolation::sum_of_combinations(unsignedInteger n, unsignedInteger k)
- * @brief Calculates the sum of the number of combinations for all sizes from 0 to k from a set of n elements.
- * 
- * This function calculates the sum of C(n, 0) + C(n, 1) + ... + C(n, k).
+ * @fn constexpr unsigned_integer feature_isolation::sum_of_combinations(unsigned_integer n, unsigned_integer lower_k, unsigned_integer upper_k)
+ * @brief Computes the sum of combinations from `lower_k` to `upper_k`.
  *
- * @param n The size of the set.
- * @param k The maximum limit for the number of elements to select.
- *
- * @return The sum of the number of combinations for all sizes from 0 to k from a set of size `n`.
- */ 
+ * @param n The total number of items.
+ * @param lower_k The lower bound for `k`.
+ * @param upper_k The upper bound for `k`.
+ * @return The sum of combinations from `lower_k` to `upper_k`.
+ * @throws std::overflow_error if an overflow occurs in checked arithmetic mode.
+ */
 
 /**
- * @class feature_isolation::combinationT 
- * @brief A class for generating combinations of elements from a vector.
+ * @fn constexpr unsigned_integer feature_isolation::sum_of_combinations(unsigned_integer n, unsigned_integer k)
+ * @brief Computes the sum of combinations from `0` to `k`.
+ *
+ * @param n The total number of items.
+ * @param k The upper bound for `k`.
+ * @return The sum of combinations from `0` to `k`.
+ * @throws std::overflow_error if an overflow occurs in checked arithmetic mode.
+ */
+
+/**
+ * @class feature_isolation::combination_t
+ * @brief Template class for generating combinations of elements.
+ *
+ * @tparam T The type of elements in the combinations.
  *
  * @details
- * This class provides an efficient way to iterate over all possible combinations of a 
- * given size (`k`) from a set of elements provided as a vector. The combinations are 
- * generated in an iterative manner. It ensures that the input vector remains unmodified
- * during the combination generation.
+ * The `combination` class generates all possible combinations of a specified size (`k`)
+ * from a given set of elements (`symbols`). It provides methods to initialize the state,
+ * advance to the next combination, and retrieve the current combination.
  *
- * @tparam T The type of the elements in the input vector.
+ * **Constructor:**
+ * ```cpp
+ * combination(const std::vector<T> symbols, std::size_t k);
+ * ```
+ * - `symbols`: The set of elements to combine.
+ * - `k`: The size of each combination.
  *
- * @section example_usage Example Usage
- * @code{.cpp}
+ * **Member Functions:**
+ * - `void initialize()`: Initializes the combination generator.
+ * - `std::size_t k() const`: Returns the combination size.
+ * - `bool next()`: Advances to the next combination. Returns `false` if there are no more combinations.
+ * - `std::vector<T> operator()() const`: Retrieves the current combination.
  *
- * int main() {
- *   std::vector<char> symbols = {'A', 'B', 'C'};
- *   feature_isolation::combinationT<char> combinationsGenerator(symbols, 2); // Combinations of size 2
+ * **Example:**
+ * ```cpp
+ * std::vector<char> elements = {'A', 'B', 'C'};
+ * combination<char> comb(elements, 2);
  *
- *   while (combinationsGenerator.next()) { 
- *       std::vector<char> currentCombination = combinationsGenerator();
- *       for (char c : currentCombination) {
- *            std::cout << c << " ";
- *       }
- *       std::cout << std::endl;
- *   }
- *   return 0;
- * }
- * @endcode
+ * do {
+ *   auto combo = comb();
+ *   // Process combo
+ * } while (comb.next());
+ * ```
  */
 
 /**
- * @fn template <class T> feature_isolation::combinationT<T>::combinationT(const std::vector<T> symbols, std::size_t k)
- * @brief Constructor for the combinationT class.
+ * @fn unsigned_integer feature_isolation::to_unsigned_integer(const std::bitset<N>& bits)
+ * @brief Converts a `std::bitset` to an `unsigned_integer`.
  *
- * Initializes the combination generator with a set of elements and the desired 
- * combination size.
+ * @tparam N The number of bits in the `std::bitset`.
+ * @param bits The `std::bitset` to convert.
+ * @return An `unsigned_integer` representation of the bitset.
  *
- * @param symbols A vector containing the elements to generate combinations from.
- * @param k The size of each combination.
- *
- * @throws std::logic_error If `k` is greater than the size of the `symbols` vector,
- *          which violates the condition n >= k for combinations.
+ * @note
+ * - The function uses static assertion to ensure `N` does not exceed the size of `unsigned_integer`.
+ * - Useful for converting bit patterns to integer values.
  */
-
-/**
- * @fn template <class T> void feature_isolation::combinationT<T>::initialize()
- * @brief Initializes the internal state of the combination generator.
- *
- * Sets up the initial combination state to facilitate generation.
- */
-
-/**
- * @fn template <class T> std::size_t feature_isolation::combinationT<T>::k() const
- * @brief Retrieves the size of the generated combinations.
- * 
- * @return The size (`k`) of the combinations generated by this object.
- */
-
-/**
- * @fn template <class T> bool feature_isolation::combinationT<T>::next()
- * @brief Progresses to the next combination in the sequence.
- *
- * Updates the internal state of the generator to represent the next combination.
- *
- * @return `true` if a new combination was generated, `false` if all combinations 
- *         have been exhausted.
- */
-
-/**
- * @fn template <class T> std::vector<T> feature_isolation::combinationT<T>::operator()() const
- * @brief Accessor for the current combination.
- *
- * @return A vector containing the elements of the current combination. 
- *         The vector represents a copy of the internal state.
- */
-
-/**
- * @fn template <unsignedInteger N> unsignedInteger feature_isolation::to_unsignedInteger(const std::bitset<N>& bits)
- * @brief Interprets the contents of a std::bitset as an unsigned integer.
- *
- * This function takes a `std::bitset` of fixed size `N` and interprets its contents as a binary number, converting that representation into an unsigned integer value.
- *
- * @param bs The `std::bitset` whose contents are to be interpreted.
- *
- * @return The corresponding unsigned integer value.
- *
- * @pre The size `N` of the bitset must fit within the byte width of the 
- *      target `unsignedInteger` type. A `static_assert` ensures this at compile time.
- */ 
