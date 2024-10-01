@@ -1,0 +1,176 @@
+/**
+ * @mainpage Feature Isolation Project
+ *
+ * @section intro_sec Introduction
+ *
+ * The Feature Isolation Project provides tools for analyzing and isolating features within
+ * Software Product Lines (SPLs) using set theory concepts. It allows for parsing SPL specifications,
+ * analyzing features across systems, and performing feature isolation to identify minimal sets of
+ * features that differentiate systems.
+ *
+ * @section background_sec Background
+ *
+ * This project is based on the scientific paper:
+ *
+ * **Ulrich Eisenecker and Richard Müller**:
+ * *Software Product Lines and Features from the Perspective of Set Theory with an Application to Feature Location*.
+ *
+ * The full paper can be accessed at: [https://doi.org/10.1016/j.jss.2023.111938](https://doi.org/10.1016/j.jss.2023.111938)
+ *
+ * The paper presents a formal approach to modeling features and systems in SPLs using set theory.
+ * It introduces concepts such as feature identifiers (FIDs), system identifiers (SIDs), and defines
+ * operations for feature isolation using set difference, intersection, and union.
+ *
+ * The project implements these concepts, providing a practical toolset for feature analysis and isolation.
+ *
+ * @section components_sec Components
+ *
+ * The project consists of the following main components:
+ *
+ * - [Mathematical Helper Functions](\ref fi_mathhelper)
+ *   - Provides safe arithmetic operations, combinatorial calculations, and utility functions.
+ * - [Feature Analysis System](\ref feature_analysis)
+ *   - Defines classes and functions for generating and analyzing features across systems.
+ * - [SPL Specification Parser](\ref spl_parser)
+ *   - Parses and processes SPL specification files, handling features, categories, dependencies, and systems.
+ * - [Feature Isolation Analysis](\ref feature_isolation)
+ *   - Performs feature isolation analysis using SPL specifications and feature analysis results.
+ *
+ * @section usage_sec Usage
+ *
+ * 1. **Include the desired headers in your application:**
+ *    ```cpp
+ *    #include "fi_mathhelper.hpp"
+ *    #include "feature_analysis.hpp"
+ *    #include "spl.hpp"
+ *    #include "isolation.hpp"
+ *    ```
+ *
+ * 2. **Parse an SPL Specification:**
+ *    ```cpp
+ *    feature_isolation::spl_processor_t processor("spl_specification.csv");
+ *    auto spec = processor.get_specification();
+ *    ```
+ *
+ * 3. **Perform Feature Analysis:**
+ *    ```cpp
+ *    feature_isolation::feature_analysis_t analysis(spec.m_F, spec.m_max_rank, spec.m_categories);
+ *    ```
+ *
+ * 4. **Perform Feature Isolation:**
+ *    ```cpp
+ *    feature_isolation::feature_isolation_t isolation("spl_specification.csv");
+ *    isolation.print(std::cout);
+ *    ```
+ *
+ * @section dsl_sec SPL Specification Language
+ *
+ * The SPL specification is defined using a domain-specific language (DSL). The key elements of the DSL are:
+ *
+ * - **Token Types:**
+ *   - **Comment:** Begins with `//` and must be followed by whitespace. Extends to the end of the line.
+ *   - **Keyword:** Reserved words used to define sections (e.g., `SPL`, `FEATURES`, `CATEGORIES`). Keywords are not case-sensitive and should not be used as feature names.
+ *   - **Name:** A sequence of non-whitespace characters used as identifiers for features.
+ *   - **Value:** Numeric values for counts and identifiers.
+ *
+ * - **Keywords:**
+ *   - `A`, `AN`, `ANF`, `AVAILABLE_SYSTEMS`, `CATEGORIES`, `END`, `EXCLUDES_ALL`, `EXPLICIT_DEPENDENCIES`, `F`, `FEATURES`, `MAX_RANK`, `MISSING_SYSTEMS`, `N`, `O`, `ON`, `ONF`, `REQUIRES_ALL`, `REQUIRES_ANY`, `REQUIRES_ONE`, `ROOT`, `SPL`
+ *   - Keywords must be terminated with whitespace.
+ *
+ * - **Sections:**
+ *   - **`SPL`:** Specifies the name of the software product line (optional).
+ *   - **`FEATURES`:** Specifies the number of independent features (`F`) followed by their names. This section is mandatory.
+ *   - **`CATEGORIES`:** Specifies which feature categories to include in the analysis. Valid category names are `F`, `A`, `O`, `N`, `AN`, `ON`, `ANF`, and `ONF`. If not specified, only `F` (Fundamental features) is included.
+ *   - **`EXPLICIT_DEPENDENCIES`:** Defines dependencies between features. The dependencies are `REQUIRES_ALL`, `REQUIRES_ANY`, `REQUIRES_ONE`, and `EXCLUDES_ALL`. The special feature `ROOT` represents a conceptual feature present in every system.
+ *   - **`MISSING_SYSTEMS`:** Specifies systems that are not available (optional). Must occur after `FEATURES`.
+ *   - **`AVAILABLE_SYSTEMS`:** Specifies systems that are available (optional). Must occur after `FEATURES`.
+ *   - Each section must be concluded with the keyword `END` where applicable.
+ *
+ * - **Dependencies Syntax:**
+ *   ```plaintext
+ *   feature_name DEPENDENCY_TYPE list_of_feature_names END
+ *   ```
+ *   - **Examples:**
+ *     - `ROOT REQUIRES_ALL F1 F2 F3 END`: Defines `F1`, `F2`, and `F3` as core features present in every system.
+ *     - `F4 REQUIRES_ONE F5 F6 END`: `F4` requires either `F5` or `F6`, but not both.
+ *     - `F7 EXCLUDES_ALL F8 F9 END`: The presence of `F7` excludes `F8` and `F9`.
+ *
+ * @section isolation_sec Feature Isolation
+ *
+ * Feature isolation identifies minimal sets of features that distinguish systems containing a specific feature from those that do not. It is based on set theory operations applied to features and systems.
+ *
+ * **Key Concepts:**
+ *
+ * - **Feature Identifiers (FIDs):** Unique IDs assigned to features.
+ * - **System Identifiers (SIDs):** Unique IDs assigned to systems.
+ * - **Set Operations:**
+ *   - **Flattening:** Replacing each system description with the set of its FIDs.
+ *   - **Intersection (⋂):** Used to find common features across systems.
+ *   - **Union (⋃):** Used to combine features from multiple systems.
+ *   - **Set Difference (∖):** Used to isolate features present in some systems but not in others.
+ *
+ * **Isolation Process:**
+ *
+ * 1. **Identify Sets:**
+ *    - **I:** Set of SIDs of systems that include the feature (\f$ \text{FID}_i \f$).
+ *    - **U:** Set of SIDs of systems that do not include the feature (\f$ \text{FID}_i \f$).
+ *
+ * 2. **Compute Flattened Sets:**
+ *    - **Flatten I by intersection:** \f$ \widehat{I} = \bigcap I \f$
+ *    - **Flatten U by union:** \f$ \widetilde{U} = \bigcup U \f$
+ *    - **Isolation Result:** \f$ \overline{D} = \widehat{I} \setminus \widetilde{U} \f$
+ *
+ * 3. **Evaluate Isolation Result:**
+ *    - \f$ \overline{D} \f$ must not be empty; an empty set indicates an error.
+ *    - If \f$ \overline{D} \f$ contains exactly one element, it should be \f$ \text{FID}_i \f$.
+ *    - If \f$ \overline{D} \f$ contains multiple elements, one of them must be \f$ \text{FID}_i \f$.
+ *
+ * 4. **Analyze Minimal Differences:**
+ *    - **Minimal Set Differences:** Find minimal subsets of \f$ I \f$ and \f$ U \f$ that result in the same isolation (\f$ \overline{D} \f$).
+ *    - **Definition of Minimality:**
+ *      - A set difference \f$ D = I_S \setminus U_S \f$ is minimal if no proper subset of \f$ D \f$ results in \f$ \overline{D} \f$.
+ *      - \f$ M \f$ represents all minimal set differences.
+ *
+ * **Mathematical Definitions:**
+ *
+ * \f[
+ * D = I \setminus U
+ * \f]
+ *
+ * \f[
+ * \overline{D} = \widehat{I} \setminus \widetilde{U}
+ * \f]
+ *
+ * \f[
+ * I_S \subseteq I,\quad U_S \subseteq U
+ * \f]
+ *
+ * \f[
+ * D_S \subset D \quad \text{where } D_S = I_S \setminus U_S
+ * \f]
+ *
+ * A minimal \f$ D \f$ satisfies:
+ *
+ * \f[
+ * \forall D_S \in \{ P(D) \setminus D \},\quad \text{if } \overline{D_S} \neq \overline{D}
+ * \f]
+ *
+ * \f[
+ * M = \{ D \mid D \text{ is minimal} \}
+ * \f]
+ * @section references_sec References
+ *
+ * - Ulrich Eisenecker and Richard Müller, *Software Product Lines and Features from the Perspective of Set Theory with an Application to Feature Location*. [https://doi.org/10.1016/j.jss.2023.111938](https://doi.org/10.1016/j.jss.2023.111938)
+ *
+ * @section notes_sec Additional Notes
+ *
+ * - The project uses the Z3 SMT solver to validate feature dependencies and system constraints.
+ * - The SPL specification language allows for flexible definitions of features and their relationships.
+ * - The feature isolation analysis can help in feature location tasks and understanding feature interactions.
+ * - The domain-specific language (DSL) for SPL specifications is designed to be both expressive and precise, enabling detailed modeling of feature interactions and constraints.
+ *
+ * @section acknowledgements_sec Acknowledgements
+ *
+ * This project was developed based on the concepts and methodologies presented by Ulrich Eisenecker and Richard Müller.
+ *
+ */

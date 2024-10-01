@@ -1,10 +1,20 @@
-PROJECT_NAME           = "Mathematical helper functions for feature isolation"
-PROJECT_NUMBER         = 
-PROJECT_BRIEF          = "Library for safe arithmetic and mathematical helper functions"
+PROJECT_NAME           = Feature Isolation Project
+PROJECT_NUMBER         =
+PROJECT_BRIEF          = Analyzing and isolating features within Software Product Lines (SPLs)
 OUTPUT_DIRECTORY       = docs
-INPUT                  = include/fi_mathhelper.hpp include/fi_mathhelper.dox
+INPUT                  = include/mainpage.dox \
+                         include/fi_mathhelper.hpp \
+                         include/fi_mathhelper.dox \
+                         include/feature_analysis.hpp \
+                         include/feature_analysis.dox \
+                         include/spl.hpp \
+                         include/spl.dox \
+                         include/isolation.hpp \
+                         include/isolation.dox
 RECURSIVE              = NO
 GENERATE_LATEX         = NO
+GENERATE_HTML          = YES
+USE_MATHJAX            = YES
 HAVE_DOT               = YES
 CALL_GRAPH             = YES
 CALLER_GRAPH           = YES

@@ -1,0 +1,605 @@
+/**
+ * @file isolation.hpp
+ * @brief Provides classes and functions for feature isolation analysis across systems.
+ *
+ * @page feature_isolation Feature Isolation Analysis
+ *
+ * @section introduction Introduction
+ *
+ * The `isolation.hpp` library offers tools for analyzing and isolating features across different systems
+ * based on their presence or absence. It builds upon the feature analysis provided by `feature_analysis.hpp`
+ * and incorporates the SPL specifications parsed from `spl.hpp`. The main objective is to determine minimal
+ * sets of features that distinguish systems where a particular feature is present from those where it is absent.
+ *
+ * This library provides:
+ * - Methods to partition systems based on feature presence.
+ * - Functions to compute minimal and some differences that isolate a feature.
+ * - Utilities to flatten feature sets by intersection or union across systems.
+ * - Customizable output functions to present the isolation results.
+ *
+ * @section components Key Components
+ *
+ * - **Namespace `feature_isolation`:** Contains all classes and functions related to feature isolation analysis.
+ * - **Class `feature_isolation_t`:** Main class that performs feature isolation computations.
+ * - **Struct `difference_t`:** Represents the difference in features between two sets of systems.
+ * - **Struct `isolation_result_t`:** Holds the result of the isolation analysis, including features and differences.
+ * - **Helper Functions and Operators:**
+ *   - `to_vector`, `to_set`: Utility functions for container conversions.
+ *   - `subset`, `proper_subset`: Functions to determine subset relations.
+ *   - Overloaded operators for `difference_t` and feature manipulation.
+ *
+ * @section usage Usage
+ *
+ * 1. **Include the header:**
+ *    ```cpp
+ *    #include "isolation.hpp"
+ *    ```
+ * 2. **Create an instance of `feature_isolation_t`:**
+ *    ```cpp
+ *    feature_isolation::feature_isolation_t isolation("path/to/spl_file.csv");
+ *    ```
+ * 3. **Perform isolation analysis for a specific feature and output results:**
+ *    ```cpp
+ *    feature_isolation::unsigned_integer feature_id = 1; // Specify the feature ID to analyze
+ *    isolation.print(std::cout, feature_id);
+ *    ```
+ *
+ * @section example Example
+ *
+ * ```cpp
+ * #include <iostream>
+ * #include "isolation.hpp"
+ *
+ * int main() {
+ *   using namespace feature_isolation;
+ *
+ *   // Create a feature isolation object using an SPL specification file
+ *   feature_isolation_t isolation("example.csv");
+ *
+ *   // Perform isolation analysis for a specific feature
+ *   unsigned_integer feature_id = 1; // Assuming feature IDs start from 1
+ *   isolation.print(std::cout, feature_id);
+ *
+ *   // Alternatively, analyze and print isolation results for all features
+ *   isolation.print(std::cout);
+ *
+ *   return 0;
+ * }
+ * ```
+ *
+ * @section sample_output Sample Output
+ *
+ * After running the example code, you would get something like the following output:
+ *
+ * ```
+ * 1	Logging	{ 1 }	{ 2 & 4 & 6 & 8 } \ { 1 | 3 | 5 }
+ * FEATURE ID	FEATURE NAME	ISOLATION RESULT	SOME DIFFERENCE	
+ * 1	Logging	{ 1 }	{ 2 & 4 & 6 & 8 } \ { 1 | 3 | 5 }	
+ * 2	Checked	{ 2 }	{ 3 & 4 & 7 & 8 } \ { 1 | 2 | 5 }	
+ * 3	Iterative	{ 3 }	{ 5 & 6 & 7 & 8 } \ { 1 | 2 | 3 }	
+ * 4	!Logging	{ 4 }	{ 1 & 3 & 5 & 7 } \ { 2 | 4 }	
+ * 5	!Checked	{ 5 }	{ 1 & 2 & 5 & 6 } \ { 3 | 4 }	
+ * ...	
+ * ```
+ *
+ * @section notes Notes
+ *
+ *  **Interpreting the Output:**
+ *   - Each row represents a feature along with its isolation result.
+ *   - **FEATURE ID:** The unique identifier of the feature.
+ *   - **FEATURE NAME:** The name or expression representing the feature.
+ *   - **ISOLATION RESULT:** A set of feature IDs that isolate the specified feature.
+ *   - **SOME DIFFERENCE:** Shows the minimal differences between systems where the feature is present and absent.
+ *
+ *  **Symbols Used:**
+ *   - `{ }`: Denotes a set of features or systems.
+ *   - `&`: Logical AND operation between system IDs.
+ *   - `|`: Logical OR operation between system IDs.
+ *   - `\`: Set difference operation.
+ *
+ * @section customization Customization
+ *
+ *  **Analyzing All Features:**
+ *   - To analyze and print isolation results for all features, simply call `isolation.print(std::cout);`.
+ *  **Controlling Output Details:**
+ *   - The `print` function has parameters to control whether all minimal differences are shown.
+ *     - `all_differences`: Set to `true` to display all minimal differences.
+ *     - `feature_names`: Set to `true` to display feature names instead of IDs.
+ *     ```cpp
+ *     isolation.print(std::cout, feature_id, true, true); // Show all minimal differences with feature names
+ *     ```
+ * **Integration with SPL Specifications:**
+ *   - Ensure that the SPL file provided contains the necessary feature definitions and system specifications for accurate analysis.
+ */
+
+/**
+ * @namespace feature_isolation
+ * @brief Contains all classes and functions related to feature isolation analysis.
+ *
+ * This namespace provides facilities for:
+ * - Performing feature isolation analysis using SPL specifications.
+ * - Identifying minimal sets of features that differentiate systems.
+ * - Outputting analysis results in a structured format.
+ */
+
+/// @cond DOXYGEN_SUPPRESS  // Suppress internal details from Doxygen
+// Include guards, includes, and other internal details are omitted in documentation.
+/// @endcond
+
+/**
+ * @struct feature_isolation::difference_t
+ * @brief Represents the difference in features between two sets of systems.
+ *
+ * **Member Variables:**
+ * - `system_ids_t I;` - Set of system IDs where the feature is present.
+ * - `system_ids_t U;` - Set of system IDs where the feature is absent.
+ *
+ * **Operators:**
+ * - `std::strong_ordering operator<=>(const difference_t& lhs, const difference_t& rhs);`
+ *   - Compares two `difference_t` objects for ordering.
+ * - `bool operator==(const difference_t& lhs, const difference_t& rhs);`
+ *   - Checks if two `difference_t` objects are equal.
+ */
+
+/**
+ * @typedef feature_isolation::differences_t
+ * @brief Represents a set of `difference_t` objects.
+ *
+ * Defined as `std::set<difference_t>`.
+ */
+
+/**
+ * @struct feature_isolation::isolation_result_t
+ * @brief Holds the result of the isolation analysis for a feature.
+ *
+ * **Member Variables:**
+ * - `feature_ids_t features;` - Set of feature IDs that isolate the systems.
+ * - `differences_t differences;` - Set of `difference_t` representing minimal differences.
+ */
+
+/**
+ * @class feature_isolation::feature_isolation_t
+ * @brief Performs feature isolation analysis using SPL specifications.
+ *
+ * **Constructor:**
+ * ```cpp
+ * explicit feature_isolation_t(const std::string& filename);
+ * ```
+ * - Initializes the feature isolation analysis by processing the SPL specification
+ *   from the given file and setting up the feature analysis.
+ * - @param filename The name of the SPL specification file (CSV format).
+ *
+ * **Member Variables:**
+ * - `const spl_specification_t m_spl;` - The SPL specification object.
+ * - `const feature_analysis_t m_features;` - The feature analysis object.
+ *
+ * **Member Functions:**
+ * - `difference_t partition(unsigned_integer feature_id) const;`
+ *   - Partitions the systems into those that include the feature and those that do not.
+ *   - @param feature_id The ID of the feature to partition by.
+ *   - @return A `difference_t` object containing the sets `I` and `U`.
+ *
+ * - `feature_ids_t sid_to_fids(unsigned_integer sid) const;`
+ *   - Retrieves the feature IDs present in a specific system.
+ *   - @param sid The system ID.
+ *   - @return A set of feature IDs present in the system.
+ *
+ * - `feature_ids_t flatten_by_intersection(const system_ids_t& sids) const;`
+ *   - Computes the intersection of features over a set of systems.
+ *   - @param sids A set of system IDs.
+ *   - @return A set of feature IDs present in all specified systems.
+ *
+ * - `feature_ids_t flatten_by_union(const system_ids_t& sids) const;`
+ *   - Computes the union of features over a set of systems.
+ *   - @param sids A set of system IDs.
+ *   - @return A set of feature IDs present in any of the specified systems.
+ *
+ * - `feature_ids_t flattened_difference(const system_ids_t& i, const system_ids_t& u) const;`
+ *   - Computes the features present in all systems in `i` but not in any system in `u`.
+ *   - @param i The set of system IDs where the feature is present.
+ *   - @param u The set of system IDs where the feature is absent.
+ *   - @return A set of feature IDs representing the difference.
+ *
+ * - `isolation_result_t minimal_differences(unsigned_integer feature_id) const;`
+ *   - Identifies minimal differences that isolate the given feature.
+ *   - @param feature_id The ID of the feature to isolate.
+ *   - @return An `isolation_result_t` containing the features and minimal differences.
+ *
+ * - `isolation_result_t some_difference(unsigned_integer feature_id) const;`
+ *   - Identifies some difference that isolates the given feature (not necessarily minimal).
+ *   - @param feature_id The ID of the feature to isolate.
+ *   - @return An `isolation_result_t` containing the features and differences.
+ *
+ * - `static void memorize_proper_difference_subset(differences_t& md, const system_ids_t& i, const system_ids_t& u);`
+ *   - Memorizes a proper difference subset if it is minimal.
+ *   - @param md The set of minimal differences to update.
+ *   - @param i The set of system IDs where the feature is present.
+ *   - @param u The set of system IDs where the feature is absent.
+ *
+ * - `[[nodiscard]] static bool proper_difference_subset(const system_ids_t& i, const system_ids_t& u, const difference_t& d);`
+ *   - Checks if the provided difference is a proper subset of an existing one.
+ *   - @param i The set of system IDs where the feature is present.
+ *   - @param u The set of system IDs where the feature is absent.
+ *   - @param d An existing `difference_t` to compare with.
+ *   - @return `true` if it is a proper subset; otherwise, `false`.
+ *
+ * - `static void print_header(std::ostream& os, bool all_differences = false, bool feature_names = false);`
+ *   - Prints the header for the output.
+ *   - @param os The output stream.
+ *   - @param all_differences If `true`, includes all minimal differences in the header.
+ *   - @param feature_names If `true`, includes feature names in the output.
+ *
+ * - `void print(std::ostream& os, unsigned_integer fid, bool all_differences = false, bool feature_names = false) const;`
+ *   - Outputs the isolation analysis result for a specific feature.
+ *   - @param os The output stream.
+ *   - @param fid The feature ID to print.
+ *   - @param all_differences If `true`, prints all minimal differences.
+ *   - @param feature_names If `true`, prints feature names instead of IDs.
+ *
+ * - `void print(std::ostream& os, bool all_differences = false, bool feature_names = false) const;`
+ *   - Outputs the isolation analysis results for all features.
+ *   - @param os The output stream.
+ *   - @param all_differences If `true`, prints all minimal differences.
+ *   - @param feature_names If `true`, prints feature names instead of IDs.
+ *
+ * - `std::string name(unsigned_integer fid) const;`
+ *   - Generates a human-readable name for a feature based on its components.
+ *   - @param fid The feature ID.
+ *   - @return A string representing the name of the feature.
+ *
+ * **Static Functions:**
+ * - `void print(std::ostream& os, const system_ids_t& sids, char operation);`
+ *   - Outputs a set of system IDs with a specified operation symbol.
+ *   - @param os The output stream.
+ *   - @param sids The set of system IDs to print.
+ *   - @param operation The operation symbol to use (e.g., '&' or '|').
+ *
+ * - `void print(std::ostream& os, const difference_t& d);`
+ *   - Outputs a difference between systems.
+ *   - @param os The output stream.
+ *   - @param d The `difference_t` to print.
+ */
+
+/**
+ * @fn difference_t feature_isolation::feature_isolation_t::partition(unsigned_integer feature_id) const
+ * @brief Partitions systems into those that include and exclude a specific feature.
+ *
+ * @param feature_id The ID of the feature to partition by.
+ * @return A `difference_t` containing the sets `I` (includes feature) and `U` (excludes feature).
+ *
+ * **Details:**
+ * - Iterates over all available systems.
+ * - Systems that include the feature are added to `I`.
+ * - Systems that do not include the feature are added to `U`.
+ */
+
+/**
+ * @fn feature_ids_t feature_isolation::feature_isolation_t::sid_to_fids(unsigned_integer sid) const
+ * @brief Retrieves the feature IDs present in a specific system.
+ *
+ * @param sid The system ID.
+ * @return A set of feature IDs present in the system.
+ */
+
+/**
+ * @fn feature_ids_t feature_isolation::feature_isolation_t::flatten_by_intersection(const system_ids_t& sids) const
+ * @brief Computes the intersection of features over a set of systems.
+ *
+ * @param sids A set of system IDs.
+ * @return A set of feature IDs present in all specified systems.
+ *
+ * **Details:**
+ * - For the first system in `sids`, retrieves its features.
+ * - Iteratively intersects this set with the features of subsequent systems.
+ */
+
+/**
+ * @fn feature_ids_t feature_isolation::feature_isolation_t::flatten_by_union(const system_ids_t& sids) const
+ * @brief Computes the union of features over a set of systems.
+ *
+ * @param sids A set of system IDs.
+ * @return A set of feature IDs present in any of the specified systems.
+ *
+ * **Details:**
+ * - For the first system in `sids`, retrieves its features.
+ * - Iteratively unions this set with the features of subsequent systems.
+ */
+
+/**
+ * @fn feature_ids_t feature_isolation::feature_isolation_t::flattened_difference(const system_ids_t& i, const system_ids_t& u) const
+ * @brief Computes the features present in all systems in `i` but not in any system in `u`.
+ *
+ * @param i The set of system IDs where the feature is present.
+ * @param u The set of system IDs where the feature is absent.
+ * @return A set of feature IDs representing the difference.
+ *
+ * **Details:**
+ * - Computes the intersection of features over systems in `i`.
+ * - Computes the union of features over systems in `u`.
+ * - Returns the set difference of the two results.
+ */
+
+/**
+ * @fn isolation_result_t feature_isolation::feature_isolation_t::minimal_differences(unsigned_integer feature_id) const
+ * @brief Identifies minimal differences that isolate the given feature.
+ *
+ * @param feature_id The ID of the feature to isolate.
+ * @return An `isolation_result_t` containing the features and minimal differences.
+ *
+ * **Details:**
+ * - Partitions systems into `I` and `U`.
+ * - Explores all combinations of subsets of `I` and `U`.
+ * - For each combination, computes the flattened difference.
+ * - Memorizes minimal differences that produce the same isolation result.
+ */
+
+/**
+ * @fn isolation_result_t feature_isolation::feature_isolation_t::some_difference(unsigned_integer feature_id) const
+ * @brief Identifies some difference that isolates the given feature (not necessarily minimal).
+ *
+ * @param feature_id The ID of the feature to isolate.
+ * @return An `isolation_result_t` containing the features and differences.
+ *
+ * **Details:**
+ * - Iteratively adds systems to `I` and `U` until the isolation result is achieved.
+ * - Stops as soon as the isolation result contains one or fewer features.
+ */
+
+/**
+ * @fn void feature_isolation::feature_isolation_t::memorize_proper_difference_subset(differences_t& md, const system_ids_t& i, const system_ids_t& u)
+ * @brief Memorizes a proper difference subset if it is minimal.
+ *
+ * @param md The set of minimal differences to update.
+ * @param i The set of system IDs where the feature is present.
+ * @param u The set of system IDs where the feature is absent.
+ *
+ * **Details:**
+ * - Checks if the new difference is a proper subset of any existing ones.
+ * - If it is not, adds it to the set of minimal differences.
+ */
+
+/**
+ * @fn [[nodiscard]] bool feature_isolation::feature_isolation_t::proper_difference_subset(const system_ids_t& i, const system_ids_t& u, const difference_t& d)
+ * @brief Checks if the provided difference is a proper subset of an existing one.
+ *
+ * @param i The set of system IDs where the feature is present.
+ * @param u The set of system IDs where the feature is absent.
+ * @param d An existing `difference_t` to compare with.
+ * @return `true` if it is a proper subset; otherwise, `false`.
+ */
+
+/**
+ * @fn void feature_isolation::feature_isolation_t::print_header(std::ostream& os, bool all_differences, bool feature_names)
+ * @brief Prints the header for the output.
+ *
+ * @param os The output stream.
+ * @param all_differences If `true`, includes all minimal differences in the header.
+ * @param feature_names If `true`, includes feature names in the output.
+ *
+ * **Details:**
+ * - Outputs column headers such as "FEATURE ID", "FEATURE NAME", "ISOLATION RESULT", etc.
+ */
+
+/**
+ * @fn void feature_isolation::feature_isolation_t::print(std::ostream& os, unsigned_integer fid, bool all_differences, bool feature_names) const
+ * @brief Outputs the isolation analysis result for a specific feature.
+ *
+ * @param os The output stream.
+ * @param fid The feature ID to print.
+ * @param all_differences If `true`, prints all minimal differences.
+ * @param feature_names If `true`, prints feature names instead of IDs.
+ *
+ * **Details:**
+ * - Retrieves the isolation result for the feature.
+ * - Outputs the feature ID, name, and isolation result.
+ * - If `all_differences` is `true`, outputs all minimal differences.
+ */
+
+/**
+ * @fn void feature_isolation::feature_isolation_t::print(std::ostream& os, bool all_differences, bool feature_names) const
+ * @brief Outputs the isolation analysis results for all features.
+ *
+ * @param os The output stream.
+ * @param all_differences If `true`, prints all minimal differences.
+ * @param feature_names If `true`, prints feature names instead of IDs.
+ *
+ * **Details:**
+ * - Iterates over all feature IDs.
+ * - Calls the `print` function for each feature.
+ */
+
+/**
+ * @fn std::string feature_isolation::feature_isolation_t::name(unsigned_integer fid) const
+ * @brief Generates a human-readable name for a feature based on its components.
+ *
+ * @param fid The feature ID.
+ * @return A string representing the name of the feature.
+ *
+ * **Details:**
+ * - Determines the category of the feature (e.g., Fundamental, AND, OR).
+ * - Constructs the name using feature names and logical operators.
+ * - For composite features, combines names of fundamental features appropriately.
+ */
+
+/**
+ * @fn void feature_isolation::feature_isolation_t::print(std::ostream& os, const system_ids_t& sids, char operation)
+ * @brief Outputs a set of system IDs with a specified operation symbol.
+ *
+ * @param os The output stream.
+ * @param sids The set of system IDs to print.
+ * @param operation The operation symbol to use (e.g., '&' for intersection).
+ *
+ * **Details:**
+ * - Formats the output as "{ SID1 operation SID2 operation ... }".
+ */
+
+/**
+ * @fn void feature_isolation::feature_isolation_t::print(std::ostream& os, const difference_t& d)
+ * @brief Outputs a difference between systems.
+ *
+ * @param os The output stream.
+ * @param d The `difference_t` to print.
+ *
+ * **Details:**
+ * - Outputs the sets `I` and `U` with appropriate operation symbols.
+ * - Formats the output as "I \ U".
+ */
+
+/**
+ * @fn bool feature_isolation::feature_present(const std::vector<bool>& anf_feature, const std::vector<bool>& f_feature, unsigned_integer F)
+ * @brief Determines if a feature is present in more than half of the systems.
+ *
+ * @param anf_feature The feature vector to check.
+ * @param f_feature The fundamental feature vector.
+ * @param F The number of fundamental features.
+ * @return `true` if the feature is present in more than half of the systems; otherwise, `false`.
+ */
+
+/**
+ * @fn bool feature_isolation::feature_and(const std::vector<bool>& and_feature, const std::vector<bool>& f_feature)
+ * @brief Checks if the `and_feature` is logically included in the `f_feature`.
+ *
+ * @param and_feature The AND feature vector.
+ * @param f_feature The fundamental feature vector.
+ * @return `true` if `and_feature` is included in `f_feature`; otherwise, `false`.
+ */
+
+/**
+ * @fn bool feature_isolation::feature_or(const std::vector<bool>& or_feature, const std::vector<bool>& f_feature)
+ * @brief Checks if the `f_feature` is logically included in the `or_feature`.
+ *
+ * @param or_feature The OR feature vector.
+ * @param f_feature The fundamental feature vector.
+ * @return `true` if `f_feature` is included in `or_feature`; otherwise, `false`.
+ */
+
+/**
+ * @fn bool feature_isolation::feature_and_not(const std::vector<bool>& and_not_feature, const std::vector<bool>& f_feature)
+ * @brief Checks if the `and_not_feature` excludes the `f_feature`.
+ *
+ * @param and_not_feature The AND NOT feature vector.
+ * @param f_feature The fundamental feature vector.
+ * @return `true` if `and_not_feature` excludes `f_feature`; otherwise, `false`.
+ */
+
+/**
+ * @fn bool feature_isolation::feature_or_not(const std::vector<bool>& or_not_feature, const std::vector<bool>& f_feature)
+ * @brief Checks if the negation of `f_feature` is logically included in the `or_not_feature`.
+ *
+ * @param or_not_feature The OR NOT feature vector.
+ * @param f_feature The fundamental feature vector.
+ * @return `true` if the negation of `f_feature` is included in `or_not_feature`; otherwise, `false`.
+ */
+
+/**
+ * @fn std::vector<bool> feature_isolation::operator|(std::vector<bool> v1, const std::vector<bool>& v2)
+ * @brief Performs element-wise logical OR between two vectors of bools.
+ *
+ * @param v1 The first vector.
+ * @param v2 The second vector.
+ * @return A new vector resulting from the logical OR of `v1` and `v2`.
+ *
+ * @throws std::range_error If the vectors have different sizes.
+ */
+
+/**
+ * @fn std::vector<bool> feature_isolation::operator&(std::vector<bool> v1, const std::vector<bool>& v2)
+ * @brief Performs element-wise logical AND between two vectors of bools.
+ *
+ * @param v1 The first vector.
+ * @param v2 The second vector.
+ * @return A new vector resulting from the logical AND of `v1` and `v2`.
+ *
+ * @throws std::range_error If the vectors have different sizes.
+ */
+
+/**
+ * @fn std::vector<bool> feature_isolation::operator~(std::vector<bool> v)
+ * @brief Performs element-wise logical NOT on a vector of bools.
+ *
+ * @param v The vector to negate.
+ * @return A new vector resulting from the logical NOT of `v`.
+ */
+
+/**
+ * @fn bool feature_isolation::operator==(const std::vector<bool>& v1, const std::vector<bool>& v2)
+ * @brief Checks if two vectors of bools are equal.
+ *
+ * @param v1 The first vector.
+ * @param v2 The second vector.
+ * @return `true` if the vectors are equal; otherwise, `false`.
+ */
+
+/**
+ * @fn unsigned_integer feature_isolation::dot_product(const std::vector<bool>& v)
+ * @brief Counts the number of `true` values in the vector.
+ *
+ * @param v The vector to count.
+ * @return The number of `true` values in the vector.
+ */
+
+/**
+ * @fn bool feature_isolation::feature_bool_and(const std::vector<bool>& f1, const std::vector<bool>& f2)
+ * @brief Checks if there is any position where both `f1` and `f2` are `true`.
+ *
+ * @param f1 The first feature vector.
+ * @param f2 The second feature vector.
+ * @return `true` if there is at least one position where both are `true`; otherwise, `false`.
+ */
+
+/**
+ * @section usage_sec Usage
+ *
+ * To perform feature isolation analysis:
+ *
+ * 1. **Include the header:**
+ *    ```cpp
+ *    #include "isolation.hpp"
+ *    ```
+ *
+ * 2. **Create an instance of `feature_isolation_t`:**
+ *    ```cpp
+ *    feature_isolation::feature_isolation_t isolation("spl_specification.csv");
+ *    ```
+ *
+ * 3. **Perform isolation analysis for a specific feature:**
+ *    ```cpp
+ *    isolation.print(std::cout, feature_id);
+ *    ```
+ *
+ * 4. **Perform isolation analysis for all features:**
+ *    ```cpp
+ *    isolation.print(std::cout);
+ *    ```
+ *
+ * **Note:** Ensure that the SPL specification CSV file is correctly formatted and includes all necessary information.
+ *
+ * @section example_sec Example
+ *
+ * ```cpp
+ * #include "isolation.hpp"
+ * #include <iostream>
+ *
+ * int main() {
+ *     try {
+ *         feature_isolation::feature_isolation_t isolation("spl_specification.csv");
+ *
+ *         // Perform isolation analysis for feature with ID 1
+ *         isolation.print(std::cout, 1);
+ *
+ *         // Perform isolation analysis for all features
+ *         isolation.print(std::cout);
+ *     } catch (const std::exception& e) {
+ *         std::cerr << "Error: " << e.what() << std::endl;
+ *     }
+ *     return 0;
+ * }
+ * ```
+ *
+ * @section notes_sec Additional Notes
+ *
+ * - The feature isolation relies on both the SPL specification and the feature analysis results.
+ * - The analysis can help identify minimal sets of features that differentiate systems containing a specific feature from those that do not.
+ * - The `feature_isolation_t` class provides flexible options to output analysis results, including the ability to print feature names and minimal differences.
+ */
+

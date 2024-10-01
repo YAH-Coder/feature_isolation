@@ -1,0 +1,348 @@
+/**
+ * @file feature_analysis.hpp
+ * @brief Defines classes and functions for feature analysis across systems.
+ *
+ * @page feature_analysis Feature Analysis System
+ *
+ * @tableofcontents
+ *
+ * @section introduction Introduction
+ *
+ * This library provides tools for analyzing features across different systems.
+ * It allows for the generation, categorization, and analysis of all possible combinations
+ * of features, including fundamental features and derived features created through logical
+ * operations (AND, OR) and negations.
+ *
+ * @section components Key Components
+ *
+ * - **Namespace `feature_isolation`:** Contains all classes and functions related to feature analysis.
+ * - **Class `feature_isolation::feature_analysis_t`:** Main class that performs feature generation and analysis.
+ * - **Class `feature_isolation::system_t`:** Represents a single system with associated features.
+ * - **Feature Categories:** Constants and utilities for handling different types of features.
+ * - **Helper Functions:**
+ *   - `feature_isolation::to_string(const feature_t&)`: Converts a feature to its string representation.
+ *   - `feature_isolation::separator(const char s = 0)`: Provides a customizable separator character for output formatting.
+ *
+ * @section usage Usage
+ *
+ * 1. Include the header:
+ *    ```cpp
+ *    #include "feature_analysis.hpp"
+ *    ```
+ * 2. Create an instance of `feature_analysis_t`:
+ *    ```cpp
+ *    feature_isolation::feature_analysis_t analysis(F, R, feature_categories);
+ *    ```
+ *    - `F`: Number of fundamental features.
+ *    - `R`: Maximum rank for feature combinations.
+ *    - `feature_categories`: Bitmask of feature categories to include (e.g., `feature_isolation::ALL`).
+ * 3. Perform analysis and output results:
+ *    ```cpp
+ *    analysis.print(std::cout);
+ *    ```
+ *
+ * @section example Example
+ *
+ * ```cpp
+ * #include <iostream>
+ * #include "feature_analysis.hpp"
+ *
+ * int main() {
+ *   using namespace feature_isolation;
+ *
+ *   unsigned_integer F = 3; // Number of fundamental features
+ *   unsigned_integer R = 2; // Maximum rank for combinations
+ *
+ *   feature_analysis_t analysis(F, R);
+ *   analysis.print(std::cout);
+ *
+ *   return 0;
+ * }
+ * ```
+ *
+ * The following is a sample output for the example code provided above:
+ * ```
+ * 	F	N	A	O	AN	ON	ANF	ONF	DF	T	S	R	C
+ * IN PRINCIPLE	3	3	4	4	4	4	6	6	31	34	8	3	F|N|A|O|AN|ON|ANF|ONF
+ * ACTUALLY	3	3	3	3	3	3	6	6	27	30	8	2	F|N|A|O|AN|ON|ANF|ONF
+ * 
+ * SYSTEM ID	F	N	A	O	AN	ON	ANF	ONF
+ * 1		4 5 6 			13 14 15 	16 17 18 		25 26 27 28 29 30
+ * 2	1 	5 6 		10 11 	15 	16 17 18 	19 	25 26 27 28 29
+ * 3	2 	4 6 		10 12 	14 	16 17 18 	20 	25 26 27 28 30
+ * 4	1 2 	6 	7 	10 11 12 		17 18 	22 	25 26 28 29 30
+ * 5	3 	4 5 		11 12 	13 	16 17 18 	21 	25 26 27 29 30
+ * 6	1 3 	5 	8 	10 11 12 		16 18 	23 	25 27 28 29 30
+ * 7	2 3 	4 	9 	10 11 12 		16 17 	24 	26 27 28 29 30
+ * 8	1 2 3 		7 8 9 	10 11 12 				25 26 27 28 29 30
+ * ``` 
+ *
+ * **Customization:**
+ * - Control the categories of features included by adjusting the `feature_categories` parameter.
+ * - Customize the output separator using the `separator` function.
+ */
+
+/**
+ * @file feature_analysis.hpp
+ * @brief Provides classes and functions for feature analysis across systems.
+ *
+ * @details
+ * This header defines classes and functions that allow for the creation and analysis
+ * of features over a set of systems. It includes the generation of fundamental and
+ * derived features, categorization, and statistical analysis of feature distribution
+ * across systems.
+ *
+ * **Key Components:**
+ * - **Namespace `feature_isolation`:** Encapsulates all functionality related to feature analysis.
+ * - **Class `feature_analysis_t`:** Main class that performs feature generation and analysis.
+ * - **Class `system_t`:** Represents a single system with associated features.
+ * - **Feature Categories:** Constants and utilities for handling different types of features.
+ */
+
+/**
+ * @namespace feature_isolation
+ * @brief Contains all classes and functions related to feature analysis.
+ *
+ * This namespace provides facilities for:
+ * - Defining and generating features over systems.
+ * - Analyzing and categorizing features.
+ * - Managing systems and their associated features.
+ * - Customizing output and formatting.
+ */
+
+/**
+ * @var typedef feature_isolation::feature_t
+ * @brief A typedef for `std::vector<bool>`, representing a feature over systems.
+ */
+
+/**
+ * @var typedef feature_isolation::features_t
+ * @brief A typedef for `std::vector<feature_t>`, representing a collection of features.
+ */
+
+/**
+ * @var typedef feature_isolation::ids_t
+ * @brief A typedef for `std::set<unsigned_integer>`, representing a set of IDs.
+ */
+
+/**
+ * @struct feature_isolation::feature_ids_t
+ * @brief A struct inheriting from `ids_t` for feature IDs, providing type safety.
+ */
+
+/**
+ * @struct feature_isolation::system_ids_t
+ * @brief A struct inheriting from `ids_t` for system IDs, providing type safety.
+ */
+
+/**
+ * @fn std::string feature_isolation::to_string(const feature_t& fd)
+ * @brief Converts a feature to its string representation of '0's and '1's.
+ *
+ * @param fd The feature to convert.
+ * @return A string representing the feature.
+ */
+
+/**
+ * @fn [[nodiscard]] char feature_isolation::separator(const char s = 0)
+ * @brief Provides a customizable separator character for output formatting.
+ *
+ * @param s The separator character to set. If zero, returns the current separator.
+ * @return The current separator character.
+ */
+
+/**
+ * @class feature_isolation::system_t
+ * @brief Represents a system with associated features in various categories.
+ *
+ * @details
+ * Stores feature IDs for each category present in the system and provides methods
+ * to calculate derived statistics.
+ *
+ * **Member Variables:**
+ * - `F_feature_ids`: Fundamental feature IDs.
+ * - `N_feature_ids`: Negated fundamental feature IDs.
+ * - `A_feature_ids`: AND combination feature IDs.
+ * - `O_feature_ids`: OR combination feature IDs.
+ * - `AN_feature_ids`: AND of negated features.
+ * - `ON_feature_ids`: OR of negated features.
+ * - `ANF_feature_ids`: AND combinations of fundamental and negated features.
+ * - `ONF_feature_ids`: OR combinations of fundamental and negated features.
+ */
+
+/**
+ * @fn [[nodiscard]] unsigned_integer feature_isolation::system_t::DF() const
+ * @brief Calculates the total number of derived features in the system.
+ *
+ * @return The number of derived features.
+ */
+
+/**
+ * @fn [[nodiscard]] unsigned_integer feature_isolation::system_t::T() const
+ * @brief Calculates the total number of features in the system.
+ *
+ * @return The total number of features (fundamental + derived).
+ */
+
+/**
+ * @fn [[nodiscard]] feature_ids_t feature_isolation::system_t::all_features() const
+ * @brief Aggregates all feature IDs from all categories into a single set.
+ *
+ * @return A set of all feature IDs present in the system.
+ */
+
+/**
+ * @class feature_isolation::feature_analysis_t
+ * @brief Main class for performing feature analysis across systems.
+ *
+ * @details
+ * Generates fundamental and derived features, categorizes them, and assigns them
+ * to systems based on their presence. Provides methods to output detailed analysis
+ * and statistics.
+ *
+ * **Constructor:**
+ * ```cpp
+ * feature_analysis_t(unsigned_integer f, unsigned_integer max_rank, unsigned_integer feature_categories_ = ::feature_isolation::ALL);
+ * ```
+ * - `f`: Number of fundamental features.
+ * - `max_rank`: Maximum rank for feature combinations.
+ * - `feature_categories_`: Bitmask indicating which feature categories to include.
+ *
+ * **Member Variables:**
+ * - `F, N, A, O, AN, ON, ANF, ONF`: Counts of features in each category.
+ * - `DF`: Total number of derived features.
+ * - `T`: Total number of features.
+ * - `R`: Maximum rank for combinations.
+ * - `C`: Feature categories bitmask.
+ * - `S`: Total number of systems (`2^F`).
+ * - Feature arrays and offsets for efficient access.
+ * - `m_systems`: Vector of systems with assigned features.
+ */
+
+/**
+ * @fn [[nodiscard]] feature_t feature_isolation::feature_analysis_t::at(unsigned_integer feature_id) const
+ * @brief Retrieves the feature corresponding to a given feature ID.
+ *
+ * @param feature_id The global feature ID.
+ * @return The feature associated with the given ID.
+ */
+
+/**
+ * @fn [[nodiscard]] unsigned_integer feature_isolation::feature_analysis_t::category(unsigned_integer feature_id) const
+ * @brief Determines the category index for a given feature ID.
+ *
+ * @param feature_id The global feature ID.
+ * @return The category index (0 to 7).
+ */
+
+/**
+ * @fn [[nodiscard]] std::string feature_isolation::feature_analysis_t::category_name(unsigned_integer feature_id) const
+ * @brief Retrieves the name of the feature category based on the feature ID.
+ *
+ * @param feature_id The global feature ID.
+ * @return The name of the feature category.
+ */
+
+/**
+ * @fn void feature_isolation::feature_analysis_t::print_feature(std::ostream& os, const feature_t& feature) const
+ * @brief Outputs a single feature's representation to a stream.
+ *
+ * @param os The output stream.
+ * @param feature The feature to print.
+ */
+
+/**
+ * @fn void feature_isolation::feature_analysis_t::print_features(std::ostream& os) const
+ * @brief Outputs all features, their IDs, categories, and descriptions.
+ *
+ * @param os The output stream.
+ */
+
+/**
+ * @fn void feature_isolation::feature_analysis_t::print_categories(std::ostream& os) const
+ * @brief Outputs the active feature categories based on the category bitmask.
+ *
+ * @param os The output stream.
+ */
+
+/**
+ * @fn void feature_isolation::feature_analysis_t::print_system_statistics(std::ostream& os, const system_t& system, unsigned_integer id) const
+ * @brief Outputs statistics for a single system.
+ *
+ * @param os The output stream.
+ * @param system The system to analyze.
+ * @param id The system ID.
+ */
+
+/**
+ * @fn void feature_isolation::feature_analysis_t::print_systems_statistics(std::ostream& os) const
+ * @brief Outputs statistics for all systems.
+ *
+ * @param os The output stream.
+ */
+
+/**
+ * @fn void feature_isolation::feature_analysis_t::print_system_features(std::ostream& os, const system_t& system, unsigned_integer system_id) const
+ * @brief Outputs feature IDs present in each category for a single system.
+ *
+ * @param os The output stream.
+ * @param system The system to analyze.
+ * @param system_id The system ID.
+ */
+
+/**
+ * @fn void feature_isolation::feature_analysis_t::print_systems_features(std::ostream& os) const
+ * @brief Outputs feature IDs for all systems.
+ *
+ * @param os The output stream.
+ */
+
+/**
+ * @fn void feature_isolation::feature_analysis_t::print(std::ostream& os) const
+ * @brief Outputs a comprehensive summary of the feature analysis.
+ *
+ * @param os The output stream.
+ */
+
+/**
+ * @section feature_categories Feature Categories
+ *
+ * Features are categorized based on how they are generated:
+ *
+ * - **F (Fundamental):** Original features with their true values.
+ * - **N (Negated):** Negations of fundamental features.
+ * - **A (AND):** Logical AND combinations of fundamental features.
+ * - **O (OR):** Logical OR combinations of fundamental features.
+ * - **AN (AND of Negations):** Logical AND of negated fundamental features.
+ * - **ON (OR of Negations):** Logical OR of negated fundamental features.
+ * - **ANF (AND of Fundamental and Negated):** Logical AND combinations mixing fundamental and negated features.
+ * - **ONF (OR of Fundamental and Negated):** Logical OR combinations mixing fundamental and negated features.
+ *
+ * Each category can be included or excluded from the analysis using the category bitmask.
+ */
+
+/**
+ * @section customization Customization
+ *
+ * - **MSB_LSB Ordering:**
+ *   - The `MSB_LSB` constant determines the order of bits in feature string representations.
+ *   - If `true`, the Most Significant Bit is on the left.
+ * - **Separator Character:**
+ *   - The `separator` function allows changing the delimiter used in outputs.
+ *   - Default is tab (`'\t'`), but can be set to any character.
+ */
+
+/**
+ * @section notes Additional Notes
+ *
+ * - **Combination Logic:**
+ *   - The analysis involves generating all possible combinations of features up to a certain rank.
+ *   - Uses mathematical concepts like combinations (`nCr`) and powers of two.
+ * - **System Representation:**
+ *   - Systems are represented as indices in the feature vectors.
+ *   - Each system corresponds to a unique combination of fundamental features.
+ * - **Error Handling:**
+ *   - Checks are included to prevent invalid arguments, such as rank exceeding the number of features.
+ *   - Throws `std::invalid_argument` when necessary.
+ */
+

@@ -177,9 +177,9 @@ namespace feature_isolation {
   }
 
   template <class T>
-  class combination {
+  class combination_t {
   public:
-    combination( const std::vector<T> symbols, std::size_t k )
+    combination_t( const std::vector<T> symbols, std::size_t k )
         : m_symbols( symbols ), m_k( k ) {
       if ( k > symbols.size() ) {
         throw std::logic_error( "n = " + std::to_string( symbols.size() ) + ", k = " + std::to_string( k ) + " violates n >= k!\n" );
