@@ -3,6 +3,7 @@
  * @brief Provides classes and functions for parsing and processing SPL specifications, and outputting results to CSV files.
  *
  * @page spl_parser SPL Parser and Processor
+ * @brief Parses and processes SPL specification files, handling features, categories, dependencies, and systems.
  *
  * @tableofcontents
  *

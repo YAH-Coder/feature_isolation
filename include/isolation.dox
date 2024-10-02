@@ -3,6 +3,7 @@
  * @brief Provides classes and functions for feature isolation analysis across systems.
  *
  * @page feature_isolation Feature Isolation Analysis
+ * @brief Performs feature isolation analysis using SPL specifications and feature analysis results.
  *
  * @section introduction Introduction
  *
