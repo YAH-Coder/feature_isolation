@@ -19,7 +19,7 @@
  * - **Namespace `feature_isolation::checked_arithmetic`:** Provides arithmetic operations with overflow and underflow checks.
  * - **Namespace `feature_isolation::unchecked_arithmetic`:** Provides arithmetic operations without overflow and underflow checks.
  * - **Class `feature_isolation::combination_t`:** Template class for generating combinations of elements.
- * - **Helper Functions:** Utility functions like `power`, `factorial`, `combinations`, and `to_unsigned_integer`.
+ * - **Helper Functions:** Utility functions like `feature_isolation::power`, `feature_isolation::factorial`, `feature_isolation::combinations`, and `feature_isolation::to_unsigned_integer`.
  *
  * @section usage Usage
  *
@@ -386,13 +386,13 @@
  * @tparam T The type of elements in the combinations.
  *
  * @details
- * The `combination` class generates all possible combinations of a specified size (`k`)
+ * The `combination_t` class generates all possible combinations of a specified size (`k`)
  * from a given set of elements (`symbols`). It provides methods to initialize the state,
  * advance to the next combination, and retrieve the current combination.
  *
  * **Constructor:**
  * ```cpp
- * combination(const std::vector<T> symbols, std::size_t k);
+ * combination_t(const std::vector<T> symbols, std::size_t k);
  * ```
  * - `symbols`: The set of elements to combine.
  * - `k`: The size of each combination.
@@ -406,7 +406,7 @@
  * **Example:**
  * ```cpp
  * std::vector<char> elements = {'A', 'B', 'C'};
- * combination<char> comb(elements, 2);
+ * combination_t<char> comb(elements, 2);
  *
  * do {
  *   auto combo = comb();
@@ -414,6 +414,82 @@
  * } while (comb.next());
  * ```
  */
+
+/**
+ * @fn feature_isolation::combination_t::combination_t(const std::vector<T> symbols, std::size_t k)
+ * @brief Constructs a new `combination_t` object.
+ *
+ * @param symbols The set of elements to combine.
+ * @param k The size of each combination.
+ *
+ * @throws std::logic_error if `k` is greater than the size of `symbols`.
+ *
+ * @details
+ * Initializes the combination generator with the provided symbols and combination size `k`.
+ * It checks that `k` is not greater than the number of symbols, and calls `initialize()` to set up the initial state.
+ */
+
+/**
+ * @fn void feature_isolation::combination_t::initialize()
+ * @brief Initializes the combination generator.
+ *
+ * @details
+ * Sets up the initial combination state by initializing the indices in `m_state`.
+ * This function is called by the constructor and can be called to reset the generator.
+ */
+
+/**
+ * @fn std::size_t feature_isolation::combination_t::k() const
+ * @brief Gets the combination size.
+ *
+ * @return The size of each combination (`k`).
+ */
+
+/**
+ * @fn bool feature_isolation::combination_t::next()
+ * @brief Advances to the next combination.
+ *
+ * @return `true` if the next combination was generated successfully, `false` if there are no more combinations.
+ *
+ * @details
+ * Updates the internal state to represent the next combination of elements.
+ * When all combinations have been generated, it returns `false`.
+ */
+
+/**
+ * @fn std::vector<T> feature_isolation::combination_t::operator()() const
+ * @brief Retrieves the current combination.
+ *
+ * @return A `std::vector<T>` containing the elements of the current combination.
+ *
+ * @details
+ * Uses the current state indices to select elements from `m_symbols` and returns them as a vector.
+ */
+
+/**
+ * @var std::vector<T> feature_isolation::combination_t::m_symbols
+ * @brief The set of elements to generate combinations from.
+ *
+ * @details
+ * A vector containing all the elements provided to the constructor.
+ */
+
+/**
+ * @var std::vector<std::size_t> feature_isolation::combination_t::m_state
+ * @brief The current state of indices representing the combination.
+ *
+ * @details
+ * A vector of indices into `m_symbols`, representing the positions of elements in the current combination.
+ */
+
+/**
+ * @var std::size_t feature_isolation::combination_t::m_k
+ * @brief The size of each combination.
+ *
+ * @details
+ * Stores the value of `k` provided to the constructor, representing the number of elements in each combination.
+ */
+
 
 /**
  * @fn unsigned_integer feature_isolation::to_unsigned_integer(const std::bitset<N>& bits)

@@ -100,58 +100,6 @@
  */
 
 /**
- * @namespace feature_isolation
- * @brief Contains all classes and functions related to feature analysis.
- *
- * This namespace provides facilities for:
- * - Defining and generating features over systems.
- * - Analyzing and categorizing features.
- * - Managing systems and their associated features.
- * - Customizing output and formatting.
- */
-
-/**
- * @var typedef feature_isolation::feature_t
- * @brief A typedef for `std::vector<bool>`, representing a feature over systems.
- */
-
-/**
- * @var typedef feature_isolation::features_t
- * @brief A typedef for `std::vector<feature_t>`, representing a collection of features.
- */
-
-/**
- * @var typedef feature_isolation::ids_t
- * @brief A typedef for `std::set<unsigned_integer>`, representing a set of IDs.
- */
-
-/**
- * @struct feature_isolation::feature_ids_t
- * @brief A struct inheriting from `ids_t` for feature IDs, providing type safety.
- */
-
-/**
- * @struct feature_isolation::system_ids_t
- * @brief A struct inheriting from `ids_t` for system IDs, providing type safety.
- */
-
-/**
- * @fn std::string feature_isolation::to_string(const feature_t& fd)
- * @brief Converts a feature to its string representation of '0's and '1's.
- *
- * @param fd The feature to convert.
- * @return A string representing the feature.
- */
-
-/**
- * @fn [[nodiscard]] char feature_isolation::separator(const char s = 0)
- * @brief Provides a customizable separator character for output formatting.
- *
- * @param s The separator character to set. If zero, returns the current separator.
- * @return The current separator character.
- */
-
-/**
  * @class feature_isolation::system_t
  * @brief Represents a system with associated features in various categories.
  *
@@ -164,10 +112,89 @@
  * - `N_feature_ids`: Negated fundamental feature IDs.
  * - `A_feature_ids`: AND combination feature IDs.
  * - `O_feature_ids`: OR combination feature IDs.
- * - `AN_feature_ids`: AND of negated features.
- * - `ON_feature_ids`: OR of negated features.
- * - `ANF_feature_ids`: AND combinations of fundamental and negated features.
- * - `ONF_feature_ids`: OR combinations of fundamental and negated features.
+ * - `AN_feature_ids`: AND of negated features IDs.
+ * - `ON_feature_ids`: OR of negated features IDs.
+ * - `ANF_feature_ids`: AND combinations of fundamental and negated features IDs.
+ * - `ONF_feature_ids`: OR combinations of fundamental and negated features IDs.
+ *
+ * **Member Functions:**
+ * - `unsigned_integer T() const`: Calculates the total number of features in the system.
+ * - `unsigned_integer DF() const`: Calculates the total number of derived features.
+ * - `feature_ids_t all_features() const`: Aggregates all feature IDs from all categories.
+ */
+
+/**
+ * @var feature_isolation::system_t::F_feature_ids
+ * @brief Set of fundamental feature IDs present in the system.
+ *
+ * @details
+ * Contains the IDs of fundamental features that are active in this system.
+ */
+
+/**
+ * @var feature_isolation::system_t::N_feature_ids
+ * @brief Set of negated fundamental feature IDs present in the system.
+ *
+ * @details
+ * Contains the IDs of negated fundamental features that are active in this system.
+ */
+
+/**
+ * @var feature_isolation::system_t::A_feature_ids
+ * @brief Set of AND combination feature IDs present in the system.
+ *
+ * @details
+ * Contains the IDs of features formed by logical AND of fundamental features.
+ */
+
+/**
+ * @var feature_isolation::system_t::O_feature_ids
+ * @brief Set of OR combination feature IDs present in the system.
+ *
+ * @details
+ * Contains the IDs of features formed by logical OR of fundamental features.
+ */
+
+/**
+ * @var feature_isolation::system_t::AN_feature_ids
+ * @brief Set of AND of negated features IDs present in the system.
+ *
+ * @details
+ * Contains the IDs of features formed by logical AND of negated fundamental features.
+ */
+
+/**
+ * @var feature_isolation::system_t::ON_feature_ids
+ * @brief Set of OR of negated features IDs present in the system.
+ *
+ * @details
+ * Contains the IDs of features formed by logical OR of negated fundamental features.
+ */
+
+/**
+ * @var feature_isolation::system_t::ANF_feature_ids
+ * @brief Set of AND combinations of fundamental and negated features IDs present in the system.
+ *
+ * @details
+ * Contains the IDs of features formed by logical AND of a mix of fundamental and negated features.
+ */
+
+/**
+ * @var feature_isolation::system_t::ONF_feature_ids
+ * @brief Set of OR combinations of fundamental and negated features IDs present in the system.
+ *
+ * @details
+ * Contains the IDs of features formed by logical OR of a mix of fundamental and negated features.
+ */
+
+/**
+ * @fn [[nodiscard]] unsigned_integer feature_isolation::system_t::T() const
+ * @brief Calculates the total number of features (fundamental + derived) in the system.
+ *
+ * @return The total number of features present in the system.
+ *
+ * @details
+ * Computes the sum of fundamental features and derived features (`F_feature_ids.size() + DF()`).
  */
 
 /**
@@ -175,13 +202,9 @@
  * @brief Calculates the total number of derived features in the system.
  *
  * @return The number of derived features.
- */
-
-/**
- * @fn [[nodiscard]] unsigned_integer feature_isolation::system_t::T() const
- * @brief Calculates the total number of features in the system.
  *
- * @return The total number of features (fundamental + derived).
+ * @details
+ * Adds up the sizes of all derived feature ID sets (`N_feature_ids`, `A_feature_ids`, etc.).
  */
 
 /**
@@ -189,7 +212,12 @@
  * @brief Aggregates all feature IDs from all categories into a single set.
  *
  * @return A set of all feature IDs present in the system.
+ *
+ * @details
+ * Merges all feature ID sets into one `feature_ids_t` set.
  */
+
+//////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * @class feature_isolation::feature_analysis_t
@@ -208,16 +236,65 @@
  * - `max_rank`: Maximum rank for feature combinations.
  * - `feature_categories_`: Bitmask indicating which feature categories to include.
  *
+ * **Member Functions:**
+ * - `feature_t at(unsigned_integer feature_id) const`: Retrieves the feature corresponding to a given feature ID.
+ * - `unsigned_integer category(unsigned_integer feature_id) const`: Determines the category index for a given feature ID.
+ * - `std::string category_name(unsigned_integer feature_id) const`: Retrieves the name of the feature category based on the feature ID.
+ * - `void print_feature(std::ostream& os, const feature_t& feature) const`: Outputs a single feature's representation to a stream.
+ * - `void print_features(std::ostream& os) const`: Outputs all features, their IDs, categories, and descriptions.
+ * - `void print_categories(std::ostream& os) const`: Outputs the active feature categories based on the category bitmask.
+ * - `void print_system_statistics(std::ostream& os, const system_t& system, unsigned_integer id) const`: Outputs statistics for a single system.
+ * - `void print_systems_statistics(std::ostream& os) const`: Outputs statistics for all systems.
+ * - `void print_system_features(std::ostream& os, const system_t& system, unsigned_integer system_id) const`: Outputs feature IDs present in each category for a single system.
+ * - `void print_systems_features(std::ostream& os) const`: Outputs feature IDs for all systems.
+ * - `void print(std::ostream& os) const`: Outputs a comprehensive summary of the feature analysis.
+ *
  * **Member Variables:**
- * - `F, N, A, O, AN, ON, ANF, ONF`: Counts of features in each category.
- * - `DF`: Total number of derived features.
- * - `T`: Total number of features.
- * - `R`: Maximum rank for combinations.
- * - `C`: Feature categories bitmask.
- * - `S`: Total number of systems (`2^F`).
- * - Feature arrays and offsets for efficient access.
- * - `m_systems`: Vector of systems with assigned features.
+ * - `unsigned_integer F`: Number of fundamental features.
+ * - `unsigned_integer N`: Number of negated fundamental features.
+ * - `unsigned_integer A`: Number of AND combinations.
+ * - `unsigned_integer O`: Number of OR combinations.
+ * - `unsigned_integer AN`: Number of AND of negated features.
+ * - `unsigned_integer ON`: Number of OR of negated features.
+ * - `unsigned_integer ANF`: Number of AND combinations of fundamental and negated features.
+ * - `unsigned_integer ONF`: Number of OR combinations of fundamental and negated features.
+ * - `unsigned_integer DF`: Total number of derived features.
+ * - `unsigned_integer T`: Total number of features.
+ * - `unsigned_integer R`: Maximum rank for combinations.
+ * - `unsigned_integer C`: Feature categories bitmask.
+ * - `unsigned_integer S`: Total number of systems (`2^F`).
+ * - Feature vectors: `F_features`, `N_features`, `A_features`, `O_features`, `AN_features`, `ON_features`, `ANF_features`, `ONF_features`.
+ * - Feature ID offsets: `F_offset`, `N_offset`, `A_offset`, `O_offset`, `AN_offset`, `ON_offset`, `ANF_offset`, `ONF_offset`.
+ * - `std::vector<unsigned_integer> m_feature_offsets`: Offsets for feature IDs in categories.
+ * - `std::vector<features_t*> m_all_features`: Pointers to all feature vectors.
+ * - `systems_t m_systems`: Vector of systems with assigned features.
  */
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @fn feature_isolation::feature_analysis_t::feature_analysis_t(unsigned_integer f, unsigned_integer max_rank, unsigned_integer feature_categories_)
+ * @brief Constructs a new `feature_analysis_t` object with the specified parameters.
+ *
+ * @param f The number of fundamental features.
+ * @param max_rank The maximum rank for feature combinations.
+ * @param feature_categories_ Bitmask indicating which feature categories to include. Default is `::feature_isolation::ALL`.
+ *
+ * @details
+ * Initializes the feature analysis by generating fundamental features and derived features based on the specified parameters.
+ * Sets up internal data structures for feature offsets and system representations.
+ *
+ * **Member Variable Initialization:**
+ * - Calculates counts for each feature category (`F`, `N`, `A`, `O`, `AN`, `ON`, `ANF`, `ONF`).
+ * - Calculates total derived features (`DF`) and total features (`T`).
+ * - Initializes feature vectors by calling initialization functions.
+ * - Sets up feature ID offsets for quick access.
+ * - Initializes systems with assigned features.
+ *
+ * @throws std::invalid_argument if `max_rank` exceeds the number of fundamental features.
+ */
+
+//////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * @fn [[nodiscard]] feature_t feature_isolation::feature_analysis_t::at(unsigned_integer feature_id) const
@@ -225,6 +302,9 @@
  *
  * @param feature_id The global feature ID.
  * @return The feature associated with the given ID.
+ *
+ * @details
+ * Determines the category of the feature based on `feature_id`, then accesses the corresponding feature vector to retrieve the feature.
  */
 
 /**
@@ -233,6 +313,9 @@
  *
  * @param feature_id The global feature ID.
  * @return The category index (0 to 7).
+ *
+ * @details
+ * Uses the feature ID offsets to find out which category the feature belongs to.
  */
 
 /**
@@ -241,6 +324,9 @@
  *
  * @param feature_id The global feature ID.
  * @return The name of the feature category.
+ *
+ * @details
+ * Calls `category(feature_id)` to get the category index, then returns the corresponding category name from `feature_categories`.
  */
 
 /**
@@ -249,6 +335,9 @@
  *
  * @param os The output stream.
  * @param feature The feature to print.
+ *
+ * @details
+ * Uses `to_string(const feature_t&)` to convert the feature to a string and writes it to the output stream.
  */
 
 /**
@@ -256,6 +345,9 @@
  * @brief Outputs all features, their IDs, categories, and descriptions.
  *
  * @param os The output stream.
+ *
+ * @details
+ * Iterates over all active feature categories and prints each feature's ID, category, and description.
  */
 
 /**
@@ -263,6 +355,10 @@
  * @brief Outputs the active feature categories based on the category bitmask.
  *
  * @param os The output stream.
+ *
+ * @details
+ * Prints a string representation of the active feature categories, using '|' as a separator.
+ * Active categories are shown by their abbreviations; inactive ones are replaced with '-'.
  */
 
 /**
@@ -272,6 +368,9 @@
  * @param os The output stream.
  * @param system The system to analyze.
  * @param id The system ID.
+ *
+ * @details
+ * Prints the counts of features in each category for the given system, along with total derived features and total features.
  */
 
 /**
@@ -279,6 +378,9 @@
  * @brief Outputs statistics for all systems.
  *
  * @param os The output stream.
+ *
+ * @details
+ * Iterates over all systems and calls `print_system_statistics` for each one.
  */
 
 /**
@@ -288,6 +390,9 @@
  * @param os The output stream.
  * @param system The system to analyze.
  * @param system_id The system ID.
+ *
+ * @details
+ * For each feature category, prints the feature IDs that are active in the given system.
  */
 
 /**
@@ -295,6 +400,9 @@
  * @brief Outputs feature IDs for all systems.
  *
  * @param os The output stream.
+ *
+ * @details
+ * Iterates over all systems and calls `print_system_features` for each one.
  */
 
 /**
@@ -302,47 +410,343 @@
  * @brief Outputs a comprehensive summary of the feature analysis.
  *
  * @param os The output stream.
+ *
+ * @details
+ * Prints overall statistics, including counts of features in principle and actually generated.
+ * Outputs system features and additional analysis results.
+ */
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @fn [[nodiscard]] features_t feature_isolation::feature_analysis_t::initialize_F_features() const
+ * @brief Initializes the fundamental features.
+ *
+ * @return A vector of fundamental features (`features_t`).
+ *
+ * @details
+ * Generates all fundamental features by setting each feature to alternate between `true` and `false` over the systems.
+ * Each fundamental feature corresponds to a single fundamental property.
  */
 
 /**
- * @section feature_categories Feature Categories
+ * @fn [[nodiscard]] features_t feature_isolation::feature_analysis_t::initialize_N_features() const
+ * @brief Initializes the negations of fundamental features.
  *
- * Features are categorized based on how they are generated:
+ * @return A vector of negated fundamental features (`features_t`).
  *
- * - **F (Fundamental):** Original features with their true values.
- * - **N (Negated):** Negations of fundamental features.
- * - **A (AND):** Logical AND combinations of fundamental features.
- * - **O (OR):** Logical OR combinations of fundamental features.
- * - **AN (AND of Negations):** Logical AND of negated fundamental features.
- * - **ON (OR of Negations):** Logical OR of negated fundamental features.
- * - **ANF (AND of Fundamental and Negated):** Logical AND combinations mixing fundamental and negated features.
- * - **ONF (OR of Fundamental and Negated):** Logical OR combinations mixing fundamental and negated features.
- *
- * Each category can be included or excluded from the analysis using the category bitmask.
+ * @details
+ * Generates negated fundamental features by flipping the values of each fundamental feature.
  */
 
 /**
- * @section customization Customization
+ * @fn void feature_isolation::feature_analysis_t::and_combine(feature_t& f1, const feature_t& f2) const
+ * @brief Performs logical AND between two features and stores the result in the first feature.
  *
- * - **MSB_LSB Ordering:**
- *   - The `MSB_LSB` constant determines the order of bits in feature string representations.
- *   - If `true`, the Most Significant Bit is on the left.
- * - **Separator Character:**
- *   - The `separator` function allows changing the delimiter used in outputs.
- *   - Default is tab (`'\t'`), but can be set to any character.
+ * @param f1 The first feature (will be modified).
+ * @param f2 The second feature.
+ *
+ * @details
+ * Iterates over both features and applies logical AND to each corresponding element.
  */
 
 /**
- * @section notes Additional Notes
+ * @fn [[nodiscard]] features_t feature_isolation::feature_analysis_t::initialize_A_features() const
+ * @brief Initializes the AND combinations of fundamental features.
  *
- * - **Combination Logic:**
- *   - The analysis involves generating all possible combinations of features up to a certain rank.
- *   - Uses mathematical concepts like combinations (`nCr`) and powers of two.
- * - **System Representation:**
- *   - Systems are represented as indices in the feature vectors.
- *   - Each system corresponds to a unique combination of fundamental features.
- * - **Error Handling:**
- *   - Checks are included to prevent invalid arguments, such as rank exceeding the number of features.
- *   - Throws `std::invalid_argument` when necessary.
+ * @return A vector of AND combination features (`features_t`).
+ *
+ * @throws std::invalid_argument if `R` exceeds the number of fundamental features.
+ *
+ * @details
+ * Generates all possible logical AND combinations of fundamental features up to rank `R`.
+ * Uses combinations of feature indices to create higher-order features.
  */
 
+/**
+ * @fn void feature_isolation::feature_analysis_t::or_combine(feature_t& f1, const feature_t& f2) const
+ * @brief Performs logical OR between two features and stores the result in the first feature.
+ *
+ * @param f1 The first feature (will be modified).
+ * @param f2 The second feature.
+ *
+ * @details
+ * Iterates over both features and applies logical OR to each corresponding element.
+ */
+
+/**
+ * @fn [[nodiscard]] features_t feature_isolation::feature_analysis_t::initialize_O_features() const
+ * @brief Initializes the OR combinations of fundamental features.
+ *
+ * @return A vector of OR combination features (`features_t`).
+ *
+ * @throws std::invalid_argument if `R` exceeds the number of fundamental features.
+ *
+ * @details
+ * Generates all possible logical OR combinations of fundamental features up to rank `R`.
+ */
+
+/**
+ * @fn [[nodiscard]] features_t feature_isolation::feature_analysis_t::initialize_AN_features() const
+ * @brief Initializes the AND combinations of negated fundamental features.
+ *
+ * @return A vector of AND of negated features (`features_t`).
+ *
+ * @throws std::invalid_argument if `R` exceeds the number of fundamental features.
+ *
+ * @details
+ * Generates all possible logical AND combinations of negated fundamental features up to rank `R`.
+ */
+
+/**
+ * @fn [[nodiscard]] features_t feature_isolation::feature_analysis_t::initialize_ON_features() const
+ * @brief Initializes the OR combinations of negated fundamental features.
+ *
+ * @return A vector of OR of negated features (`features_t`).
+ *
+ * @throws std::invalid_argument if `R` exceeds the number of fundamental features.
+ *
+ * @details
+ * Generates all possible logical OR combinations of negated fundamental features up to rank `R`.
+ */
+
+/**
+ * @fn [[nodiscard]] features_t feature_isolation::feature_analysis_t::initialize_ANF_features() const
+ * @brief Initializes the AND combinations of fundamental and negated features.
+ *
+ * @return A vector of AND combinations mixing fundamental and negated features (`features_t`).
+ *
+ * @details
+ * Generates all possible logical AND combinations that mix fundamental features and their negations, excluding the combination where all features are negated.
+ */
+
+/**
+ * @fn [[nodiscard]] features_t feature_isolation::feature_analysis_t::initialize_ONF_features() const
+ * @brief Initializes the OR combinations of fundamental and negated features.
+ *
+ * @return A vector of OR combinations mixing fundamental and negated features (`features_t`).
+ *
+ * @details
+ * Generates all possible logical OR combinations that mix fundamental features and their negations, excluding the combination where all features are negated.
+ */
+
+/**
+ * @fn void feature_isolation::feature_analysis_t::insert_id(systems_t& systems, const feature_t& feature, unsigned_integer feature_id, unsigned_integer category) const
+ * @brief Inserts a feature ID into the appropriate category set for systems where the feature is present.
+ *
+ * @param systems The vector of systems to update.
+ * @param feature The feature indicating presence (`true`) in systems.
+ * @param feature_id The ID of the feature to insert.
+ * @param category The category of the feature.
+ *
+ * @details
+ * Iterates over the feature's values and, for each system where the feature is `true`, adds the feature ID to the corresponding category set in the system.
+ */
+
+/**
+ * @fn systems_t feature_isolation::feature_analysis_t::initialize_systems() const
+ * @brief Initializes the systems with assigned features based on the analysis.
+ *
+ * @return A vector of systems with features assigned.
+ *
+ * @details
+ * For each feature in all active categories, determines in which systems the feature is present and updates the systems accordingly.
+ * Reverses the system IDs to match the desired ordering.
+ */
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @var unsigned_integer feature_isolation::feature_analysis_t::F
+ * @brief Number of fundamental features.
+ */
+
+/**
+ * @var unsigned_integer feature_isolation::feature_analysis_t::N
+ * @brief Number of negated fundamental features (equal to `F`).
+ */
+
+/**
+ * @var unsigned_integer feature_isolation::feature_analysis_t::A
+ * @brief Number of AND combinations of fundamental features.
+ */
+
+/**
+ * @var unsigned_integer feature_isolation::feature_analysis_t::O
+ * @brief Number of OR combinations of fundamental features.
+ */
+
+/**
+ * @var unsigned_integer feature_isolation::feature_analysis_t::AN
+ * @brief Number of AND combinations of negated fundamental features.
+ */
+
+/**
+ * @var unsigned_integer feature_isolation::feature_analysis_t::ON
+ * @brief Number of OR combinations of negated fundamental features.
+ */
+
+/**
+ * @var unsigned_integer feature_isolation::feature_analysis_t::ANF
+ * @brief Number of AND combinations of fundamental and negated features.
+ */
+
+/**
+ * @var unsigned_integer feature_isolation::feature_analysis_t::ONF
+ * @brief Number of OR combinations of fundamental and negated features.
+ */
+
+/**
+ * @var unsigned_integer feature_isolation::feature_analysis_t::DF
+ * @brief Total number of derived features.
+ *
+ * @details
+ * Calculated as `F + 4 * A + 2 * ANF`.
+ */
+
+/**
+ * @var unsigned_integer feature_isolation::feature_analysis_t::T
+ * @brief Total number of features (fundamental + derived).
+ */
+
+/**
+ * @var unsigned_integer feature_isolation::feature_analysis_t::R
+ * @brief Maximum rank for feature combinations.
+ */
+
+/**
+ * @var unsigned_integer feature_isolation::feature_analysis_t::C
+ * @brief Bitmask indicating which feature categories are active.
+ */
+
+/**
+ * @var unsigned_integer feature_isolation::feature_analysis_t::S
+ * @brief Total number of systems (`2^F`).
+ */
+
+/**
+ * @var features_t feature_isolation::feature_analysis_t::F_features
+ * @brief Vector of fundamental features.
+ */
+
+/**
+ * @var features_t feature_isolation::feature_analysis_t::N_features
+ * @brief Vector of negated fundamental features.
+ */
+
+/**
+ * @var features_t feature_isolation::feature_analysis_t::A_features
+ * @brief Vector of AND combination features.
+ */
+
+/**
+ * @var features_t feature_isolation::feature_analysis_t::O_features
+ * @brief Vector of OR combination features.
+ */
+
+/**
+ * @var features_t feature_isolation::feature_analysis_t::AN_features
+ * @brief Vector of AND combinations of negated features.
+ */
+
+/**
+ * @var features_t feature_isolation::feature_analysis_t::ON_features
+ * @brief Vector of OR combinations of negated features.
+ */
+
+/**
+ * @var features_t feature_isolation::feature_analysis_t::ANF_features
+ * @brief Vector of AND combinations of fundamental and negated features.
+ */
+
+/**
+ * @var features_t feature_isolation::feature_analysis_t::ONF_features
+ * @brief Vector of OR combinations of fundamental and negated features.
+ */
+
+/**
+ * @var unsigned_integer feature_isolation::feature_analysis_t::F_offset
+ * @brief Feature ID offset for fundamental features.
+ */
+
+/**
+ * @var unsigned_integer feature_isolation::feature_analysis_t::N_offset
+ * @brief Feature ID offset for negated fundamental features.
+ */
+
+/**
+ * @var unsigned_integer feature_isolation::feature_analysis_t::A_offset
+ * @brief Feature ID offset for AND combination features.
+ */
+
+/**
+ * @var unsigned_integer feature_isolation::feature_analysis_t::O_offset
+ * @brief Feature ID offset for OR combination features.
+ */
+
+/**
+ * @var unsigned_integer feature_isolation::feature_analysis_t::AN_offset
+ * @brief Feature ID offset for AND combinations of negated features.
+ */
+
+/**
+ * @var unsigned_integer feature_isolation::feature_analysis_t::ON_offset
+ * @brief Feature ID offset for OR combinations of negated features.
+ */
+
+/**
+ * @var unsigned_integer feature_isolation::feature_analysis_t::ANF_offset
+ * @brief Feature ID offset for AND combinations of fundamental and negated features.
+ */
+
+/**
+ * @var unsigned_integer feature_isolation::feature_analysis_t::ONF_offset
+ * @brief Feature ID offset for OR combinations of fundamental and negated features.
+ */
+
+/**
+ * @var std::vector<unsigned_integer> feature_isolation::feature_analysis_t::m_feature_offsets
+ * @brief Vector of feature ID offsets for each category.
+ *
+ * @details
+ * Used to quickly determine the category of a feature based on its global ID.
+ */
+
+/**
+ * @var std::vector<features_t*> feature_isolation::feature_analysis_t::m_all_features
+ * @brief Pointers to all feature vectors.
+ *
+ * @details
+ * Allows for unified access to all feature categories.
+ */
+
+/**
+ * @var systems_t feature_isolation::feature_analysis_t::m_systems
+ * @brief Vector of systems with features assigned.
+ */
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @fn std::string feature_isolation::to_string(const feature_t& fd)
+ * @brief Converts a feature to its string representation of '0's and '1's.
+ *
+ * @param fd The feature to convert.
+ * @return A string representing the feature.
+ *
+ * @details
+ * If `MSB_LSB` is `true`, the most significant bit is placed on the left.
+ * Otherwise, the least significant bit is on the left.
+ */
+
+/**
+ * @fn [[nodiscard]] char feature_isolation::separator(const char s = 0)
+ * @brief Provides a customizable separator character for output formatting.
+ *
+ * @param s The separator character to set. If zero, returns the current separator.
+ * @return The current separator character.
+ *
+ * @details
+ * By default, the separator is set to the tab character (`'\t'`).
+ * Calling this function with a non-zero character updates the separator.
+ */

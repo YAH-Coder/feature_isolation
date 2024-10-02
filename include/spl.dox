@@ -65,6 +65,13 @@
  * - Modify the SPL file to include desired features, dependencies, and systems.
  * - Change the CSV separator character if needed.
  * - Extend the `spl_specification_t` class to include additional validation or processing logic.
+ *
+ * @section notes_sec Additional Notes
+ *
+ * - The parser uses the `fmt` library for string formatting and error messages.
+ * - Error handling is performed by throwing exceptions with detailed messages.
+ * - The Z3 SMT solver is used to validate feature dependencies and system constraints.
+ * - The SPL specification language allows for flexible definitions of features and their relationships.
  */
 
 /**
@@ -85,18 +92,42 @@
  */
 
 /**
+ * @namespace feature_isolation::error_msgs
+ * @brief Contains constant error message templates used throughout the SPL parsing and processing.
+ *
+ * The `error_msgs` namespace holds predefined error message templates that are used to provide consistent and informative error messages during SPL specification parsing and validation.
+ *
+ * **Constants:**
+ * - `FEATURE_NOT_FOUND`: Template for feature not found errors.
+ * - `FEATUREINDEX_NOT_FOUND`: Template for feature index not found errors.
+ * - `SYSTEM_CONSTRAINT`: Template for system constraint violations.
+ * - `UNEXPECTED`: Template for unexpected tokens or values.
+ * - `SPECIFIED_MORE_THAN_ONCE`: Template for duplicate specifications.
+ * - `EXPECTED_BUT_GOT`: Template for type mismatch errors.
+ * - `ERROR_READING`: Template for file reading errors.
+ * - `DUPLICATE_FOUND`: Template for duplicate entries.
+ * - `FAILED_TO`: Template for generic failure messages.
+ */
+
+/**
  * @namespace feature_isolation::kw
  * @brief Contains all the keywords as `constexpr std::string_view`.
+ *
+ * This namespace includes all recognized keywords in the SPL specification language, such as `SPL`, `FEATURES`, `CATEGORIES`, and dependency keywords like `REQUIRES_ALL`.
  */
 
 /**
  * @var feature_isolation::kw::keywords
  * @brief Contains a mapping of all keywords and their corresponding `feature_isolation::token_type_t`.
+ *
+ * Used by the tokenizer to identify and categorize tokens from the input stream.
  */
 
 /**
- * @namespace feature_isolation::error_msgs
- * @brief Contains constant error message templates used throughout the SPL parsing and processing.
+ * @var feature_isolation::category_map
+ * @brief Maps category names to their corresponding bitmask values.
+ *
+ * Used to determine which feature categories are included in the analysis.
  */
 
 /**
@@ -133,16 +164,82 @@
  * ```
  *
  * **Member Variables:**
- * - `m_filename`: The filename of the SPL specification CSV file.
- * - `m_spl_name`: The name of the SPL.
- * - `m_max_rank`: The maximum rank for feature combinations.
- * - `m_F`: The number of fundamental features.
- * - `m_max_available_systems`: The maximum number of available systems.
- * - `m_feature_names`: The names of the features.
- * - `m_categories`: The categories of features included.
- * - `m_requires_all`, `m_requires_any`, `m_requires_one`, `m_excludes_all`: Dependency maps representing different types of dependencies between features.
- * - `m_available_systems`, `m_missing_systems`: Vectors of system IDs that are available or missing.
- * - Boolean flags indicating whether certain parts of the specification were specified.
+ * - `std::string m_filename;`
+ *   - The filename of the SPL specification CSV file.
+ * - `std::string m_spl_name;`
+ *   - The name of the SPL.
+ * - `unsigned_integer m_max_rank;`
+ *   - The maximum rank for feature combinations.
+ * - `unsigned_integer m_F;`
+ *   - The number of fundamental features.
+ * - `unsigned_integer m_max_available_systems;`
+ *   - The maximum number of available systems.
+ * - `feature_names_t m_feature_names;`
+ *   - The names of the features.
+ * - `unsigned_integer m_categories;`
+ *   - The categories of features included, represented as a bitmask.
+ * - `dependencies_t m_requires_all;`
+ *   - Map of features that require all specified dependencies.
+ * - `dependencies_t m_requires_any;`
+ *   - Map of features that require any of the specified dependencies.
+ * - `dependencies_t m_requires_one;`
+ *   - Map of features that require exactly one of the specified dependencies.
+ * - `dependencies_t m_excludes_all;`
+ *   - Map of features that exclude all specified dependencies.
+ * - `systems_t m_available_systems;`
+ *   - Vector of system IDs that are available.
+ * - `systems_t m_missing_systems;`
+ *   - Vector of system IDs that are missing.
+ * - `bool m_spl_specified;`
+ *   - Indicates if the SPL name was specified.
+ * - `bool m_feature_names_specified;`
+ *   - Indicates if feature names were specified.
+ * - `bool m_categories_specified;`
+ *   - Indicates if categories were specified.
+ * - `bool m_explicit_dependencies_specified;`
+ *   - Indicates if explicit dependencies were specified.
+ * - `bool m_missing_systems_specified;`
+ *   - Indicates if missing systems were specified.
+ * - `bool m_available_systems_specified;`
+ *   - Indicates if available systems were specified.
+ * - `bool m_max_rank_specified;`
+ *   - Indicates if the maximum rank was specified.
+ *
+ * **Member Functions:**
+ * - `spl_specification_t(...)`
+ *   - Constructor that initializes the SPL specification and validates systems.
+ * - `bool validate_systems() const;`
+ *   - Validates all systems against specified dependencies using Z3 SMT solver.
+ * - `bool check_constraints(const std::string& constraint_type, const dependencies_t& constraints_map, unsigned_integer system_id, unsigned_integer system, z3::context& ctx) const;`
+ *   - Checks if a single system satisfies specified constraints.
+ */
+
+/**
+ * @fn feature_isolation::spl_specification_t::spl_specification_t(...)
+ * @brief Constructs an SPL specification and validates systems.
+ *
+ * @param filename The name of the SPL specification file.
+ * @param spl_name Optional SPL name.
+ * @param max_rank Optional maximum rank for feature combinations.
+ * @param F The number of fundamental features.
+ * @param max_available_systems The maximum number of available systems.
+ * @param feature_names Vector of feature names.
+ * @param requires_all Dependencies where features require all specified features.
+ * @param requires_any Dependencies where features require any specified features.
+ * @param requires_one Dependencies where features require exactly one specified feature.
+ * @param excludes_all Dependencies where features exclude all specified features.
+ * @param available_systems Vector of available system IDs.
+ * @param missing_systems Vector of missing system IDs.
+ * @param spl_specified Indicates if the SPL name was specified.
+ * @param feature_names_specified Indicates if feature names were specified.
+ * @param categories_specified Indicates if categories were specified.
+ * @param explicit_dependencies_specified Indicates if explicit dependencies were specified.
+ * @param missing_systems_specified Indicates if missing systems were specified.
+ * @param available_systems_specified Indicates if available systems were specified.
+ * @param max_rank_specified Indicates if the maximum rank was specified.
+ * @param categories Categories of features included (bitmask).
+ *
+ * The constructor initializes all member variables and calls `validate_systems()` to ensure systems comply with constraints.
  */
 
 /**
@@ -191,9 +288,42 @@
  * ```
  *
  * **Member Variables:**
- * - `m_token_type`: The type of token (e.g., `KEYWORD`, `VALUE`, `NAME`).
- * - `m_value`: The textual value of the token.
- * - `m_begin`, `m_end`: Positions (line and column) where the token begins and ends.
+ * - `token_type_t m_token_type;`
+ *   - The type of token (e.g., `KEYWORD`, `VALUE`, `NAME`).
+ * - `std::string m_value;`
+ *   - The textual value of the token.
+ * - `position_t m_begin;`
+ *   - Position (line and column) where the token begins.
+ * - `position_t m_end;`
+ *   - Position (line and column) where the token ends.
+ *
+ * **Member Functions:**
+ * - `const token_type_t& type() const;`
+ *   - Retrieves the type of the token.
+ * - `const std::string& value() const;`
+ *   - Retrieves the value of the token.
+ * - `const position_t& begin() const;`
+ *   - Retrieves the beginning position of the token.
+ * - `const position_t& end() const;`
+ *   - Retrieves the ending position of the token.
+ * - `const std::string position_line() const;`
+ *   - Retrieves the line number where the token begins as a string.
+ * - `const std::string position_column() const;`
+ *   - Retrieves the column number where the token begins as a string.
+ */
+
+/**
+ * @fn feature_isolation::token_t::token_t(
+ *     const token_type_t& tt,
+ *     const std::string& v,
+ *     const position_t& b,
+ *     const position_t& e)
+ * @brief Constructs a token with specified type, value, and positions.
+ *
+ * @param tt The type of the token.
+ * @param v The value of the token.
+ * @param b The starting position (line and column).
+ * @param e The ending position (line and column).
  */
 
 /**
@@ -271,6 +401,29 @@
  *   - Reference to the input stream being tokenized.
  * - `position_t m_position;`
  *   - The current position in the input stream (line and column).
+ *
+ * **Member Functions:**
+ * - `token_t next();`
+ *   - Retrieves the next token from the input stream.
+ * - `bool is_token_char(char c) const;`
+ *   - Checks if a character is valid within a token.
+ * - `bool is_whitespace(char c) const;`
+ *   - Checks if a character is a whitespace character.
+ * - `void consume_char(char& c);`
+ *   - Consumes a character from the input stream and updates the current position.
+ * - `void skip_line();`
+ *   - Skips the rest of the current line, typically used to ignore comments.
+ * - `token_t parse_token();`
+ *   - Parses a sequence of characters that form a token.
+ * - `std::optional<token_t> check_keyword(const std::string& token);`
+ *   - Checks if a string is a recognized keyword and returns the corresponding token.
+ */
+
+/**
+ * @fn feature_isolation::tokenizer_t::tokenizer_t(std::istream& is)
+ * @brief Constructs a tokenizer with the given input stream.
+ *
+ * @param is The input stream to tokenize.
  */
 
 /**
@@ -286,17 +439,6 @@
  * - Ignoring unrecognized characters.
  *
  * The function uses helper methods to modularize the tokenization process.
- */
-
-/**
- * @fn [[nodiscard]] std::optional<token_t> feature_isolation::tokenizer_t::check_keyword(const std::string& token)
- * @brief Checks if a string is a recognized keyword and returns the corresponding token.
- *
- * @param token The string to check.
- * @return An optional `token_t` if the token is a keyword; otherwise, `std::nullopt`.
- *
- * This function converts the input string to uppercase and looks it up in the `keywords` map.
- * If found, it returns a `token_t` with the appropriate token type.
  */
 
 /**
@@ -348,6 +490,17 @@
  */
 
 /**
+ * @fn [[nodiscard]] std::optional<token_t> feature_isolation::tokenizer_t::check_keyword(const std::string& token)
+ * @brief Checks if a string is a recognized keyword and returns the corresponding token.
+ *
+ * @param token The string to check.
+ * @return An optional `token_t` if the token is a keyword; otherwise, `std::nullopt`.
+ *
+ * This function converts the input string to uppercase and looks it up in the `keywords` map.
+ * If found, it returns a `token_t` with the appropriate token type.
+ */
+
+/**
  * @class feature_isolation::parser_t
  * @brief Parses tokens to build an SPL specification object.
  *
@@ -361,6 +514,36 @@
  *   - The tokenizer used to extract tokens from the input stream.
  * - `spl_specification_t m_spec;`
  *   - The SPL specification object constructed during parsing.
+ *
+ * **Member Functions:**
+ * - `spl_specification_t parse_specification(const std::string& filename);`
+ *   - Parses the entire SPL specification from the input stream.
+ * - `spl_specification_t::systems_t effective_available_systems(...);`
+ *   - Computes the effective list of available systems.
+ * - `std::optional<signed int> feature_index(const std::string& feature, const feature_names_t& feature_names) const;`
+ *   - Finds the index of a feature in the feature names vector.
+ * - `std::optional<std::string> parse_spl();`
+ *   - Parses the `SPL` section to extract the SPL name.
+ * - `std::optional<unsigned_integer> parse_max_rank();`
+ *   - Parses the `MAX_RANK` section to extract the maximum rank.
+ * - `std::pair<unsigned_integer, feature_names_t> parse_features();`
+ *   - Parses the `FEATURES` section to extract features.
+ * - `unsigned_integer parse_categories();`
+ *   - Parses the `CATEGORIES` section to determine included categories.
+ * - `dependency_maps_t parse_explicit_dependencies(const feature_names_t& feature_names);`
+ *   - Parses the `EXPLICIT_DEPENDENCIES` section.
+ * - `spl_specification_t::systems_t parse_available_systems();`
+ *   - Parses the `AVAILABLE_SYSTEMS` section.
+ * - `spl_specification_t::systems_t parse_missing_systems();`
+ *   - Parses the `MISSING_SYSTEMS` section.
+ */
+
+/**
+ * @fn feature_isolation::parser_t::parser_t(std::istream& is, std::string filename)
+ * @brief Constructs a parser with the given input stream and filename.
+ *
+ * @param is The input stream to parse.
+ * @param filename The name of the SPL specification file.
  */
 
 /**
@@ -371,6 +554,36 @@
  * @return The constructed `spl_specification_t` object.
  *
  * The function reads tokens using the tokenizer and constructs the SPL specification by parsing different sections such as `SPL`, `FEATURES`, `CATEGORIES`, `EXPLICIT_DEPENDENCIES`, and systems definitions. It handles errors and ensures that the specification is correctly built.
+ */
+
+/**
+ * @fn spl_specification_t::systems_t feature_isolation::parser_t::effective_available_systems(
+ *     unsigned_integer max_available_systems,
+ *     const spl_specification_t::systems_t& available_systems,
+ *     const spl_specification_t::systems_t& missing_systems,
+ *     bool available_systems_specified,
+ *     bool missing_systems_specified) const
+ * @brief Computes the effective list of available systems based on specified and missing systems.
+ *
+ * @param max_available_systems The maximum number of systems.
+ * @param available_systems The specified available systems.
+ * @param missing_systems The specified missing systems.
+ * @param available_systems_specified Whether available systems were specified.
+ * @param missing_systems_specified Whether missing systems were specified.
+ * @return A vector of effective available system IDs.
+ *
+ * The function determines the actual list of available systems by considering both specified available and missing systems.
+ */
+
+/**
+ * @fn std::optional<signed int> feature_isolation::parser_t::feature_index(const std::string& feature, const feature_names_t& feature_names) const
+ * @brief Finds the index of a feature in the feature names vector.
+ *
+ * @param feature The feature name to look up.
+ * @param feature_names The vector of feature names.
+ * @return The index of the feature if found; otherwise, throws an error.
+ *
+ * If the feature name is `ROOT`, it returns `-1`. Otherwise, it searches for the feature name in the vector and returns its index.
  */
 
 /**
@@ -415,9 +628,13 @@
  *
  * **Member Variables:**
  * - `dependencies_t requires_all;`
+ *   - Dependencies where features require all specified features.
  * - `dependencies_t requires_any;`
+ *   - Dependencies where features require any specified features.
  * - `dependencies_t requires_one;`
+ *   - Dependencies where features require exactly one specified feature.
  * - `dependencies_t excludes_all;`
+ *   - Dependencies where features exclude all specified features.
  */
 
 /**
@@ -449,36 +666,6 @@
  */
 
 /**
- * @fn std::optional<signed int> feature_isolation::parser_t::feature_index(const std::string& feature, const feature_names_t& feature_names) const
- * @brief Finds the index of a feature in the feature names vector.
- *
- * @param feature The feature name to look up.
- * @param feature_names The vector of feature names.
- * @return The index of the feature if found; otherwise, throws an error.
- *
- * If the feature name is `ROOT`, it returns `-1`. Otherwise, it searches for the feature name in the vector and returns its index.
- */
-
-/**
- * @fn spl_specification_t::systems_t feature_isolation::parser_t::effective_available_systems(
- *     unsigned_integer max_available_systems,
- *     const spl_specification_t::systems_t& available_systems,
- *     const spl_specification_t::systems_t& missing_systems,
- *     bool available_systems_specified,
- *     bool missing_systems_specified) const
- * @brief Computes the effective list of available systems based on specified and missing systems.
- *
- * @param max_available_systems The maximum number of systems.
- * @param available_systems The specified available systems.
- * @param missing_systems The specified missing systems.
- * @param available_systems_specified Whether available systems were specified.
- * @param missing_systems_specified Whether missing systems were specified.
- * @return A vector of effective available system IDs.
- *
- * The function determines the actual list of available systems by considering both specified available and missing systems.
- */
-
-/**
  * @class feature_isolation::printer_t
  * @brief Outputs the SPL specification in a structured format.
  *
@@ -490,6 +677,29 @@
  * **Member Variables:**
  * - `std::ostream& m_os;`
  *   - Reference to the output stream where the specification will be printed.
+ *
+ * **Member Functions:**
+ * - `void print_specification(const spl_specification_t& spec);`
+ *   - Prints the entire SPL specification to the output stream.
+ * - `void print_spl_name(const spl_specification_t& spec);`
+ *   - Prints the `SPL` section if specified.
+ * - `void print_max_rank(const spl_specification_t& spec);`
+ *   - Prints the `MAX_RANK` section if specified.
+ * - `void print_features(const spl_specification_t& spec);`
+ *   - Prints the `FEATURES` section.
+ * - `void print_categories(const spl_specification_t& spec);`
+ *   - Prints the `CATEGORIES` section if specified.
+ * - `void print_dependencies(const spl_specification_t& spec);`
+ *   - Prints the `EXPLICIT_DEPENDENCIES` section if specified.
+ * - `void print_systems(const spl_specification_t& spec);`
+ *   - Prints the `AVAILABLE_SYSTEMS` or `MISSING_SYSTEMS` section if specified.
+ */
+
+/**
+ * @fn feature_isolation::printer_t::printer_t(std::ostream& os)
+ * @brief Constructs a printer with the given output stream.
+ *
+ * @param os The output stream where the specification will be printed.
  */
 
 /**
@@ -559,6 +769,21 @@
  *   - The name of the SPL specification file.
  * - `spl_specification_t m_spec;`
  *   - The parsed SPL specification.
+ *
+ * **Member Functions:**
+ * - `spl_specification_t process();`
+ *   - Parses the SPL file and constructs the SPL specification object.
+ * - `void print(const std::string& output_filename) const;`
+ *   - Prints the SPL specification to the specified output CSV file.
+ * - `const spl_specification_t& get_specification() const;`
+ *   - Retrieves the parsed SPL specification.
+ */
+
+/**
+ * @fn feature_isolation::spl_processor_t::spl_processor_t(const std::string& filename)
+ * @brief Constructs an SPL processor with the given filename.
+ *
+ * @param filename The name of the SPL specification file.
  */
 
 /**
@@ -628,72 +853,156 @@
  */
 
 /**
- * @var feature_isolation::category_map
- * @brief Maps category names to their corresponding bitmask values.
- *
- * Used to determine which feature categories are included in the analysis.
+ * @var feature_isolation::spl_specification_t::m_filename
+ * @brief The filename of the SPL specification CSV file.
  */
 
 /**
- * @section usage_sec Usage
- *
- * To use the SPL specification parser:
- *
- * 1. **Include the header:**
- *    ```cpp
- *    #include "spl.hpp"
- *    ```
- *
- * 2. **Create an instance of `spl_processor_t`:**
- *    ```cpp
- *    feature_isolation::spl_processor_t processor("spl_specification.csv");
- *    ```
- *
- * 3. **Process the SPL specification:**
- *    ```cpp
- *    auto spec = processor.get_specification();
- *    ```
- *
- * 4. **Access SPL specification details:**
- *    ```cpp
- *    std::cout << "SPL Name: " << spec.m_spl_name << std::endl;
- *    ```
- *
- * 5. **Print the SPL specification to a file:**
- *    ```cpp
- *    processor.print("output_specification.csv");
- *    ```
- *
- * **Note:** Ensure that the CSV files are correctly formatted according to the SPL specification language.
- *
- * @section example_sec Example
- *
- * ```cpp
- * #include "spl.hpp"
- * #include <iostream>
- *
- * int main() {
- *     try {
- *         feature_isolation::spl_processor_t processor("spl_specification.csv");
- *         auto spec = processor.get_specification();
- *
- *         // Access SPL details
- *         std::cout << "SPL Name: " << spec.m_spl_name << std::endl;
- *
- *         // Print the specification to an output file
- *         processor.print("output_specification.csv");
- *     } catch (const std::exception& e) {
- *         std::cerr << "Error: " << e.what() << std::endl;
- *     }
- *     return 0;
- * }
- * ```
- *
- * @section notes_sec Additional Notes
- *
- * - The parser uses the `fmt` library for string formatting and error messages.
- * - Error handling is performed by throwing exceptions with detailed messages.
- * - The Z3 SMT solver is used to validate feature dependencies and system constraints.
- * - The SPL specification language allows for flexible definitions of features and their relationships.
+ * @var feature_isolation::spl_specification_t::m_spl_name
+ * @brief The name of the SPL.
  */
 
+/**
+ * @var feature_isolation::spl_specification_t::m_max_rank
+ * @brief The maximum rank for feature combinations.
+ */
+
+/**
+ * @var feature_isolation::spl_specification_t::m_F
+ * @brief The number of fundamental features.
+ */
+
+/**
+ * @var feature_isolation::spl_specification_t::m_max_available_systems
+ * @brief The maximum number of available systems.
+ */
+
+/**
+ * @var feature_isolation::spl_specification_t::m_feature_names
+ * @brief A vector containing the names of the features.
+ */
+
+/**
+ * @var feature_isolation::spl_specification_t::m_categories
+ * @brief The categories of features included, represented as a bitmask.
+ */
+
+/**
+ * @var feature_isolation::spl_specification_t::m_requires_all
+ * @brief Map of features that require all specified dependencies.
+ */
+
+/**
+ * @var feature_isolation::spl_specification_t::m_requires_any
+ * @brief Map of features that require any of the specified dependencies.
+ */
+
+/**
+ * @var feature_isolation::spl_specification_t::m_requires_one
+ * @brief Map of features that require exactly one of the specified dependencies.
+ */
+
+/**
+ * @var feature_isolation::spl_specification_t::m_excludes_all
+ * @brief Map of features that exclude all specified dependencies.
+ */
+
+/**
+ * @var feature_isolation::spl_specification_t::m_available_systems
+ * @brief A vector of system IDs that are available.
+ */
+
+/**
+ * @var feature_isolation::spl_specification_t::m_missing_systems
+ * @brief A vector of system IDs that are missing.
+ */
+
+/**
+ * @var feature_isolation::spl_specification_t::m_spl_specified
+ * @brief Indicates if the SPL name was specified.
+ */
+
+/**
+ * @var feature_isolation::spl_specification_t::m_feature_names_specified
+ * @brief Indicates if feature names were specified.
+ */
+
+/**
+ * @var feature_isolation::spl_specification_t::m_categories_specified
+ * @brief Indicates if categories were specified.
+ */
+
+/**
+ * @var feature_isolation::spl_specification_t::m_explicit_dependencies_specified
+ * @brief Indicates if explicit dependencies were specified.
+ */
+
+/**
+ * @var feature_isolation::spl_specification_t::m_missing_systems_specified
+ * @brief Indicates if missing systems were specified.
+ */
+
+/**
+ * @var feature_isolation::spl_specification_t::m_available_systems_specified
+ * @brief Indicates if available systems were specified.
+ */
+
+/**
+ * @var feature_isolation::spl_specification_t::m_max_rank_specified
+ * @brief Indicates if the maximum rank was specified.
+ */
+
+/**
+ * @var feature_isolation::token_t::m_token_type
+ * @brief The type of token (e.g., `KEYWORD`, `VALUE`, `NAME`).
+ */
+
+/**
+ * @var feature_isolation::token_t::m_value
+ * @brief The textual value of the token.
+ */
+
+/**
+ * @var feature_isolation::token_t::m_begin
+ * @brief Position (line and column) where the token begins.
+ */
+
+/**
+ * @var feature_isolation::token_t::m_end
+ * @brief Position (line and column) where the token ends.
+ */
+
+/**
+ * @var feature_isolation::tokenizer_t::m_is
+ * @brief Reference to the input stream being tokenized.
+ */
+
+/**
+ * @var feature_isolation::tokenizer_t::m_position
+ * @brief The current position in the input stream (line and column).
+ */
+
+/**
+ * @var feature_isolation::parser_t::m_tokenizer
+ * @brief The tokenizer used to extract tokens from the input stream.
+ */
+
+/**
+ * @var feature_isolation::parser_t::m_spec
+ * @brief The SPL specification object constructed during parsing.
+ */
+
+/**
+ * @var feature_isolation::printer_t::m_os
+ * @brief Reference to the output stream where the specification will be printed.
+ */
+
+/**
+ * @var feature_isolation::spl_processor_t::m_filename
+ * @brief The name of the SPL specification file.
+ */
+
+/**
+ * @var feature_isolation::spl_processor_t::m_spec
+ * @brief The parsed SPL specification.
+ */
