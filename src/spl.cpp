@@ -231,83 +231,95 @@ namespace feature_isolation {
       : m_is { is }, m_position { 1, 0 } {}
 
   token_t tokenizer_t::next() {
-    std::string token;
-    char c;
-    position_t token_begin;
-    position_t token_end;
-    position_t current_position;
+    while (m_is) {
+        char c = static_cast<char>(m_is.peek());
 
-    while ( m_is.get( c ) ) {
-      current_position = m_position;
+        if (is_whitespace(c)) {
+            consume_char(c);
+            continue;
+        }
 
-      if ( c == '\n' ) {
+        if (c == '/') {
+            consume_char(c); // Consume '/'
+            if (m_is.peek() == '/') {
+                consume_char(c); // Consume second '/'
+                skip_line();
+                continue;
+            } else {
+                // Not a comment, ignore the '/'
+                continue;
+            }
+        }
+
+        if (is_token_char(c)) {
+            return parse_token();
+        } else {
+            // Unknown character, consume and skip
+            consume_char(c);
+            continue;
+        }
+    }
+
+    // At EOF
+    return token_t(token_type_t::EMPTY, "", m_position, m_position);
+}
+bool tokenizer_t::is_token_char(char c) const {
+    return std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '#' || c == '-' || c == '.';
+}
+
+bool tokenizer_t::is_whitespace(char c) const {
+    return std::isspace(static_cast<unsigned char>(c));
+}
+
+void tokenizer_t::consume_char(char& c) {
+    m_is.get(c);
+    if (c == '\n') {
         m_position.first++;
         m_position.second = 1;
-      } else {
+    } else {
         m_position.second++;
-      }
+    }
+}
 
-      if ( std::isalnum( c ) || c == '_' || c == '#' || c == '-' || c == '.' ) {
-        if ( token.empty() ) {
-          token_begin = current_position;
+void tokenizer_t::skip_line() {
+    char c;
+    while (m_is.get(c)) {
+        if (c == '\n') {
+            m_position.first++;
+            m_position.second = 1;
+            break;
+        } else {
+            m_position.second++;
         }
+    }
+}
+
+token_t tokenizer_t::parse_token() {
+    std::string token;
+    position_t token_begin = m_position;
+    char c;
+
+    while (m_is && is_token_char(m_is.peek())) {
+        consume_char(c);
         token += c;
-        token_end = current_position;
-      } else {
-        if ( !token.empty() ) {
-          if ( std::all_of( token.begin(), token.end(), ::isdigit ) ) {
-            token_t result( token_type_t::VALUE, token, token_begin, token_end );
-            return result;
-          }
-
-          auto keyword_check = check_keyword( toupper( token ) );
-          if ( keyword_check.has_value() ) {
-            token_t result( keyword_check->type(), token, token_begin, token_end );
-            return result;
-          }
-
-          token_t result( token_type_t::NAME, token, token_begin, token_end );
-          return result;
-        }
-
-        if ( std::isspace( c ) ) {
-          continue;
-        } else if ( c == '/' && m_is.peek() == '/' ) {
-          m_is.get( c );
-          m_position.second++;
-          while ( m_is.get( c ) ) {
-            if ( c == '\n' ) {
-              m_position.first++;
-              m_position.second = 1;
-              break;
-            } else {
-              m_position.second++;
-            }
-          }
-          continue;
-        }
-      }
     }
 
-    if ( !token.empty() ) {
-      if ( std::all_of( token.begin(), token.end(), ::isdigit ) ) {
-        token_t result( token_type_t::VALUE, token, token_begin, token_end );
-        return result;
-      }
+    position_t token_end = m_position;
 
-      auto keyword_check = check_keyword( toupper( token ) );
-      if ( keyword_check.has_value() ) {
-        token_t result( keyword_check->type(), token, token_begin, token_end );
-        return result;
-      }
-
-      token_t result( token_type_t::NAME, token, token_begin, token_end );
-      return result;
+    // Determine token type
+    if (std::all_of(token.begin(), token.end(), ::isdigit)) {
+        return token_t(token_type_t::VALUE, token, token_begin, token_end);
+    } else {
+        auto keyword_check = check_keyword(toupper(token));
+        if (keyword_check.has_value()) {
+            return token_t(keyword_check->type(), token, token_begin, token_end);
+        } else {
+            return token_t(token_type_t::NAME, token, token_begin, token_end);
+        }
     }
+}
 
-    token_t result( token_type_t::EMPTY, "", m_position, m_position );
-    return result;
-  }
+
 
   std::optional<token_t> tokenizer_t::check_keyword( const std::string& token ) {
     using namespace kw;
