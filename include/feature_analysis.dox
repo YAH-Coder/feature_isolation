@@ -3,6 +3,7 @@
  * @brief Defines classes and functions for feature analysis across systems.
  *
  * @page feature_analysis Feature Analysis System
+ * @brief Defines classes and functions for generating and analyzing features across systems.
  *
  * @tableofcontents
  *

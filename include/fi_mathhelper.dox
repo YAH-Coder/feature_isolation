@@ -3,7 +3,8 @@
  * @brief Provides mathematical helper functions and classes for feature isolation computations.
  *
  * @page fi_mathhelper Mathematical Helper Library
- *
+ * @brief Provides safe arithmetic operations, combinatorial calculations, and utility functions
+ * 
  * @tableofcontents
  *
  * @section introduction Introduction
