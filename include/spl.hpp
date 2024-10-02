@@ -139,6 +139,12 @@ namespace feature_isolation {
   private:
     std::istream& m_is;
     position_t m_position;
+
+    bool is_token_char(char c) const;
+    bool is_whitespace(char c) const;
+    void consume_char(char& c);
+    void skip_line();
+    token_t parse_token();
   };
 
   class parser_t final {
