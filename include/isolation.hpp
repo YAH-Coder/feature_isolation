@@ -399,7 +399,7 @@ namespace feature_isolation {
   }
 
   unsigned_integer dot_product( const std::vector<bool>& v ) {
-    return std::ranges::count( v, true );
+    return static_cast<unsigned_integer>(std::ranges::count( v, true ));
   }
 
   bool feature_bool_and( const std::vector<bool>& f1,
