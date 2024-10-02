@@ -20,13 +20,13 @@
  * @section components Key Components
  *
  * - **Namespace `feature_isolation`:** Contains all classes and functions related to feature isolation analysis.
- * - **Class `feature_isolation_t`:** Main class that performs feature isolation computations.
- * - **Struct `difference_t`:** Represents the difference in features between two sets of systems.
- * - **Struct `isolation_result_t`:** Holds the result of the isolation analysis, including features and differences.
+ * - **Class `feature_isolation::feature_isolation_t`:** Main class that performs feature isolation computations.
+ * - **Struct `feature_isolation::difference_t`:** Represents the difference in features between two sets of systems.
+ * - **Struct `feature_isolation::isolation_result_t`:** Holds the result of the isolation analysis, including features and differences.
  * - **Helper Functions and Operators:**
- *   - `to_vector`, `to_set`: Utility functions for container conversions.
- *   - `subset`, `proper_subset`: Functions to determine subset relations.
- *   - Overloaded operators for `difference_t` and feature manipulation.
+ *   - `feature_isolation::to_vector`, `feature_isolation::to_set`: Utility functions for container conversions.
+ *   - `feature_isolation::subset`, `feature_isolation::proper_subset`: Functions to determine subset relations.
+ *   - Overloaded operators for `feature_isolation::difference_t` and feature manipulation.
  *
  * @section usage Usage
  *
