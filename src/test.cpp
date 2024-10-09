@@ -1,0 +1,50 @@
+#include "../include/isolation_experimental.hpp"
+#include "../include/spl.hpp"
+
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <chrono> // For timing
+
+int main() {
+    using namespace feature_isolation;
+
+    // Start timing
+    auto start = std::chrono::high_resolution_clock::now();
+
+    feature_isolation_t fi("spl_specs/factorial_test.csv");
+
+    std::stringstream ss;
+
+    ss << "=== SPL SPECIFICATION ===" << std::endl;
+    printer_t printer { ss };
+    printer.print_specification(fi.m_spl);
+
+    ss << "\n=== SYSTEMS ===" << std::endl;
+    fi.m_features.print(ss);
+
+    ss << "=== FEATURES BY CATEGORY ===" << std::endl;
+    fi.m_features.print_features(ss);
+
+    ss << "=== FEATURES BY INDEX ===" << std::endl;
+    for (auto index { one }; index <= fi.m_features.T; ++index) {
+        ss << index << separator() << fi.m_features.category_name(index)
+           << separator() << to_string(fi.m_features.at(index)) << std::endl;
+    }
+
+    ss << "=== ISOLATION RESULTS ===" << std::endl;
+    fi.print(ss, true, true);  // -min-diffs=true, -feature-names=true
+
+    std::ofstream outfile("output.csv");
+    outfile << ss.str();
+    outfile.close();
+
+    // Stop timing
+    auto finish = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = finish - start;
+
+    std::cout << "Elapsed time: " << elapsed.count() << " s" << std::endl;
+
+    return 0;
+}
