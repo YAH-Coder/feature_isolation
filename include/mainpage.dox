@@ -3,9 +3,11 @@
  *
  * @section intro_sec Introduction
  *
- * The Feature Isolation Project provides tools for analyzing and isolating features within
- * Software Product Lines (SPLs) using set theory concepts. It allows for parsing SPL specifications,
- * analyzing features across systems, and performing feature isolation to identify minimal sets of
+ * The Feature Isolation Project provides tools for analyzing and isolating
+ * features within Software Product Lines (SPLs) using set theory. It
+ * allows parsing SPL specifications,
+ * analyzing features across systems, and performing feature isolation to 
+ * identify minimal sets of
  * features that differentiate systems.
  *
  * @section background_sec Background
@@ -28,13 +30,13 @@
  * The project consists of the following main components:
  *
  * - [Mathematical Helper Functions](\ref fi_mathhelper)
- *   - Provides safe arithmetic operations, combinatorial calculations, and utility functions.
+ *   - Provides (optionally safe) arithmetic operations, combinatorial calculations, and utility functions.
  * - [Feature Analysis System](\ref feature_analysis)
  *   - Defines classes and functions for generating and analyzing features across systems.
  * - [SPL Specification Parser](\ref spl_parser)
- *   - Parses and processes SPL specification files, handling features, categories, dependencies, and systems.
+ *   - Analyzes and processes an SPL specification file with features, categories, dependencies and systems.
  * - [Feature Isolation Analysis](\ref feature_isolation)
- *   - Performs feature isolation analysis using SPL specifications and feature analysis results.
+ *   - Performs the feature isolation analysis based on the SPL specification and feature analysis results.
  *
  * @section usage_sec Usage
  *
@@ -46,7 +48,7 @@
  *    #include "isolation.hpp"
  *    ```
  *
- * 2. **Parse an SPL Specification:**
+ * 2. **Parse an SPL specification:**
  *    ```cpp
  *    feature_isolation::spl_processor_t processor("spl_specification.csv");
  *    auto spec = processor.get_specification();
@@ -69,9 +71,11 @@
  *
  * - **Token Types:**
  *   - **Comment:** Begins with `//` and must be followed by whitespace. Extends to the end of the line.
- *   - **Keyword:** Reserved words used to define sections (e.g., `SPL`, `FEATURES`, `CATEGORIES`). Keywords are not case-sensitive and should not be used as feature names.
- *   - **Name:** A sequence of non-whitespace characters used as identifiers for features.
- *   - **Value:** Numeric values for counts and identifiers.
+ *   - **Keyword:** The reserved words are used to define sections  (e.g.,
+ *   `SPL`, `FEATURES`, `CATEGORIES`). The keywords are not case-sensitive; they should not be used 
+ *   as feature names.
+ *   - **Name:** A sequence of non-whitespace characters used as identifier for features.
+ *   - **Value:** Numeric value for counts and identifiers.
  *
  * - **Keywords:**
  *   - `A`, `AN`, `ANF`, `AVAILABLE_SYSTEMS`, `CATEGORIES`, `END`, `EXCLUDES_ALL`, `EXPLICIT_DEPENDENCIES`, `F`, `FEATURES`, `MAX_RANK`, `MISSING_SYSTEMS`, `N`, `O`, `ON`, `ONF`, `REQUIRES_ALL`, `REQUIRES_ANY`, `REQUIRES_ONE`, `ROOT`, `SPL`
@@ -80,10 +84,12 @@
  * - **Sections:**
  *   - **`SPL`:** Specifies the name of the software product line (optional).
  *   - **`FEATURES`:** Specifies the number of independent features (`F`) followed by their names. This section is mandatory.
- *   - **`CATEGORIES`:** Specifies which feature categories to include in the analysis. Valid category names are `F`, `A`, `O`, `N`, `AN`, `ON`, `ANF`, and `ONF`. If not specified, only `F` (Fundamental features) is included.
+ *   - **`CATEGORIES`:** Specifies which feature categories to include in the
+ *   analysis. Valid category names are `F`, `A`, `O`, `N`, `AN`, `ON`, `ANF`,
+ *   and `ONF`. If not specified, only `F` (Independant features) is included.
  *   - **`EXPLICIT_DEPENDENCIES`:** Defines dependencies between features. The dependencies are `REQUIRES_ALL`, `REQUIRES_ANY`, `REQUIRES_ONE`, and `EXCLUDES_ALL`. The special feature `ROOT` represents a conceptual feature present in every system.
- *   - **`MISSING_SYSTEMS`:** Specifies systems that are not available (optional). Must occur after `FEATURES`.
- *   - **`AVAILABLE_SYSTEMS`:** Specifies systems that are available (optional). Must occur after `FEATURES`.
+ *   - **`MISSING_SYSTEMS`:** Specifies systems that are not available (optional). If it occurs, it must appear after `FEATURES`.
+ *   - **`AVAILABLE_SYSTEMS`:** Specifies systems that are available (optional). If it occurs, it must occur after `FEATURES`.
  *   - Each section must be concluded with the keyword `END` where applicable.
  *
  * - **Dependencies Syntax:**
@@ -101,8 +107,8 @@
  *
  * **Key Concepts:**
  *
- * - **Feature Identifiers (FIDs):** Unique IDs assigned to features.
- * - **System Identifiers (SIDs):** Unique IDs assigned to systems.
+ * - **Feature Identifier (FID):** Unique ID assigned to a feature.
+ * - **System Identifier (SID):** Unique ID assigned to a system.
  * - **Set Operations:**
  *   - **Flattening:** Replacing each system description with the set of its FIDs.
  *   - **Intersection (⋂):** Used to find common features across systems.
@@ -167,7 +173,7 @@
  * - The project uses the Z3 SMT solver to validate feature dependencies and system constraints.
  * - The SPL specification language allows for flexible definitions of features and their relationships.
  * - The feature isolation analysis can help in feature location tasks and understanding feature interactions.
- * - The domain-specific language (DSL) for SPL specifications is designed to be both expressive and precise, enabling detailed modeling of feature interactions and constraints.
+ * - The domain-specific language (DSL) for specifying an SPL is designed to be both expressive and precise, allowing detailed modeling of functional interactions and constraints.
  *
  * @section acknowledgements_sec Acknowledgements
  *
