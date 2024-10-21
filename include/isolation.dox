@@ -3,18 +3,18 @@
  * @brief Provides classes and functions for feature isolation analysis across systems.
  *
  * @page feature_isolation Feature Isolation Analysis
- * @brief Performs feature isolation analysis using SPL specifications and feature analysis results.
+ * @brief Performs a feature isolation analysis using an SPL specification and feature analysis results.
  *
  * @section introduction Introduction
  *
  * The `isolation.hpp` library offers tools for analyzing and isolating features across different systems
  * based on their presence or absence. It builds upon the feature analysis provided by `feature_analysis.hpp`
- * and incorporates the SPL specifications parsed from `spl.hpp`. The main objective is to determine minimal
+ * and incorporates the SPL specification parsed from `spl.hpp`. The main objective is to determine minimal
  * sets of features that distinguish systems where a particular feature is present from those where it is absent.
  *
  * This library provides:
  * - Methods to partition systems based on feature presence.
- * - Functions to compute minimal and some differences that isolate a feature.
+ * - Functions for calculating all minimum and exactly one possible difference (if existing) that isolate a feature.
  * - Utilities to flatten feature sets by intersection or union across systems.
  * - Customizable output functions to present the isolation results.
  *
@@ -85,14 +85,14 @@
  *
  * @section notes Notes
  *
- *  **Interpreting the Output:**
+ *  **Interpreting the output:**
  *   - Each row represents a feature along with its isolation result.
  *   - **FEATURE ID:** The unique identifier of the feature.
  *   - **FEATURE NAME:** The name or expression representing the feature.
  *   - **ISOLATION RESULT:** A set of feature IDs that isolate the specified feature.
  *   - **SOME DIFFERENCE:** Shows the minimal differences between systems where the feature is present and absent.
  *
- *  **Symbols Used:**
+ *  **Symbols used:**
  *   - `{ }`: Denotes a set of features or systems.
  *   - `&`: Logical AND operation between system IDs.
  *   - `|`: Logical OR operation between system IDs.
@@ -100,17 +100,17 @@
  *
  * @section customization Customization
  *
- *  **Analyzing All Features:**
+ *  **Analyzing all features:**
  *   - To analyze and print isolation results for all features, simply call `isolation.print(std::cout);`.
- *  **Controlling Output Details:**
+ *  **Controlling output details:**
  *   - The `print` function has parameters to control whether all minimal differences are shown.
  *     - `all_differences`: Set to `true` to display all minimal differences.
  *     - `feature_names`: Set to `true` to display feature names instead of IDs.
  *     ```cpp
  *     isolation.print(std::cout, feature_id, true, true); // Show all minimal differences with feature names
  *     ```
- * **Integration with SPL Specifications:**
- *   - Ensure that the SPL file provided contains the necessary feature definitions and system specifications for accurate analysis.
+ * **Integration with the SPL specification:**
+ *   - Ensure that the provided SPL specification file contains the necessary feature definitions and system specifications for accurate analysis.
  */
 
 /**
