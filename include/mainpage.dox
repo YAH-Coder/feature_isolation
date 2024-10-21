@@ -175,6 +175,11 @@
  * - The feature isolation analysis can help in feature location tasks and understanding feature interactions.
  * - The domain-specific language (DSL) for specifying an SPL is designed to be both expressive and precise, allowing detailed modeling of functional interactions and constraints.
  *
+ * @section authors_sec Authors
+ *
+ * The authors of the documentation for this project are Yannis Hübenthal and 
+ * Ulrich Eisenecker (2024).
+ *
  * @section acknowledgements_sec Acknowledgements
  *
  * This project was developed based on the concepts and methodologies presented by Ulrich Eisenecker and Richard Müller.
