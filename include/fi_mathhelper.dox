@@ -1,9 +1,10 @@
 /**
  * @file fi_mathhelper.hpp
- * @brief Provides mathematical helper functions and classes for feature isolation computations.
+ * @brief Provides mathematical helper functions and classes for feature isolation.
  *
  * @page fi_mathhelper Mathematical Helper Library
- * @brief Provides safe arithmetic operations, combinatorial calculations, and utility functions
+ * @brief Provides safe arithmetic operations, combinatorial calculations, and
+ * utility functions.
  * 
  * @tableofcontents
  *
@@ -16,7 +17,7 @@
  *
 * @section components Key Components
  *
- * - **Namespace `feature_isolation`:** Contains all mathematical helper functions and classes.
+ * - **Namespace `feature_isolation`:** Contains all mathematical helper functions as well as classes for feature isolation.
  * - **Namespace `feature_isolation::checked_arithmetic`:** Provides arithmetic operations with overflow and underflow checks.
  * - **Namespace `feature_isolation::unchecked_arithmetic`:** Provides arithmetic operations without overflow and underflow checks.
  * - **Class `feature_isolation::combination_t`:** Template class for generating combinations of elements.
@@ -28,20 +29,20 @@
  * ```cpp
  * #include "fi_mathhelper.hpp"
  * ```
- * 2. Select Arithmetic Mode (Optional):
+ * 2. Select arithmetic mode (optional):
  *    Define `USE_UNCHECKED_ARITHMETIC` before including the header to use unchecked arithmetic.
  * ```cpp
  * #define USE_UNCHECKED_ARITHMETIC
  * #include "fi_mathhelper.hpp"
  * ```
- * 3. Use the Functions:
+ * 3. Use the functions, e.g.:
  * ```cpp
  * feature_isolation::unsigned_integer result = feature_isolation::power(2, 10); // Computes 2^10
  * ```
  *
  * @section example Example
  *
- * **Checked Arithmetic Example:**
+ * **Checked arithmetic example:**
  * ```cpp
  * #include <iostream>
  * #include "fi_mathhelper.hpp"
@@ -60,7 +61,7 @@
  * }
  * ```
  *
- * **Unchecked Arithmetic Example:**
+ * **Unchecked arithmetic example:**
  * ```cpp
  * #include <iostream>
  * #define USE_UNCHECKED_ARITHMETIC
@@ -79,7 +80,7 @@
  * }
  * ```
  *
- * **Combination Class Example:**
+ * **Combination class example:**
  * ```cpp
  * #include <iostream>
  * #include <vector>
@@ -105,30 +106,30 @@
  *
  * @section customization Customization
  *
- * - **Arithmetic Mode:**
+ * - **Arithmetic mode:**
  *   - By default, the library uses checked arithmetic to prevent overflows and underflows.
  *   - Define `USE_UNCHECKED_ARITHMETIC` before including the header to switch to unchecked arithmetic.
  *
  * @section notes Additional Notes
  *
- * - **Exception Handling:**
+ * - **Exception handling:**
  *   - In checked arithmetic mode, arithmetic functions throw `std::overflow_error` or `std::underflow_error` on errors.
- * - **Template Class `combination<T>`:**
- *   - Allows iteration over all combinations of a given size from a set of elements.
+ * - **Class template `combination<T>`:**
+ *   - Allows to iterate over all combinations of a certain size from a set of elements.
  *   - Provides `next()` method to advance to the next combination.
- * - **Bit Manipulation:**
+ * - **Bit manipulation:**
  *   - `to_unsigned_integer` function converts a `std::bitset` to an `unsigned_integer` for easier manipulation.
  */
 
 
 /**
  * @namespace feature_isolation
- * @brief Contains all mathematical helper functions and classes.
+ * @brief Contains all mathematical helper functions and  classes for feature isolation.
  *
- * This namespace provides facilities for:
- * - Arithmetic operations with checked and unchecked modes.
+ * This namespace provides possibilities for:
+ * -Arithmetic operations in checked or unchecked mode.
  * - Mathematical functions like power, factorial, and combinations.
- * - A template class for generating combinations.
+ * - A class template for generating combinations.
  * - Bit manipulation utilities.
  */
 
@@ -165,7 +166,7 @@
 
 /**
  * @fn constexpr unsigned_integer feature_isolation::checked_arithmetic::add(unsigned_integer a, unsigned_integer b)
- * @brief Safely adds two unsigned integers with overflow check.
+ * @brief Adds two unsigned integers with overflow check.
  *
  * @param a First operand.
  * @param b Second operand.
@@ -175,7 +176,7 @@
 
 /**
  * @fn constexpr unsigned_integer feature_isolation::checked_arithmetic::add_assign(unsigned_integer& a, unsigned_integer b)
- * @brief Safely adds `b` to `a` with overflow check and assigns the result to `a`.
+ * @briefAadds `b` to `a` with overflow check and assigns the result to `a`.
  *
  * @param a First operand (will be modified).
  * @param b Second operand.
@@ -185,7 +186,7 @@
 
 /**
  * @fn constexpr unsigned_integer feature_isolation::checked_arithmetic::subtract(unsigned_integer a, unsigned_integer b)
- * @brief Safely subtracts `b` from `a` with underflow check.
+ * @brief Subtracts `b` from `a` with underflow check.
  *
  * @param a Minuend.
  * @param b Subtrahend.
@@ -195,7 +196,7 @@
 
 /**
  * @fn constexpr unsigned_integer feature_isolation::checked_arithmetic::subtract_assign(unsigned_integer& a, unsigned_integer b)
- * @brief Safely subtracts `b` from `a` with underflow check and assigns the result to `a`.
+ * @brief Subtracts `b` from `a` with underflow check and assigns the result to `a`.
  *
  * @param a Minuend (will be modified).
  * @param b Subtrahend.
@@ -205,7 +206,7 @@
 
 /**
  * @fn constexpr unsigned_integer feature_isolation::checked_arithmetic::subtract_assign_return(unsigned_integer& a, unsigned_integer b)
- * @brief Safely subtracts `b` from `a`, assigns the result to `a`, and returns the original value of `a`.
+ * @brief Subtracts `b` from `a`, assigns the result to `a`, and returns the original value of `a`.
  *
  * @param a Minuend (will be modified).
  * @param b Subtrahend.
@@ -215,7 +216,7 @@
 
 /**
  * @fn constexpr unsigned_integer feature_isolation::checked_arithmetic::multiply(unsigned_integer a, unsigned_integer b)
- * @brief Safely multiplies two unsigned integers with overflow check.
+ * @brief Multiplies two unsigned integers with overflow check.
  *
  * @param a First operand.
  * @param b Second operand.
@@ -225,7 +226,7 @@
 
 /**
  * @fn constexpr unsigned_integer feature_isolation::checked_arithmetic::multiply_assign(unsigned_integer& a, unsigned_integer b)
- * @brief Safely multiplies `a` by `b` with overflow check and assigns the result to `a`.
+ * @brief Multiplies `a` by `b` with overflow check and assigns the result to `a`.
  *
  * @param a First operand (will be modified).
  * @param b Second operand.
