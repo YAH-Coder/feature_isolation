@@ -36,7 +36,7 @@
  *    ```cpp
  *    #include "spl.hpp"
  *    ```
- * 2. Process an SPL specification file and output to CSV:
+ * 2. Process an SPL specification file and output a CSV file:
  *    ```cpp
  *    feature_isolation::spl_processor_t processor("path/to/spl_file.csv");
  *    auto spec = processor.get_specification();
@@ -78,7 +78,7 @@
  * - The parser uses the `fmt` library for string formatting and error messages.
  * - Error handling is performed by throwing exceptions with detailed messages.
  * - The Z3 SMT solver is used to validate feature dependencies and system constraints.
- * - The SPL specification language allows for flexible definitions of features and their relationships.
+ * - The SPL specification DSL allows for flexible definitions of features and their relationships.
  */
 
 /**
