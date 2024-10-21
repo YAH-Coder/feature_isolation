@@ -11,7 +11,7 @@
  *
  * This library provides tools for analyzing features across different systems.
  * It allows for the generation, categorization, and analysis of all possible combinations
- * of features, including fundamental features and derived features created through logical
+ * of features, including independent features and dependent features created through logical
  * operations (AND, OR) and negations.
  *
  * @section components Key Components
@@ -34,7 +34,7 @@
  *    ```cpp
  *    feature_isolation::feature_analysis_t analysis(F, R, feature_categories);
  *    ```
- *    - `F`: Number of fundamental features.
+ *    - `F`: Number of independent features.
  *    - `R`: Maximum rank for feature combinations.
  *    - `feature_categories`: Bitmask of feature categories to include (e.g., `feature_isolation::ALL`).
  * 3. Perform analysis and output results:
@@ -51,7 +51,7 @@
  * int main() {
  *   using namespace feature_isolation;
  *
- *   unsigned_integer F = 3; // Number of fundamental features
+ *   unsigned_integer F = 3; // Number of independent features
  *   unsigned_integer R = 2; // Maximum rank for combinations
  *
  *   feature_analysis_t analysis(F, R);
