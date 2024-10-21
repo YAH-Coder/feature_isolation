@@ -9,16 +9,22 @@
  *
  * @section introduction Introduction
  *
- * The `spl.hpp` library offers tools for parsing, processing, and validating Software Product Line (SPL) specifications. It includes classes for tokenizing input files, parsing the SPL syntax, representing the SPL specification, and validating systems against specified constraints using the Z3 SMT solver. The library also supports outputting the parsed and processed SPL data to CSV files for further analysis or reporting.
+ A * The `spl.hpp` library offers tools for parsing, processing, and validating
+ a Software Product Line (SPL) specification. It includes classes for tokenizing
+ an input file, parsing the SPL syntax, representing the SPL specification, and
+ validating systems against specified constraints using the Z3 SMT solver. The
+ library also supports outputting the parsed and processed SPL specification data to CSV files for further analysis or reporting.
  *
  * @section components Key Components
  *
  * - **Namespace `feature_isolation`:** Contains all classes and functions related to SPL processing.
  * - **Class `feature_isolation::spl_specification_t`:** Represents an SPL specification, including features, dependencies, and systems.
- * - **Class `feature_isolation::tokenizer_t`:** Tokenizes the input stream according to the SPL syntax.
+ * - **Class `feature_isolation::tokenizer_t`:** Tokenizes the input stream
+ * according to the SPL specification syntax.
  * - **Class `feature_isolation::parser_t`:** Parses tokens into an `spl_specification_t` object.
  * - **Class `feature_isolation::printer_t`:** Outputs the SPL specification and analysis results to CSV files.
- * - **Class `feature_isolation::spl_processor_t`:** High-level interface for processing SPL specifications from files and handling CSV output.
+ * - **Class `feature_isolation::spl_processor_t`:** High-level interface for
+ * processing an SPL specification from a text file and handling CSV output.
  * - **Helper Functions:**
  *   - `feature_isolation::error`: Throws formatted exceptions.
  *   - `feature_isolation::toupper`: Converts strings to uppercase.
@@ -30,7 +36,7 @@
  *    ```cpp
  *    #include "spl.hpp"
  *    ```
- * 2. Process an SPL file and output to CSV:
+ * 2. Process an SPL specification file and output to CSV:
  *    ```cpp
  *    feature_isolation::spl_processor_t processor("path/to/spl_file.csv");
  *    auto spec = processor.get_specification();
@@ -63,7 +69,7 @@
  * ```
  *
  * **Customization:**
- * - Modify the SPL file to include desired features, dependencies, and systems.
+ * - Modify the SPL specification file to include desired features, dependencies, and systems.
  * - Change the CSV separator character if needed.
  * - Extend the `spl_specification_t` class to include additional validation or processing logic.
  *
