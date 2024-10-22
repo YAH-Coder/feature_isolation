@@ -1,9 +1,16 @@
 # Variables
 CXX = g++
 CXXSTANDARD = -std=c++20
+
+# Library prefixes
 FMT_PREFIX := $(shell brew --prefix fmt)
-CXXFLAGS += -Iinclude -I$(FMT_PREFIX)/include -std=c++20 -Wall -pedantic
-LDFLAGS += -L$(FMT_PREFIX)/lib -lfmt
+Z3_PREFIX := $(shell brew --prefix z3)
+
+# Compiler and linker flags
+CXXFLAGS += -Iinclude -I$(FMT_PREFIX)/include -I$(Z3_PREFIX)/include -std=c++20 -Wall -pedantic
+LDFLAGS += -L$(FMT_PREFIX)/lib -L$(Z3_PREFIX)/lib -lfmt -lz3
+
+# Output directories
 OUTPUT_DIR = testing
 OUTPUT_DIR_MATH = mathhelper
 OUTPUT_DIR_SPL = spl
@@ -21,7 +28,7 @@ test_math: src/mathhelper_test.cpp include/fi_mathhelper.hpp
 
 test_spl: src/spl_test.cpp src/spl.cpp include/spl.hpp
 	mkdir -p $(OUTPUT_DIR)/$(OUTPUT_DIR_SPL)/
-	$(CXX) $(CXXFLAGS) src/spl.cpp $< -o $(OUTPUT_DIR)/$(OUTPUT_DIR_SPL)/$@ $(LDFLAGS) -lz3
+	$(CXX) $(CXXFLAGS) src/spl.cpp $< -o $(OUTPUT_DIR)/$(OUTPUT_DIR_SPL)/$@ $(LDFLAGS)
 	./$(OUTPUT_DIR)/$(OUTPUT_DIR_SPL)/$@
 
 test_analysis: src/analysis_test.cpp src/feature_analysis.cpp
@@ -36,7 +43,7 @@ test_isolation: src/isolation_test.cpp src/feature_analysis.cpp src/spl.cpp incl
 	$(CXX) $(CXXFLAGS) -c src/feature_analysis.cpp -o $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/feature_analysis.o
 	$(CXX) $(CXXFLAGS) -c src/spl.cpp -o $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/spl.o
 	$(CXX) $(CXXFLAGS) -c src/isolation_test.cpp -o $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/isolation_test.o
-	$(CXX) $(CXXFLAGS) $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/feature_analysis.o $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/spl.o $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/isolation_test.o $(LDFLAGS) -lz3 -lfmt -o $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/test_isolation
+	$(CXX) $(CXXFLAGS) $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/feature_analysis.o $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/spl.o $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/isolation_test.o -o $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/test_isolation $(LDFLAGS)
 	./$(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/test_isolation
 
 test: test_math test_spl test_analysis test_isolation
