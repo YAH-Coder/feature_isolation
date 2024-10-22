@@ -75,8 +75,8 @@
  *
  * @details
  * This header defines classes and functions that allow for the creation and analysis
- * of features over a set of systems. It includes the generation of fundamental and
- * derived features, categorization, and statistical analysis of feature distribution
+ * of features over a set of systems. It includes the generation of independent and
+ * dependent features, categorization, and statistical analysis of feature distribution
  * across systems.
  *
  * **Key Components:**
@@ -106,13 +106,13 @@
  *
  * **Member Functions:**
  * - `unsigned_integer T() const`: Calculates the total number of features in the system.
- * - `unsigned_integer DF() const`: Calculates the total number of derived features.
+ * - `unsigned_integer DF() const`: Calculates the total number of dependent features.
  * - `feature_ids_t all_features() const`: Aggregates all feature IDs from all categories.
  */
 
 /**
  * @var feature_isolation::system_t::F_feature_ids
- * @brief Set of fundamental feature IDs present in the system.
+ * @brief Set of independent feature IDs present in the system.
  *
  * @details
  * Contains the IDs of independent features that are active in this system.
@@ -123,7 +123,7 @@
  * @brief Set of not-feature IDs present in the system.
  *
  * @details
- * Contains the IDs of not-fundamental features that are active in this system.
+ * Contains the IDs of not-features that are active in this system.
  */
 
 /**
@@ -360,7 +360,8 @@
  * @param id The system ID.
  *
  * @details
- * Prints the counts of features in each category for the given system, along with total derived features and total features.
+ * Prints the counts of features in each category for the given system, along
+ * with total dependent features and features.
  */
 
 /**
@@ -481,7 +482,7 @@
  * @fn [[nodiscard]] features_t feature_isolation::feature_analysis_t::initialize_AN_features() const
  * @brief Initializes the AND combinations of not-features.
  *
- * @return A vector of AND of negated features (`features_t`).
+ * @return A vector of AND of not-features (`features_t`).
  *
  * @throws std::invalid_argument if `R` exceeds the number of independent features.
  *
@@ -493,7 +494,7 @@
  * @fn [[nodiscard]] features_t feature_isolation::feature_analysis_t::initialize_ON_features() const
  * @brief Initializes the OR combinations of not-features.
  *
- * @return A vector of OR of negated features (`features_t`).
+ * @return A vector of OR of not-features (`features_t`).
  *
  * @throws std::invalid_argument if `R` exceeds the number of independent features.
  *
@@ -515,12 +516,14 @@
 
 /**
  * @fn [[nodiscard]] features_t feature_isolation::feature_analysis_t::initialize_ONF_features() const
- * @brief Initializes the OR combinations of fundamental and negated features.
+ * @brief Initializes the OR combinations of independent and not-features.
  *
- * @return A vector of OR combinations mixing fundamental and negated features (`features_t`).
+ * @return A vector of OR combinations mixing independent and not-features (`features_t`).
  *
  * @details
- * Generates all possible logical OR combinations that mix fundamental features and their negations, excluding the combination where all features are negated.
+ * Generates all possible logical OR combinations that mix independent features
+ * and the remaining not-features, excluding the combination where all features
+ * are absent, i.e. where all features are not-features.
  */
 
 /**
@@ -551,47 +554,47 @@
 
 /**
  * @var unsigned_integer feature_isolation::feature_analysis_t::F
- * @brief Number of fundamental features.
+ * @brief Number of independent features.
  */
 
 /**
  * @var unsigned_integer feature_isolation::feature_analysis_t::N
- * @brief Number of negated fundamental features (equal to `F`).
+ * @brief Number of not-features (equal to `F`).
  */
 
 /**
  * @var unsigned_integer feature_isolation::feature_analysis_t::A
- * @brief Number of AND combinations of fundamental features.
+ * @brief Number of AND combinations of independent features.
  */
 
 /**
  * @var unsigned_integer feature_isolation::feature_analysis_t::O
- * @brief Number of OR combinations of fundamental features.
+ * @brief Number of OR combinations of independent features.
  */
 
 /**
  * @var unsigned_integer feature_isolation::feature_analysis_t::AN
- * @brief Number of AND combinations of negated fundamental features.
+ * @brief Number of AND combinations of not-features.
  */
 
 /**
  * @var unsigned_integer feature_isolation::feature_analysis_t::ON
- * @brief Number of OR combinations of negated fundamental features.
+ * @brief Number of OR combinations of not-features.
  */
 
 /**
  * @var unsigned_integer feature_isolation::feature_analysis_t::ANF
- * @brief Number of AND combinations of fundamental and negated features.
+ * @brief Number of AND combinations of independent and not-features.
  */
 
 /**
  * @var unsigned_integer feature_isolation::feature_analysis_t::ONF
- * @brief Number of OR combinations of fundamental and negated features.
+ * @brief Number of OR combinations of independent and not-features.
  */
 
 /**
  * @var unsigned_integer feature_isolation::feature_analysis_t::DF
- * @brief Total number of derived features.
+ * @brief Total number of dependent features.
  *
  * @details
  * Calculated as `F + 4 * A + 2 * ANF`.
@@ -599,7 +602,7 @@
 
 /**
  * @var unsigned_integer feature_isolation::feature_analysis_t::T
- * @brief Total number of features (fundamental + derived).
+ * @brief Total number of features (independent + dependent).
  */
 
 /**
@@ -619,12 +622,12 @@
 
 /**
  * @var features_t feature_isolation::feature_analysis_t::F_features
- * @brief Vector of fundamental features.
+ * @brief Vector of independent features.
  */
 
 /**
  * @var features_t feature_isolation::feature_analysis_t::N_features
- * @brief Vector of negated fundamental features.
+ * @brief Vector of not-features.
  */
 
 /**
@@ -639,32 +642,32 @@
 
 /**
  * @var features_t feature_isolation::feature_analysis_t::AN_features
- * @brief Vector of AND combinations of negated features.
+ * @brief Vector of AND combinations of not-features.
  */
 
 /**
  * @var features_t feature_isolation::feature_analysis_t::ON_features
- * @brief Vector of OR combinations of negated features.
+ * @brief Vector of OR combinations of not-features.
  */
 
 /**
  * @var features_t feature_isolation::feature_analysis_t::ANF_features
- * @brief Vector of AND combinations of fundamental and negated features.
+ * @brief Vector of AND combinations of independent and not-features.
  */
 
 /**
  * @var features_t feature_isolation::feature_analysis_t::ONF_features
- * @brief Vector of OR combinations of fundamental and negated features.
+ * @brief Vector of OR combinations of independent and not-features.
  */
 
 /**
  * @var unsigned_integer feature_isolation::feature_analysis_t::F_offset
- * @brief Feature ID offset for fundamental features.
+ * @brief Feature ID offset for independent features.
  */
 
 /**
  * @var unsigned_integer feature_isolation::feature_analysis_t::N_offset
- * @brief Feature ID offset for negated fundamental features.
+ * @brief Feature ID offset for not-features.
  */
 
 /**
@@ -679,22 +682,22 @@
 
 /**
  * @var unsigned_integer feature_isolation::feature_analysis_t::AN_offset
- * @brief Feature ID offset for AND combinations of negated features.
+ * @brief Feature ID offset for AND combinations of not-features.
  */
 
 /**
  * @var unsigned_integer feature_isolation::feature_analysis_t::ON_offset
- * @brief Feature ID offset for OR combinations of negated features.
+ * @brief Feature ID offset for OR combinations of not-features.
  */
 
 /**
  * @var unsigned_integer feature_isolation::feature_analysis_t::ANF_offset
- * @brief Feature ID offset for AND combinations of fundamental and negated features.
+ * @brief Feature ID offset for AND combinations of independent and not-features.
  */
 
 /**
  * @var unsigned_integer feature_isolation::feature_analysis_t::ONF_offset
- * @brief Feature ID offset for OR combinations of fundamental and negated features.
+ * @brief Feature ID offset for OR combinations of independent and not-features.
  */
 
 /**
