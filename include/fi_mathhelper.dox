@@ -306,7 +306,8 @@
 
 /**
  * @namespace feature_isolation::arithmetic
- * @brief Alias for either `checked_arithmetic` or `unchecked_arithmetic` based on compilation flags.
+ * @brief Alias for either `checked_arithmetic` or `unchecked_arithmetic` based
+ * on preprocessing flag.
  *
  * - If `USE_UNCHECKED_ARITHMETIC` is defined, `arithmetic` refers to `unchecked_arithmetic`.
  * - Otherwise, it refers to `checked_arithmetic`.
@@ -383,12 +384,12 @@
 
 /**
  * @class feature_isolation::combination_t
- * @brief Template class for generating combinations of elements.
+ * @brief Class template for generating combinations of elements.
  *
  * @tparam T The type of elements in the combinations.
  *
  * @details
- * The `combination_t` class generates all possible combinations of a specified size (`k`)
+ * The `combination_t` class template generates all possible combinations of a specified size (`k`)
  * from a given set of elements (`symbols`). It provides methods to initialize the state,
  * advance to the next combination, and retrieve the current combination.
  *
@@ -402,7 +403,7 @@
  * **Member Functions:**
  * - `void initialize()`: Initializes the combination generator.
  * - `std::size_t k() const`: Returns the combination size.
- * - `bool next()`: Advances to the next combination. Returns `false` if there are no more combinations.
+ * - `bool next()`: Advances to the next combination. Returns `false`  if there is no further combination.
  * - `std::vector<T> operator()() const`: Retrieves the current combination.
  *
  * **Example:**
@@ -419,7 +420,7 @@
 
 /**
  * @fn feature_isolation::combination_t::combination_t(const std::vector<T> symbols, std::size_t k)
- * @brief Constructs a new `combination_t` object.
+ * @brief Creates a new `combination_t` object.
  *
  * @param symbols The set of elements to combine.
  * @param k The size of each combination.
@@ -451,7 +452,7 @@
  * @fn bool feature_isolation::combination_t::next()
  * @brief Advances to the next combination.
  *
- * @return `true` if the next combination was generated successfully, `false` if there are no more combinations.
+ * @return `true` if the next combination was generated successfully, `false` if there is no further combination.
  *
  * @details
  * Updates the internal state to represent the next combination of elements.
