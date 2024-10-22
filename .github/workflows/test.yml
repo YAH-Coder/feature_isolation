@@ -1,0 +1,22 @@
+name: Run tests and generate docs
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: brew install gcc doxygen fmt
+
+      - name: Build tests
+        run: make test
+
+      - name: Run tests
+        run: ./testing/test
