@@ -1,9 +1,10 @@
 /**
  * @file spl.hpp
- * @brief Provides classes and functions for parsing and processing SPL specifications, and outputting results to CSV files.
+ * @brief Provides classes and functions for parsing and processing a file with
+ * an SPL specification DSL, and outputting the results to a CSV file.
  *
  * @page spl_parser SPL Parser and Processor
- * @brief Parses and processes SPL specification files, handling features, categories, dependencies, and systems.
+ * @brief Parses and processes an SPL specification file, handling features, categories, dependencies, and systems.
  *
  * @tableofcontents
  *
@@ -13,20 +14,22 @@
  a Software Product Line (SPL) specification. It includes classes for tokenizing
  an input file, parsing the SPL syntax, representing the SPL specification, and
  validating systems against specified constraints using the Z3 SMT solver. The
- library also supports outputting the parsed and processed SPL specification data to CSV files for further analysis or reporting.
+ library also supports outputting the parsed and processed SPL specification
+ data to a CSV file for further analysis or reporting.
  *
  * @section components Key Components
  *
  * - **Namespace `feature_isolation`:** Contains all classes and functions related to SPL processing.
  * - **Class `feature_isolation::spl_specification_t`:** Represents an SPL specification, including features, dependencies, and systems.
- * - **Class `feature_isolation::tokenizer_t`:** Tokenizes the input stream
+ * - **Class `feature_isolation::tokenizer_t`:** Tokenizes the input file
  * according to the SPL specification syntax.
  * - **Class `feature_isolation::parser_t`:** Parses tokens into an `spl_specification_t` object.
- * - **Class `feature_isolation::printer_t`:** Outputs the SPL specification and analysis results to CSV files.
+ * - **Class `feature_isolation::printer_t`:** Outputs the SPL specification and
+ * analysis results to a CSV file.
  * - **Class `feature_isolation::spl_processor_t`:** High-level interface for
  * processing an SPL specification from a text file and handling CSV output.
  * - **Helper Functions:**
- *   - `feature_isolation::error`: Throws formatted exceptions.
+ *   - `feature_isolation::error`: Throws exceptions with detailed messages.
  *   - `feature_isolation::toupper`: Converts strings to uppercase.
  *   - `feature_isolation::exactly`: Z3 helper function for specifying exact cardinality constraints.
  *
@@ -85,10 +88,10 @@
  * @namespace feature_isolation
  * @brief Contains all classes and functions related to SPL specification parsing and processing.
  *
- * This namespace provides facilities for:
- * - Tokenizing and parsing SPL specification files.
- * - Validating the consistency and correctness of SPL definitions.
- * - Representing SPL specifications in an object-oriented manner.
+ * This namespace provides possibilities for:
+ * - Tokenizing and parsing an SPL specification file.
+ * - Validating the consistency and correctness of an SPL definition.
+ * - Representing an SPL specification in an object-oriented manner.
  */
 
 /**
@@ -127,7 +130,7 @@
  * @var feature_isolation::kw::keywords
  * @brief Contains a mapping of all keywords and their corresponding `feature_isolation::token_type_t`.
  *
- * Used by the tokenizer to identify and categorize tokens from the input stream.
+ * Used by the tokenizer to identify and categorize tokens from the input file.
  */
 
 /**
@@ -178,7 +181,7 @@
  * - `unsigned_integer m_max_rank;`
  *   - The maximum rank for feature combinations.
  * - `unsigned_integer m_F;`
- *   - The number of fundamental features.
+ *   - The number of independent features.
  * - `unsigned_integer m_max_available_systems;`
  *   - The maximum number of available systems.
  * - `feature_names_t m_feature_names;`
@@ -228,7 +231,7 @@
  * @param filename The name of the SPL specification file.
  * @param spl_name Optional SPL name.
  * @param max_rank Optional maximum rank for feature combinations.
- * @param F The number of fundamental features.
+ * @param F The number of indepndent features.
  * @param max_available_systems The maximum number of available systems.
  * @param feature_names Vector of feature names.
  * @param requires_all Dependencies where features require all specified features.
@@ -251,9 +254,10 @@
 
 /**
  * @fn bool feature_isolation::spl_specification_t::validate_systems() const
- * @brief Validates the systems against the specified dependencies using a Z3 solver.
+ * @brief Validates the systems against the specified dependencies using the Z3
+ * SMT solver.
  *
- * @return `true` if all systems are valid according to the dependencies; otherwise, it throws an error.
+ * @return `true` if all systems are valid according to the dependencies; otherwise it throws an error.
  *
  * The function iterates over all available systems and checks whether each system satisfies
  * all the specified constraints (`REQUIRES_ALL`, `REQUIRES_ANY`, `REQUIRES_ONE`, `EXCLUDES_ALL`).
@@ -274,7 +278,7 @@
  * @param system_id The ID of the system being checked.
  * @param system The system configuration represented as an unsigned integer.
  * @param ctx The Z3 context used for SMT solving.
- * @return `true` if the system satisfies the constraints; otherwise, it throws an error.
+ * @return `true` if the system satisfies the constraints; otherwise it throws an error.
  *
  * This function constructs Z3 expressions representing the constraints and uses a solver to
  * determine if the system configuration satisfies them. If a constraint is violated, it throws
@@ -396,7 +400,7 @@
 
 /**
  * @class feature_isolation::tokenizer_t
- * @brief Tokenizes the input stream into tokens for parsing.
+ * @brief Tokenizes the input file into tokens for parsing.
  *
  * **Constructor:**
  * ```cpp
@@ -405,19 +409,19 @@
  *
  * **Member Variables:**
  * - `std::istream& m_is;`
- *   - Reference to the input stream being tokenized.
+ *   - Reference to the input file being tokenized.
  * - `position_t m_position;`
- *   - The current position in the input stream (line and column).
+ *   - The current position in the input file (line and column).
  *
  * **Member Functions:**
  * - `token_t next();`
- *   - Retrieves the next token from the input stream.
+ *   - Retrieves the next token from the input file.
  * - `bool is_token_char(char c) const;`
  *   - Checks if a character is valid within a token.
  * - `bool is_whitespace(char c) const;`
  *   - Checks if a character is a whitespace character.
  * - `void consume_char(char& c);`
- *   - Consumes a character from the input stream and updates the current position.
+ *   - Consumes a character from the input file and updates the current position.
  * - `void skip_line();`
  *   - Skips the rest of the current line, typically used to ignore comments.
  * - `token_t parse_token();`
@@ -428,18 +432,18 @@
 
 /**
  * @fn feature_isolation::tokenizer_t::tokenizer_t(std::istream& is)
- * @brief Constructs a tokenizer with the given input stream.
+ * @brief Constructs a tokenizer with the given input file.
  *
- * @param is The input stream to tokenize.
+ * @param is The input file to tokenize.
  */
 
 /**
  * @fn token_t feature_isolation::tokenizer_t::next()
- * @brief Retrieves the next token from the input stream.
+ * @brief Retrieves the next token from the input file.
  *
  * @return The next `token_t` object.
  *
- * The `next()` function reads from the input stream and returns the next token. It handles:
+ * The `next()` function reads from the input file and returns the next token. It handles:
  * - Skipping whitespace characters.
  * - Recognizing and skipping comments starting with `//`.
  * - Parsing valid tokens (identifiers, keywords, values).
@@ -453,7 +457,7 @@
  * @brief Checks if a character is valid within a token.
  *
  * @param c The character to check.
- * @return `true` if the character is valid in a token; otherwise, `false`.
+ * @return `true` if the character is valid in a token; otherwise `false`.
  *
  * Valid token characters include alphanumeric characters, underscore (`_`), hash (`#`), hyphen (`-`), and period (`.`).
  */
@@ -463,16 +467,16 @@
  * @brief Checks if a character is a whitespace character.
  *
  * @param c The character to check.
- * @return `true` if the character is whitespace; otherwise, `false`.
+ * @return `true` if the character is whitespace; otherwise `false`.
  */
 
 /**
  * @fn void feature_isolation::tokenizer_t::consume_char(char& c)
- * @brief Consumes a character from the input stream and updates the current position.
+ * @brief Consumes a character from the input file and updates the current position.
  *
  * @param c The character variable to store the consumed character.
  *
- * If the consumed character is a newline (`'\n'`), the line number is incremented, and the column number is reset to 1. Otherwise, the column number is incremented.
+ * If the consumed character is a newline (`'\n'`), the line number is incremented and the column number is reset to 1. Otherwise the column number is incremented.
  */
 
 /**
@@ -488,10 +492,10 @@
  *
  * @return A `token_t` object representing the parsed token.
  *
- * The function reads characters from the input stream that are valid token characters (as determined by `is_token_char`). It constructs the token string and determines its type:
+ * The function reads characters from the input file that are valid token characters (as determined by `is_token_char`). It constructs the token string and determines its type:
  * - If the token consists entirely of digits, it is a `VALUE` token.
  * - If the token matches a keyword (checked via `check_keyword`), it is assigned the corresponding token type.
- * - Otherwise, it is considered a `NAME` token.
+ * - Otherwise it is considered a `NAME` token.
  *
  * The function also records the starting and ending positions of the token for error reporting.
  */
@@ -501,7 +505,7 @@
  * @brief Checks if a string is a recognized keyword and returns the corresponding token.
  *
  * @param token The string to check.
- * @return An optional `token_t` if the token is a keyword; otherwise, `std::nullopt`.
+ * @return An optional `token_t` if the token is a keyword; otherwise `std::nullopt`.
  *
  * This function converts the input string to uppercase and looks it up in the `keywords` map.
  * If found, it returns a `token_t` with the appropriate token type.
@@ -518,13 +522,13 @@
  *
  * **Member Variables:**
  * - `tokenizer_t m_tokenizer;`
- *   - The tokenizer used to extract tokens from the input stream.
+ *   - The tokenizer used to extract tokens from the input file.
  * - `spl_specification_t m_spec;`
  *   - The SPL specification object constructed during parsing.
  *
  * **Member Functions:**
  * - `spl_specification_t parse_specification(const std::string& filename);`
- *   - Parses the entire SPL specification from the input stream.
+ *   - Parses the entire SPL specification from the input file.
  * - `spl_specification_t::systems_t effective_available_systems(...);`
  *   - Computes the effective list of available systems.
  * - `std::optional<signed int> feature_index(const std::string& feature, const feature_names_t& feature_names) const;`
@@ -547,18 +551,18 @@
 
 /**
  * @fn feature_isolation::parser_t::parser_t(std::istream& is, std::string filename)
- * @brief Constructs a parser with the given input stream and filename.
+ * @brief Constructs a parser with the given input file and filename.
  *
- * @param is The input stream to parse.
+ * @param is The input file to parse.
  * @param filename The name of the SPL specification file.
  */
 
 /**
  * @fn spl_specification_t feature_isolation::parser_t::parse_specification(const std::string& filename)
- * @brief Parses the entire SPL specification from the input stream.
+ * @brief Parses the entire SPL specification from the input file.
  *
  * @param filename The name of the SPL specification file.
- * @return The constructed `spl_specification_t` object.
+ * @return The created `spl_specification_t` object.
  *
  * The function reads tokens using the tokenizer and constructs the SPL specification by parsing different sections such as `SPL`, `FEATURES`, `CATEGORIES`, `EXPLICIT_DEPENDENCIES`, and systems definitions. It handles errors and ensures that the specification is correctly built.
  */
@@ -570,7 +574,8 @@
  *     const spl_specification_t::systems_t& missing_systems,
  *     bool available_systems_specified,
  *     bool missing_systems_specified) const
- * @brief Computes the effective list of available systems based on specified and missing systems.
+ * @brief Computes the effective list of available systems based on specified
+ * available and missing systems.
  *
  * @param max_available_systems The maximum number of systems.
  * @param available_systems The specified available systems.
@@ -588,16 +593,16 @@
  *
  * @param feature The feature name to look up.
  * @param feature_names The vector of feature names.
- * @return The index of the feature if found; otherwise, throws an error.
+ * @return The index of the feature if found; otherwise throws an error.
  *
- * If the feature name is `ROOT`, it returns `-1`. Otherwise, it searches for the feature name in the vector and returns its index.
+ * If the feature name is `ROOT`, it returns `-1`. Otherwise it searches for the feature name in the vector and returns its index.
  */
 
 /**
  * @fn std::optional<std::string> feature_isolation::parser_t::parse_spl()
  * @brief Parses the `SPL` section to extract the SPL name.
  *
- * @return The SPL name if specified; otherwise, `std::nullopt`.
+ * @return The SPL name if specified; otherwise `std::nullopt`.
  *
  * This function expects the next token to be the SPL name and returns it.
  */
@@ -606,7 +611,7 @@
  * @fn std::optional<unsigned_integer> feature_isolation::parser_t::parse_max_rank()
  * @brief Parses the `MAX_RANK` section to extract the maximum rank.
  *
- * @return The maximum rank if specified; otherwise, `std::nullopt`.
+ * @return The maximum rank if specified; otherwise `std::nullopt`.
  *
  * The function reads the next token and attempts to convert it to an unsigned integer.
  */
@@ -683,11 +688,11 @@
  *
  * **Member Variables:**
  * - `std::ostream& m_os;`
- *   - Reference to the output stream where the specification will be printed.
+ *   - Reference to the output file on which the specification is printed.
  *
  * **Member Functions:**
  * - `void print_specification(const spl_specification_t& spec);`
- *   - Prints the entire SPL specification to the output stream.
+ *   - Prints the entire SPL specification to the output file.
  * - `void print_spl_name(const spl_specification_t& spec);`
  *   - Prints the `SPL` section if specified.
  * - `void print_max_rank(const spl_specification_t& spec);`
@@ -704,16 +709,16 @@
 
 /**
  * @fn feature_isolation::printer_t::printer_t(std::ostream& os)
- * @brief Constructs a printer with the given output stream.
+ * @brief Constructs a printer with the given output file.
  *
- * @param os The output stream where the specification will be printed.
+ * @param os The output file on which the specification is printed.
  */
 
 /**
  * @fn void feature_isolation::printer_t::print_specification(const spl_specification_t& spec)
- * @brief Prints the entire SPL specification to the output stream.
+ * @brief Prints the entire SPL specification to the output file.
  *
- * @param spec The SPL specification to print.
+ * @param spec The SPL specification to be printed.
  *
  * The function calls individual print methods for different sections of the specification.
  */
@@ -779,7 +784,7 @@
  *
  * **Member Functions:**
  * - `spl_specification_t process();`
- *   - Parses the SPL file and constructs the SPL specification object.
+ *   - Parses the SPL file and creates the SPL specification object.
  * - `void print(const std::string& output_filename) const;`
  *   - Prints the SPL specification to the specified output CSV file.
  * - `const spl_specification_t& get_specification() const;`
@@ -788,14 +793,14 @@
 
 /**
  * @fn feature_isolation::spl_processor_t::spl_processor_t(const std::string& filename)
- * @brief Constructs an SPL processor with the given filename.
+ * @brief Creates an SPL processor with the given filename.
  *
  * @param filename The name of the SPL specification file.
  */
 
 /**
  * @fn spl_specification_t feature_isolation::spl_processor_t::process()
- * @brief Parses the SPL file and constructs the SPL specification object.
+ * @brief Parses the SPL file and creates the SPL specification object.
  *
  * @return The constructed `spl_specification_t` object.
  *
@@ -808,7 +813,7 @@
  *
  * @param output_filename The name of the output file.
  *
- * The function creates an output file stream and uses a `printer_t` to write the specification.
+ * The function creates an output file and uses a `printer_t` to write the specification.
  */
 
 /**
@@ -825,7 +830,7 @@
  * @param s The string to convert.
  * @return The uppercase version of the string.
  *
- * The function uses `std::transform` and `::toupper` to convert each character.
+ * The function uses `std::transform` and `std::toupper` to convert each character.
  */
 
 /**
@@ -834,7 +839,7 @@
  *
  * @tparam Args Variadic template parameters for formatting.
  * @param msg The error message template.
- * @param args Arguments to format into the message.
+ * @param args Arguments for formatting the message.
  *
  * @throws std::runtime_error Always throws with the formatted message.
  *
@@ -843,7 +848,7 @@
 
 /**
  * @typedef feature_isolation::position_t
- * @brief Represents a position in the input stream (line and column).
+ * @brief Represents a position in the input file (line and column).
  *
  * Defined as `std::pair<std::size_t, std::size_t>`.
  */
@@ -876,7 +881,7 @@
 
 /**
  * @var feature_isolation::spl_specification_t::m_F
- * @brief The number of fundamental features.
+ * @brief The number of independent features.
  */
 
 /**
@@ -981,17 +986,17 @@
 
 /**
  * @var feature_isolation::tokenizer_t::m_is
- * @brief Reference to the input stream being tokenized.
+ * @brief Reference to the input file being tokenized.
  */
 
 /**
  * @var feature_isolation::tokenizer_t::m_position
- * @brief The current position in the input stream (line and column).
+ * @brief The current position in the input file (line and column).
  */
 
 /**
  * @var feature_isolation::parser_t::m_tokenizer
- * @brief The tokenizer used to extract tokens from the input stream.
+ * @brief The tokenizer used to extract tokens from the input file.
  */
 
 /**
@@ -1001,7 +1006,7 @@
 
 /**
  * @var feature_isolation::printer_t::m_os
- * @brief Reference to the output stream where the specification will be printed.
+ * @brief Reference to the output file on which the specification will be printed.
  */
 
 /**
