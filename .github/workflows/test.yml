@@ -15,8 +15,5 @@ jobs:
       - name: Install dependencies
         run: brew install gcc doxygen fmt z3
 
-      - name: Build tests
+      - name: Build and run tests
         run: make test
-
-      - name: Run tests
-        run: ./testing/test
