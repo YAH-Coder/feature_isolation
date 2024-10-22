@@ -9,7 +9,7 @@
  *
  * @section introduction Introduction
  *
- A * The `spl.hpp` library offers tools for parsing, processing, and validating
+ * The `spl.hpp` library offers tools for parsing, processing, and validating
  a Software Product Line (SPL) specification. It includes classes for tokenizing
  an input file, parsing the SPL syntax, representing the SPL specification, and
  validating systems against specified constraints using the Z3 SMT solver. The
