@@ -62,8 +62,7 @@
  * ```
  *
  * The following is a sample output for the example code provided above:
- *
- * \image html sample_output.png width=100%
+ * \image html sample_output.png width=100% 
  *
  * **Customization:**
  * - Control the categories of features included by adjusting the `feature_categories` parameter.
