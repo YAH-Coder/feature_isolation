@@ -144,7 +144,8 @@ TEST_CASE( "Product function tests", "[arithmetic][product]" ) {
   }
 
   SECTION( "Product of single number" ) {
-    REQUIRE( product( 3, 3 ) == 3 ); // The product of a single number is itself
+    REQUIRE( product( 3, 3 ) == 3 ); // The product of a single number is the
+                                     // number itself
   }
 }
 
