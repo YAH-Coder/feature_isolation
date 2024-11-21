@@ -9,14 +9,24 @@
 #include "feature_analysis.hpp"
 #include "spl.hpp"
 #include <algorithm>
+#include <bitset>
 #include <compare>
 #include <fstream>
 #include <iostream>
 #include <set>
+#include <sstream>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace feature_isolation {
+
+  constexpr size_t MAX_FEATURES = 1024; 
+
+  using feature_bitset_t = std::bitset<MAX_FEATURES>;
+  using system_id_t = unsigned_integer;
+  using system_feature_map_t = std::unordered_map<system_id_t, feature_bitset_t>;
+
   template <typename T>
   std::vector<typename T::value_type> to_vector( const T& c ) {
     std::vector<typename T::value_type> result {};
@@ -37,17 +47,13 @@ namespace feature_isolation {
   }
 
   template <typename T>
-  [[nodiscard]] bool subset( const std::set<T>& s1, const std::set<T>& s2 )
-  // Returns true, if s2 is a subset of s1
-  {
-    return std::ranges::includes( s1, s2 );
+  [[nodiscard]] bool subset( const std::set<T>& s1, const std::set<T>& s2 ) {
+    return std::includes( s1.begin(), s1.end(), s2.begin(), s2.end() );
   }
 
   template <typename T>
-  [[nodiscard]] bool proper_subset( const std::set<T>& s1, const std::set<T>& s2 )
-  // Returns true, if s2 is a proper subset of s1
-  {
-    return subset( s1, s2 ) and s1.size() > s2.size();
+  [[nodiscard]] bool proper_subset( const std::set<T>& s1, const std::set<T>& s2 ) {
+    return subset( s1, s2 ) && s1.size() > s2.size();
   }
 
   struct difference_t {
@@ -99,6 +105,8 @@ namespace feature_isolation {
     [[nodiscard]] static bool proper_difference_subset( const system_ids_t& i,
                                                         const system_ids_t& u,
                                                         const difference_t& d );
+    [[nodiscard]] static bool proper_difference_subset(
+        const difference_t& d1, const difference_t& d2 );
     static void print_header( std::ostream& os,
                               bool all_differences = false,
                               bool feature_names = false );
@@ -113,8 +121,30 @@ namespace feature_isolation {
     static void
     print( std::ostream& os, const system_ids_t& sids, char operation );
     static void print( std::ostream& os, const difference_t& d );
+
     const spl_specification_t m_spl;
     const feature_analysis_t m_features;
+
+  private:
+    void explore_I_subsets(
+        size_t index,
+        feature_bitset_t current_intersection,
+        system_ids_t& current_I,
+        const feature_bitset_t& target_features,
+        isolation_result_t& result,
+        const std::vector<system_id_t>& I_vec,
+        const std::vector<system_id_t>& U_vec,
+        const system_feature_map_t& system_features ) const;
+
+    void explore_U_subsets( size_t index,
+                            const feature_bitset_t& current_union,
+                            system_ids_t& current_U,
+                            const feature_bitset_t& current_intersection,
+                            const feature_bitset_t& target_features,
+                            const system_ids_t& current_I,
+                            isolation_result_t& result,
+                            const std::vector<system_id_t>& U_vec,
+                            const system_feature_map_t& system_features ) const;
   };
 
   difference_t feature_isolation_t::partition( unsigned_integer feature_id ) const {
@@ -186,28 +216,145 @@ namespace feature_isolation {
     return result;
   }
 
-  isolation_result_t feature_isolation_t::minimal_differences(
-      unsigned_integer feature_id ) const {
-    auto [i, u] { partition( feature_id ) };
-    isolation_result_t result { { flattened_difference( i, u ) } };
-    for ( auto u_k { zero }; u_k <= u.size(); ++u_k ) {
-      combination_t u_draw { to_vector( u ), u_k };
-      do {
-        for ( auto i_k { one }; i_k <= i.size(); ++i_k ) {
-          combination_t i_draw { to_vector( i ), i_k };
-          do {
-            system_ids_t i_s { to_set( i_draw() ) };
-            system_ids_t u_s { to_set( u_draw() ) };
-            auto d_f { flattened_difference( i_s, u_s ) };
-            if ( d_f == result.features ) {
-              memorize_proper_difference_subset( result.differences, i_s, u_s );
-            }
-          } while ( i_draw.next() );
-        }
-      } while ( u_draw.next() );
+  std::string d_f_to_string( const feature_ids_t& d_f ) {
+    std::ostringstream oss;
+    oss << "\"";
+    for ( auto it = d_f.begin(); it != d_f.end(); ++it ) {
+      if ( it != d_f.begin() ) {
+        oss << ";";
+      }
+      oss << *it;
     }
+    oss << "\"";
+    return oss.str();
+  }
+
+ isolation_result_t feature_isolation_t::minimal_differences( unsigned_integer feature_id ) const {
+    isolation_result_t result;
+    std::cerr << "Computing minimal differences for feature " << feature_id << std::endl;
+    
+    auto [I_set, U_set] = partition( feature_id );
+    std::vector<system_id_t> I_vec( I_set.begin(), I_set.end() );
+    std::vector<system_id_t> U_vec( U_set.begin(), U_set.end() );
+
+    
+    system_feature_map_t system_features;
+    for ( const auto& sid : m_spl.m_available_systems ) {
+      feature_bitset_t features_bitset;
+
+      const auto& feature_ids = sid_to_fids( sid );
+      for ( auto fid : feature_ids ) {
+        features_bitset.set( fid - 1 ); // Adjust for zero-based indexing
+      }
+
+      system_features[sid] = features_bitset;
+    }
+
+    feature_bitset_t target_features;
+    target_features.set( feature_id - 1 ); 
+
+    feature_bitset_t full_intersection;
+    full_intersection.set();
+
+    system_ids_t current_I;
+
+    explore_I_subsets( 0, full_intersection, current_I, target_features, result, I_vec, U_vec, system_features );
+
+    result.features.insert( feature_id );
+
     return result;
   }
+
+  void feature_isolation_t::explore_I_subsets(
+      size_t index,
+      feature_bitset_t current_intersection,
+      system_ids_t& current_I,
+      const feature_bitset_t& target_features,
+      isolation_result_t& result,
+      const std::vector<system_id_t>& I_vec,
+      const std::vector<system_id_t>& U_vec,
+      const system_feature_map_t& system_features ) const {
+
+    // Base case
+    if ( index == I_vec.size() ) {
+      if ( !current_I.empty() && ( current_intersection & target_features ) == target_features ) {
+        // Proceed to explore U subsets
+        feature_bitset_t empty_union;
+        system_ids_t current_U; 
+        explore_U_subsets(
+            0,
+            empty_union,
+            current_U, 
+            current_intersection,
+            target_features,
+            current_I,
+            result,
+            U_vec,
+            system_features );
+      }
+      return;
+    }
+
+    // Option 1: Include system at index
+    system_id_t system_id = I_vec[index];
+
+    // Update current_intersection appropriately
+    feature_bitset_t new_intersection;
+    if ( current_I.empty() ) {
+      new_intersection = system_features.at( system_id );
+    } else {
+      new_intersection = current_intersection & system_features.at( system_id );
+    }
+
+    // Prune if new intersection doesn't contain target features
+    if ( ( new_intersection & target_features ) == target_features ) {
+      current_I.insert( system_id );
+
+      // Continue exploring further I subsets including this system
+      explore_I_subsets( index + 1, new_intersection, current_I, target_features, result, I_vec, U_vec, system_features );
+
+      current_I.erase( system_id );
+    }
+
+    // Option 2: Exclude system at index
+    explore_I_subsets( index + 1, current_intersection, current_I, target_features, result, I_vec, U_vec, system_features );
+  }
+
+  void feature_isolation_t::explore_U_subsets( size_t index,
+                                               const feature_bitset_t& current_union,
+                                               system_ids_t& current_U,
+                                               const feature_bitset_t& current_intersection,
+                                               const feature_bitset_t& target_features,
+                                               const system_ids_t& current_I,
+                                               isolation_result_t& result,
+                                               const std::vector<system_id_t>& U_vec,
+                                               const system_feature_map_t& system_features ) const {
+
+    if ( index >= U_vec.size() ) {
+      // Check if the difference matches the target features
+      feature_bitset_t diff = current_intersection & ( ~current_union );
+      if ( diff == target_features ) {
+        // Found a minimal difference
+        memorize_proper_difference_subset( result.differences, current_I, current_U );
+      }
+      return;
+    }
+
+    // Option 1: Include system at index
+    system_id_t system_id = U_vec[index];
+    feature_bitset_t new_union = current_union | system_features.at( system_id );
+
+    // Prune if new union contains any target features
+    if ( ( new_union & target_features ).none() ) {
+      current_U.insert( system_id );
+      explore_U_subsets( index + 1, new_union, current_U, current_intersection, target_features, current_I, result, U_vec, system_features );
+      current_U.erase( system_id );
+    }
+
+    // Option 2: Exclude system at index
+    explore_U_subsets( index + 1, current_union, current_U, current_intersection, target_features, current_I, result, U_vec, system_features );
+  }
+
 
   isolation_result_t
   feature_isolation_t::some_difference( unsigned_integer feature_id ) const {
@@ -258,14 +405,28 @@ namespace feature_isolation {
     return proper_subset( i, d.I ) or proper_subset( u, d.U );
   }
 
+  bool feature_isolation_t::proper_difference_subset(
+      const difference_t& d1, const difference_t& d2 ) {
+    return ( subset( d1.I, d2.I ) && d2.I.size() < d1.I.size() ) ||
+           ( subset( d1.U, d2.U ) && d2.U.size() < d1.U.size() );
+  }
+
   void feature_isolation_t::memorize_proper_difference_subset(
       differences_t& md, const system_ids_t& i, const system_ids_t& u ) {
-    for ( const auto& d : md ) {
-      if ( proper_difference_subset( i, u, d ) ) {
+    difference_t new_diff { i, u };
+    for ( auto it = md.begin(); it != md.end(); ) {
+      const auto& existing_diff = *it;
+      if ( proper_difference_subset( new_diff, existing_diff ) ) {
+        // New difference is a proper subset of existing difference; do not add it
         return;
+      } else if ( proper_difference_subset( existing_diff, new_diff ) ) {
+        // Existing difference is a proper subset of new difference; remove it
+        it = md.erase( it );
+      } else {
+        ++it;
       }
     }
-    md.insert( difference_t { i, u } );
+    md.insert( new_diff );
   }
 
   void feature_isolation_t::print_header( std::ostream& os,
@@ -404,7 +565,7 @@ namespace feature_isolation {
   }
 
   unsigned_integer dot_product( const std::vector<bool>& v ) {
-    return static_cast<unsigned_integer>(std::ranges::count( v, true ));
+    return static_cast<unsigned_integer>( std::ranges::count( v, true ) );
   }
 
   bool feature_bool_and( const std::vector<bool>& f1,
