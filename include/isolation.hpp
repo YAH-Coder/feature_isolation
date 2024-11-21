@@ -21,7 +21,7 @@
 
 namespace feature_isolation {
 
-  constexpr size_t MAX_FEATURES = 1024; 
+  constexpr size_t MAX_FEATURES = 1024;
 
   using feature_bitset_t = std::bitset<MAX_FEATURES>;
   using system_id_t = unsigned_integer;
@@ -229,15 +229,12 @@ namespace feature_isolation {
     return oss.str();
   }
 
- isolation_result_t feature_isolation_t::minimal_differences( unsigned_integer feature_id ) const {
+  isolation_result_t feature_isolation_t::minimal_differences( unsigned_integer feature_id ) const {
     isolation_result_t result;
-    std::cerr << "Computing minimal differences for feature " << feature_id << std::endl;
-    
     auto [I_set, U_set] = partition( feature_id );
     std::vector<system_id_t> I_vec( I_set.begin(), I_set.end() );
     std::vector<system_id_t> U_vec( U_set.begin(), U_set.end() );
 
-    
     system_feature_map_t system_features;
     for ( const auto& sid : m_spl.m_available_systems ) {
       feature_bitset_t features_bitset;
@@ -251,7 +248,7 @@ namespace feature_isolation {
     }
 
     feature_bitset_t target_features;
-    target_features.set( feature_id - 1 ); 
+    target_features.set( feature_id - 1 );
 
     feature_bitset_t full_intersection;
     full_intersection.set();
@@ -280,11 +277,11 @@ namespace feature_isolation {
       if ( !current_I.empty() && ( current_intersection & target_features ) == target_features ) {
         // Proceed to explore U subsets
         feature_bitset_t empty_union;
-        system_ids_t current_U; 
+        system_ids_t current_U;
         explore_U_subsets(
             0,
             empty_union,
-            current_U, 
+            current_U,
             current_intersection,
             target_features,
             current_I,
@@ -354,7 +351,6 @@ namespace feature_isolation {
     // Option 2: Exclude system at index
     explore_U_subsets( index + 1, current_union, current_U, current_intersection, target_features, current_I, result, U_vec, system_features );
   }
-
 
   isolation_result_t
   feature_isolation_t::some_difference( unsigned_integer feature_id ) const {
