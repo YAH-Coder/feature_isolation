@@ -1,0 +1,41 @@
+SPL_SPECIFICATION
+├── [SPL_DEFINITION]
+│   ├── 'SPL'
+│   ├── SPACE
+│   └── NAME
+├── FEATURES_DEFINITION
+│   ├── 'FEATURES'
+│   ├── SPACE
+│   ├── VALUE
+│   └── { SPACE NAME }
+├── { STATEMENT }
+│   ├── COMMENT
+│   │   ├── '//'
+│   │   ├── ( ' ' | '\t' )
+│   │   ├── { CHARACTER_EXCEPT_NEWLINE }
+│   │   └── NEWLINE
+│   ├── CATEGORIES_DEFINITION
+│   │   ├── 'CATEGORIES'
+│   │   └── { SPACE CATEGORY_NAME }
+│   ├── EXPLICIT_DEPENDENCIES_DEFINITION
+│   │   ├── 'EXPLICIT_DEPENDENCIES'
+│   │   ├── { SPACE DEPENDENCY_STATEMENT }
+│   │   │   └── DEPENDENCY_STATEMENT
+│   │   │       ├── FEATURE_NAME
+│   │   │       ├── SPACE
+│   │   │       ├── DEPENDENCY_TYPE
+│   │   │       ├── { SPACE FEATURE_NAME }
+│   │   │       ├── 'END'
+│   │   │       └── SPACE
+│   │   ├── 'END'
+│   │   └── SPACE
+│   ├── MISSING_SYSTEMS_DEFINITION
+│   │   ├── 'MISSING_SYSTEMS'
+│   │   ├── { SPACE VALUE }
+│   │   ├── 'END'
+│   │   └── SPACE
+│   └── AVAILABLE_SYSTEMS_DEFINITION
+│       ├── 'AVAILABLE_SYSTEMS'
+│       ├── { SPACE VALUE }
+│       ├── 'END'
+│       └── SPACE
