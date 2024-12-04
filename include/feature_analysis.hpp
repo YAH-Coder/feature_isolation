@@ -41,8 +41,10 @@ namespace feature_isolation
   // problems in the program.
   struct feature_ids_t: ids_t
   { };
+
   struct system_ids_t: ids_t
   { };
+
   // using feature_ids_t = ids_t;
   // using system_ids_t = ids_t;
 
