@@ -1,4 +1,4 @@
-name: Run tests and generate docs
+name: CI Pipeline
 
 on:
   push:
@@ -6,14 +6,47 @@ on:
       - main
 
 jobs:
-  build:
-    runs-on: macos-latest
+  build-and-test:
+    name: Build and Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v3.10.0 # Pinning to a specific version for stability
 
-      - name: Install dependencies
-        run: brew install gcc doxygen fmt z3
+      - name: Cache Dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            # Linux and macOS
+            ~/.cache
+            /var/cache/apt
+            /usr/local/Homebrew
+            # Windows
+            C:\ProgramData\chocolatey\lib
+          key: ${{ runner.os }}-dependencies-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-dependencies-
 
-      - name: Build and run tests
+      - name: Install Dependencies on Ubuntu
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc make doxygen graphviz
+
+      - name: Install Dependencies on macOS
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install gcc doxygen fmt z3
+
+      - name: Install Dependencies on Windows
+        if: runner.os == 'Windows'
+        run: |
+          choco install make doxygen graphviz
+
+      - name: Build and Run Tests
         run: make test
