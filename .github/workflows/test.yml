@@ -21,55 +21,52 @@ jobs:
         run: |
           echo "Installing dependencies on Ubuntu..."
           sudo apt-get update
-          sudo apt-get install -y libfmt-dev libz3-dev make
+          sudo apt-get install -y libfmt-dev libz3-dev g++ make
 
       - name: Install Dependencies on macOS
         if: matrix.os == 'macos-latest'
         run: |
           echo "Installing dependencies on macOS..."
           brew update
-          brew install fmt z3 make
-
-      - name: Install Dependencies on Windows
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
-        run: |
-          echo "Installing dependencies on Windows..."
-          # Install Chocolatey (if not already installed)
-          Set-ExecutionPolicy Bypass -Scope Process -Force
-          [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-          iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-          # Install dependencies
-          choco install -y make fmt z3 git
-
-      - name: Set Environment Variables on Ubuntu
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          echo "FMT_PREFIX=/usr" >> $GITHUB_ENV
-          echo "Z3_PREFIX=/usr" >> $GITHUB_ENV
+          brew install fmt z3
 
       - name: Set Environment Variables on macOS
         if: matrix.os == 'macos-latest'
         run: |
+          echo "Setting environment variables on macOS..."
           echo "FMT_PREFIX=$(brew --prefix fmt)" >> $GITHUB_ENV
           echo "Z3_PREFIX=$(brew --prefix z3)" >> $GITHUB_ENV
 
+      - name: Install Dependencies and Setup on Windows
+        if: matrix.os == 'windows-latest'
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-make
+            mingw-w64-x86_64-fmt
+            mingw-w64-x86_64-z3
+          msystem: MINGW64
+
       - name: Set Environment Variables on Windows
         if: matrix.os == 'windows-latest'
-        shell: pwsh
+        shell: bash
         run: |
-          echo "FMT_PREFIX=C:/ProgramData/chocolatey/lib/fmt/tools" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          echo "Z3_PREFIX=C:/ProgramData/chocolatey/lib/z3/tools" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "Setting environment variables on Windows..."
+          echo "FMT_PREFIX=/mingw64" >> $GITHUB_ENV
+          echo "Z3_PREFIX=/mingw64" >> $GITHUB_ENV
 
       - name: Build and Test on Ubuntu and macOS
         if: matrix.os != 'windows-latest'
+        shell: bash
         run: |
           make clean
           make test
 
       - name: Build and Test on Windows
         if: matrix.os == 'windows-latest'
-        shell: bash
+        shell: msys2 {0}
         run: |
           make clean
           make test
