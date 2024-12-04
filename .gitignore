@@ -2,7 +2,6 @@
 # IDE/Editor Files
 # -----------------
 .clangd
-.clang-format
 .DS_Store
 .editorconfig
 .vscode
