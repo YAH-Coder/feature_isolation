@@ -18,7 +18,9 @@ CXXFLAGS += -Iinclude -I$(FMT_PREFIX)/include -I$(Z3_PREFIX)/include -std=c++20 
 LDFLAGS += -L$(FMT_PREFIX)/lib -L$(Z3_PREFIX)/lib -lfmt -lz3
 
 # Output directories
-OUTPUT_DIR = testing
+OUTPUT_DIR_TESTING = testing
+OUTPUT_DIR = output
+OBJ_DIR = obj
 OUTPUT_DIR_MATH = mathhelper
 OUTPUT_DIR_SPL = spl
 OUTPUT_DIR_ANALYSIS = analysis
@@ -26,47 +28,61 @@ OUTPUT_DIR_ISOLATION = isolation
 DOXYGEN = doxygen
 
 # Targets
-all: test benchmark
+all: test feature_isolation
 
 test_math: src/mathhelper_test.cpp include/fi_mathhelper.hpp
-	mkdir -p $(OUTPUT_DIR)/$(OUTPUT_DIR_MATH)/
-	$(CXX) $(CXXFLAGS) $< -o $(OUTPUT_DIR)/$(OUTPUT_DIR_MATH)/$@
-	$(EXE_PREFIX)$(OUTPUT_DIR)/$(OUTPUT_DIR_MATH)/$@
+	mkdir -p $(OUTPUT_DIR_TESTING)/$(OUTPUT_DIR_MATH) $(OBJ_DIR)/
+	$(CXX) $(CXXFLAGS) -c $< -o $(OBJ_DIR)/mathhelper_test.o
+	$(CXX) $(CXXFLAGS) $(OBJ_DIR)/mathhelper_test.o -o $(OUTPUT_DIR_TESTING)/$(OUTPUT_DIR_MATH)/$@
+	$(EXE_PREFIX)$(OUTPUT_DIR_TESTING)/$(OUTPUT_DIR_MATH)/$@
 
 test_spl: src/spl_test.cpp src/spl.cpp include/spl.hpp
-	mkdir -p $(OUTPUT_DIR)/$(OUTPUT_DIR_SPL)/
-	$(CXX) $(CXXFLAGS) src/spl.cpp $< -o $(OUTPUT_DIR)/$(OUTPUT_DIR_SPL)/$@ $(LDFLAGS)
-	$(EXE_PREFIX)$(OUTPUT_DIR)/$(OUTPUT_DIR_SPL)/$@
+	mkdir -p $(OUTPUT_DIR_TESTING)/$(OUTPUT_DIR_SPL) $(OBJ_DIR)/
+	$(CXX) $(CXXFLAGS) -c src/spl.cpp -o $(OBJ_DIR)/spl.o
+	$(CXX) $(CXXFLAGS) -c $< -o $(OBJ_DIR)/spl_test.o
+	$(CXX) $(CXXFLAGS) $(OBJ_DIR)/spl.o $(OBJ_DIR)/spl_test.o -o $(OUTPUT_DIR_TESTING)/$(OUTPUT_DIR_SPL)/$@ $(LDFLAGS)
+	$(EXE_PREFIX)$(OUTPUT_DIR_TESTING)/$(OUTPUT_DIR_SPL)/$@
 
 test_analysis: src/analysis_test.cpp src/feature_analysis.cpp
-	mkdir -p $(OUTPUT_DIR)/$(OUTPUT_DIR_ANALYSIS)/
-	$(CXX) $(CXXFLAGS) -c src/feature_analysis.cpp -o $(OUTPUT_DIR)/$(OUTPUT_DIR_ANALYSIS)/feature_analysis.o
-	$(CXX) $(CXXFLAGS) -c src/analysis_test.cpp -o $(OUTPUT_DIR)/$(OUTPUT_DIR_ANALYSIS)/analysis_test.o
-	$(CXX) $(CXXFLAGS) $(OUTPUT_DIR)/$(OUTPUT_DIR_ANALYSIS)/feature_analysis.o $(OUTPUT_DIR)/$(OUTPUT_DIR_ANALYSIS)/analysis_test.o -o $(OUTPUT_DIR)/$(OUTPUT_DIR_ANALYSIS)/test_analysis $(LDFLAGS)
-	$(EXE_PREFIX)$(OUTPUT_DIR)/$(OUTPUT_DIR_ANALYSIS)/test_analysis
+	mkdir -p $(OUTPUT_DIR_TESTING)/$(OUTPUT_DIR_ANALYSIS) $(OBJ_DIR)/
+	$(CXX) $(CXXFLAGS) -c src/feature_analysis.cpp -o $(OBJ_DIR)/feature_analysis.o
+	$(CXX) $(CXXFLAGS) -c $< -o $(OBJ_DIR)/analysis_test.o
+	$(CXX) $(CXXFLAGS) $(OBJ_DIR)/feature_analysis.o $(OBJ_DIR)/analysis_test.o -o $(OUTPUT_DIR_TESTING)/$(OUTPUT_DIR_ANALYSIS)/$@ $(LDFLAGS)
+	$(EXE_PREFIX)$(OUTPUT_DIR_TESTING)/$(OUTPUT_DIR_ANALYSIS)/$@
 
 test_isolation: src/isolation_test.cpp src/feature_analysis.cpp src/spl.cpp include/isolation.hpp
-	mkdir -p $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/
-	$(CXX) $(CXXFLAGS) -c src/feature_analysis.cpp -o $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/feature_analysis.o
-	$(CXX) $(CXXFLAGS) -c src/spl.cpp -o $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/spl.o
-	$(CXX) $(CXXFLAGS) -c src/isolation_test.cpp -o $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/isolation_test.o
-	$(CXX) $(CXXFLAGS) $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/feature_analysis.o $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/spl.o $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/isolation_test.o -o $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/test_isolation $(LDFLAGS)
-	$(EXE_PREFIX)$(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/test_isolation
+	mkdir -p $(OUTPUT_DIR_TESTING)/$(OUTPUT_DIR_ISOLATION) $(OBJ_DIR)/
+	$(CXX) $(CXXFLAGS) -c src/feature_analysis.cpp -o $(OBJ_DIR)/feature_analysis.o
+	$(CXX) $(CXXFLAGS) -c src/spl.cpp -o $(OBJ_DIR)/spl.o
+	$(CXX) $(CXXFLAGS) -c $< -o $(OBJ_DIR)/isolation_test.o
+	$(CXX) $(CXXFLAGS) $(OBJ_DIR)/feature_analysis.o $(OBJ_DIR)/spl.o $(OBJ_DIR)/isolation_test.o -o $(OUTPUT_DIR_TESTING)/$(OUTPUT_DIR_ISOLATION)/$@ $(LDFLAGS)
+	$(EXE_PREFIX)$(OUTPUT_DIR_TESTING)/$(OUTPUT_DIR_ISOLATION)/$@
+
+feature_isolation: 
+	mkdir -p $(OUTPUT_DIR) $(OBJ_DIR)/
+	$(CXX) $(CXXFLAGS) -c src/feature_analysis.cpp -o $(OBJ_DIR)/feature_analysis.o
+	$(CXX) $(CXXFLAGS) -c src/spl.cpp -o $(OBJ_DIR)/spl.o
+	$(CXX) $(CXXFLAGS) -c src/feature_isolation.cpp -o $(OBJ_DIR)/feature_isolation.o
+	$(CXX) $(CXXFLAGS) $(OBJ_DIR)/feature_analysis.o $(OBJ_DIR)/spl.o $(OBJ_DIR)/feature_isolation.o -o $(OUTPUT_DIR)/feature_isolation $(LDFLAGS)
 
 test: test_math test_spl test_analysis test_isolation
 
 benchmark: src/mathhelper_benchmark.cpp include/fi_mathhelper.hpp
-	mkdir -p $(OUTPUT_DIR)/$(OUTPUT_DIR_MATH)/
-	$(CXX) $(CXXFLAGS) $< -o $(OUTPUT_DIR)/$(OUTPUT_DIR_MATH)/$@
+	mkdir -p $(OUTPUT_DIR_TESTING)/$(OUTPUT_DIR_MATH) $(OBJ_DIR)/
+	$(CXX) $(CXXFLAGS) -c $< -o $(OBJ_DIR)/mathhelper_benchmark.o
+	$(CXX) $(CXXFLAGS) $(OBJ_DIR)/mathhelper_benchmark.o -o $(OUTPUT_DIR_TESTING)/$(OUTPUT_DIR_MATH)/$@
+	$(EXE_PREFIX)$(OUTPUT_DIR_TESTING)/$(OUTPUT_DIR_MATH)/$@
 
 docs: Doxyfile
 	$(DOXYGEN) $<
 
 clean:
-	rm -f $(OUTPUT_DIR)/$(OUTPUT_DIR_MATH)/test_math $(OUTPUT_DIR)/$(OUTPUT_DIR_MATH)/benchmark
-	rm -f $(OUTPUT_DIR)/$(OUTPUT_DIR_SPL)/test_spl
-	rm -f $(OUTPUT_DIR)/$(OUTPUT_DIR_ANALYSIS)/test_analysis $(OUTPUT_DIR)/$(OUTPUT_DIR_ANALYSIS)/feature_analysis.o $(OUTPUT_DIR)/$(OUTPUT_DIR_ANALYSIS)/analysis_test.o
-	rm -f $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/test_isolation $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/feature_analysis.o $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/spl.o $(OUTPUT_DIR)/$(OUTPUT_DIR_ISOLATION)/isolation_test.o
+	rm -f $(OBJ_DIR)/*.o
+	rm -f $(OUTPUT_DIR_TESTING)/$(OUTPUT_DIR_MATH)/test_math $(OUTPUT_DIR_TESTING)/$(OUTPUT_DIR_MATH)/benchmark
+	rm -f $(OUTPUT_DIR_TESTING)/$(OUTPUT_DIR_SPL)/test_spl
+	rm -f $(OUTPUT_DIR_TESTING)/$(OUTPUT_DIR_ANALYSIS)/test_analysis
+	rm -f $(OUTPUT_DIR_TESTING)/$(OUTPUT_DIR_ISOLATION)/test_isolation
+	rm -f $(OUTPUT_DIR)/feature_isolation
 	rm -rf docs/html
 
-.PHONY: all docs clean test test_math test_spl test_analysis test_isolation benchmark
+.PHONY: all docs clean test test_math test_spl test_analysis test_isolation benchmark feature_isolation
