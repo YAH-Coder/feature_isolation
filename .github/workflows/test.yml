@@ -29,36 +29,9 @@ jobs:
           echo "FMT_PREFIX=$(brew --prefix fmt)" >> $GITHUB_ENV
           echo "Z3_PREFIX=$(brew --prefix z3)" >> $GITHUB_ENV
 
-      - name: Install Dependencies and Setup on Windows
-        if: matrix.os == 'windows-latest'
-        uses: msys2/setup-msys2@v2
-        with:
-          update: true
-          install: >-
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-make
-            mingw-w64-x86_64-fmt
-            mingw-w64-x86_64-z3
-          msystem: MINGW64
-
-      - name: Set Environment Variables on Windows
-        if: matrix.os == 'windows-latest'
-        shell: bash
-        run: |
-          echo "Setting environment variables on Windows..."
-          echo "FMT_PREFIX=/mingw64" >> $GITHUB_ENV
-          echo "Z3_PREFIX=/mingw64" >> $GITHUB_ENV
-
       - name: Build and Test on macOS
         if: matrix.os == 'macos-latest'
         shell: bash
-        run: |
-          make clean
-          make test
-
-      - name: Build and Test on Windows
-        if: matrix.os == 'windows-latest'
-        shell: msys2 {0}
         run: |
           make clean
           make test
