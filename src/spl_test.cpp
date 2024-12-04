@@ -46,12 +46,12 @@ TEST_CASE("Process valid SPL specification", "[spl_processor_t]")
 
   // First run: Process input file to create output1
   spl_processor_t processor1(input_filename);
-  REQUIRE_NOTHROW(processor1.get_specification()); // Ensure processing succeeds
+  REQUIRE_NOTHROW(processor1.get_specification());
   processor1.print(output1_filename);
 
   // Second run: Process output1 to create output2
   spl_processor_t processor2(output1_filename);
-  REQUIRE_NOTHROW(processor2.get_specification()); // Ensure processing succeeds
+  REQUIRE_NOTHROW(processor2.get_specification());
   processor2.print(output2_filename);
 
   // Compare output1 and output2
@@ -122,7 +122,6 @@ TEST_CASE("Process SPL specification with MAX_RANK", "[spl_processor_t]")
   spl_processor_t            processor(input_filename);
   const spl_specification_t& spec = processor.get_specification();
 
-  // Verify that MAX_RANK is set correctly
   REQUIRE(spec.m_max_rank == 2);
 }
 
@@ -146,13 +145,11 @@ TEST_CASE("Process valid SPL specification with detailed checks",
   spl_processor_t            processor(input_filename);
   const spl_specification_t& spec = processor.get_specification();
 
-  // Verify SPL name
-  REQUIRE(spec.m_spl_name == "Factorial"); // SPL name is "Factorial"
+  REQUIRE(spec.m_spl_name == "Factorial");
 
   // Verify the number of features
-  REQUIRE(spec.m_feature_names.size() == 4); // There are 4 features
+  REQUIRE(spec.m_feature_names.size() == 4);
 
-  // Verify feature names
   REQUIRE(spec.m_feature_names[0] == "Checked");
   REQUIRE(spec.m_feature_names[1] == "Logging");
   REQUIRE(spec.m_feature_names[2] == "Iterative");
@@ -170,8 +167,8 @@ TEST_CASE("Process valid SPL specification with detailed checks",
 
   // Find the indices for Iterative and Recursive
   // From feature names, "Iterative" is at index 2, "Recursive" is at index 3
-  REQUIRE(root_deps.count(2) == 1); // Iterative
-  REQUIRE(root_deps.count(3) == 1); // Recursive
+  REQUIRE(root_deps.count(2) == 1);
+  REQUIRE(root_deps.count(3) == 1);
 
   // Verify that other dependencies are empty
   REQUIRE(spec.m_requires_all.empty());
@@ -186,12 +183,12 @@ TEST_CASE("Process valid SPL specification with detailed checks",
   // Verify categories
   // Since categories are not specified in the functional_spec.csv, check
   // default value
-  REQUIRE(spec.m_categories == feature_isolation::F); // Default category is F
+  REQUIRE(spec.m_categories == feature_isolation::F);
 
   // Verify other attributes
   REQUIRE(spec.m_spl_specified == true);
   REQUIRE(spec.m_feature_names_specified == true);
-  REQUIRE(spec.m_categories_specified == false); // Categories not specified
+  REQUIRE(spec.m_categories_specified == false);
   REQUIRE(spec.m_explicit_dependencies_specified == true);
   REQUIRE(spec.m_available_systems_specified == true);
   REQUIRE(spec.m_missing_systems_specified == false);
@@ -200,7 +197,7 @@ TEST_CASE("Process valid SPL specification with detailed checks",
   // Verify MAX_RANK
   // MAX_RANK is not specified, so it should default to the number of features
   // (F)
-  REQUIRE(spec.m_max_rank == 4); // Number of features is 4
+  REQUIRE(spec.m_max_rank == 4);
 }
 
 TEST_CASE("Process SPL with REQUIRES_ANY constraint", "[spl_processor_t]")
