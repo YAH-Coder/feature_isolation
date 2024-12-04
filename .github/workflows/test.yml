@@ -16,48 +16,60 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install Dependencies on ${{ matrix.os }}
+      - name: Install Dependencies on Ubuntu
+        if: matrix.os == 'ubuntu-latest'
         run: |
-          echo "Installing dependencies on ${{ matrix.os }}..."
-          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            sudo apt-get update
-            sudo apt-get install -y libfmt-dev libz3-dev make
-          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            brew update
-            brew install fmt z3 make
-          elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            # Install Chocolatey (if not already installed)
-            Set-ExecutionPolicy Bypass -Scope Process -Force
-            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-            iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-            
-            # Install dependencies
-            choco install -y make fmt z3 git
-          fi
+          echo "Installing dependencies on Ubuntu..."
+          sudo apt-get update
+          sudo apt-get install -y libfmt-dev libz3-dev make
 
-      - name: Install Git Bash on Windows
+      - name: Install Dependencies on macOS
+        if: matrix.os == 'macos-latest'
+        run: |
+          echo "Installing dependencies on macOS..."
+          brew update
+          brew install fmt z3 make
+
+      - name: Install Dependencies on Windows
         if: matrix.os == 'windows-latest'
+        shell: pwsh
         run: |
-          choco install -y git
-        # Git Bash is installed with Git for Windows by default
+          echo "Installing dependencies on Windows..."
+          # Install Chocolatey (if not already installed)
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+          iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+          # Install dependencies
+          choco install -y make fmt z3 git
 
-      - name: Set Environment Variables for Dependencies
+      - name: Set Environment Variables on Ubuntu
+        if: matrix.os == 'ubuntu-latest'
         run: |
-          echo "Setting environment variables..."
-          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            echo "FMT_PREFIX=/usr" >> $GITHUB_ENV
-            echo "Z3_PREFIX=/usr" >> $GITHUB_ENV
-          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            echo "FMT_PREFIX=$(brew --prefix fmt)" >> $GITHUB_ENV
-            echo "Z3_PREFIX=$(brew --prefix z3)" >> $GITHUB_ENV
-          elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            # Adjust paths based on Chocolatey installation
-            echo "FMT_PREFIX=C:/ProgramData/chocolatey/lib/fmt/tools" >> $GITHUB_ENV
-            echo "Z3_PREFIX=C:/ProgramData/chocolatey/lib/z3/tools" >> $GITHUB_ENV
-          fi
+          echo "FMT_PREFIX=/usr" >> $GITHUB_ENV
+          echo "Z3_PREFIX=/usr" >> $GITHUB_ENV
 
-      - name: Build and Test
+      - name: Set Environment Variables on macOS
+        if: matrix.os == 'macos-latest'
+        run: |
+          echo "FMT_PREFIX=$(brew --prefix fmt)" >> $GITHUB_ENV
+          echo "Z3_PREFIX=$(brew --prefix z3)" >> $GITHUB_ENV
+
+      - name: Set Environment Variables on Windows
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          echo "FMT_PREFIX=C:/ProgramData/chocolatey/lib/fmt/tools" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "Z3_PREFIX=C:/ProgramData/chocolatey/lib/z3/tools" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build and Test on Ubuntu and macOS
+        if: matrix.os != 'windows-latest'
         run: |
           make clean
           make test
+
+      - name: Build and Test on Windows
+        if: matrix.os == 'windows-latest'
         shell: bash
+        run: |
+          make clean
+          make test
