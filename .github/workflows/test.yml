@@ -1,52 +1,90 @@
-name: CI Pipeline
+name: CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
-  build-and-test:
-    name: Build and Test on ${{ matrix.os }}
+  build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            shell: bash
+          - os: macos-latest
+            shell: bash
+          - os: windows-latest
+            shell: pwsh
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3.10.0 # Pinning to a specific version for stability
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - name: Cache Dependencies
+      - name: Install Dependencies on ${{ matrix.os }}
+        run: |
+          echo "Installing dependencies on ${{ matrix.os }}..."
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            sudo apt-get update
+            sudo apt-get install -y libfmt-dev libz3-dev make
+          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            brew update
+            brew install fmt z3 make
+          elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            # Install Chocolatey (if not already installed)
+            Set-ExecutionPolicy Bypass -Scope Process -Force; `
+            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; `
+            iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+            
+            # Install dependencies
+            choco install -y make
+            choco install -y fmt
+            choco install -y z3
+          fi
+
+      - name: Set Environment Variables for Dependencies
+        run: |
+          echo "Setting environment variables..."
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            export FMT_PREFIX=/usr
+            export Z3_PREFIX=/usr
+          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            export FMT_PREFIX=$(brew --prefix fmt)
+            export Z3_PREFIX=$(brew --prefix z3)
+          elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            # Assuming Chocolatey installs fmt and z3 in standard locations
+            $env:FMT_PREFIX = "C:/ProgramData/chocolatey/lib/fmt/tools"
+            $env:Z3_PREFIX = "C:/ProgramData/chocolatey/lib/z3/tools"
+            # Alternatively, use vcpkg or another package manager for better integration
+          fi
+
+          # Export variables for Makefile
+          echo "FMT_PREFIX=${FMT_PREFIX}" >> $GITHUB_ENV
+          echo "Z3_PREFIX=${Z3_PREFIX}" >> $GITHUB_ENV
+
+      - name: Build and Test
+        run: |
+          echo "Building and testing..."
+          make clean
+          make test benchmark
+        shell: ${{ matrix.shell }}
+
+      - name: Upload Doxygen Documentation (Optional)
+        if: success() && matrix.os == 'ubuntu-latest' # Or any specific condition
+        run: |
+          make docs
+          # You can add steps to upload the docs as artifacts or deploy them
+        shell: ${{ matrix.shell }}
+
+      - name: Cache Dependencies (Optional)
         uses: actions/cache@v3
         with:
           path: |
-            # Linux and macOS
             ~/.cache
-            /var/cache/apt
-            /usr/local/Homebrew
-            # Windows
-            C:\ProgramData\chocolatey\lib
-          key: ${{ runner.os }}-dependencies-${{ hashFiles('**/package-lock.json') }}
+            # Add other paths if necessary
+          key: ${{ runner.os }}-build-${{ hashFiles('**/Makefile') }}
           restore-keys: |
-            ${{ runner.os }}-dependencies-
-
-      - name: Install Dependencies on Ubuntu
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc make doxygen graphviz
-
-      - name: Install Dependencies on macOS
-        if: runner.os == 'macOS'
-        run: |
-          brew update
-          brew install gcc doxygen fmt z3
-
-      - name: Install Dependencies on Windows
-        if: runner.os == 'Windows'
-        run: |
-          choco install make doxygen graphviz
-
-      - name: Build and Run Tests
-        run: make test
+            ${{ runner.os }}-build-
