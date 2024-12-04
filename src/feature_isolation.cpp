@@ -89,4 +89,3 @@ int main(int argc, char* argv[])
   result_file << "=== ISOLATION RESULTS ===" << endl;
   fi.print(result_file, min_diffs, names);
 }
- 
