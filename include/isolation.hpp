@@ -22,7 +22,7 @@
 namespace feature_isolation
 {
 
-  constexpr size_t MAX_FEATURES = 1024;
+  constexpr size_t MAX_FEATURES = 2048;
 
   using feature_bitset_t = std::bitset<MAX_FEATURES>;
   using system_id_t      = unsigned_integer;
@@ -162,12 +162,15 @@ namespace feature_isolation
                              const system_feature_map_t& system_features) const;
   };
 
+  // FIXED: Adjust indexing for system IDs to avoid underflow when s == 0.
   difference_t feature_isolation_t::partition(unsigned_integer feature_id) const
   {
     system_ids_t I, U;
     for (const auto& s : m_spl.m_available_systems)
     {
-      if (m_features.m_systems.at(s - 1).all_features().contains(feature_id))
+      // Compute index safely: if s is 0, use 0; otherwise, subtract one.
+      unsigned_integer index = (s == 0 ? 0 : s - 1);
+      if (m_features.m_systems.at(index).all_features().contains(feature_id))
       {
         I.insert(s);
       }
@@ -179,9 +182,11 @@ namespace feature_isolation
     return { I, U };
   }
 
+  // FIXED: Adjust indexing for system IDs to avoid underflow when sid == 0.
   feature_ids_t feature_isolation_t::sid_to_fids(unsigned_integer sid) const
   {
-    return m_features.m_systems.at(sid - 1).all_features();
+    unsigned_integer index = (sid == 0 ? 0 : sid - 1);
+    return m_features.m_systems.at(index).all_features();
   }
 
   feature_ids_t feature_isolation_t::flatten_by_intersection(
@@ -511,7 +516,6 @@ namespace feature_isolation
       if (proper_difference_subset(new_diff, existing_diff))
       {
         // New difference is a proper subset of existing difference; do not add
-        // it
         return;
       }
       else if (proper_difference_subset(existing_diff, new_diff))
