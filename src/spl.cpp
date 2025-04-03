@@ -5,6 +5,7 @@
  */
 #include "../include/spl.hpp"
 #include <algorithm>
+#include <format>
 #include <z3++.h>
 
 namespace feature_isolation
@@ -68,10 +69,10 @@ namespace feature_isolation
   };
 
   template<typename... Args>
-  [[noreturn]] void error(const std::string_view& msg, Args&&... args)
+  [[noreturn]] inline void error(const std::string_view& msg, Args&&... args)
   {
-    std::string formatted_msg
-        = fmt::format(fmt::runtime(msg), std::forward<Args>(args)...);
+    std::string formatted_msg = std::vformat(
+        msg, std::make_format_args(static_cast<const Args&>(args)...));
     throw std::runtime_error(formatted_msg);
   }
 

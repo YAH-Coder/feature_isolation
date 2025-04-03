@@ -8,16 +8,13 @@
 
 #include "feature_analysis.hpp"
 #include <exception>
-#include <stdexcept>
-
-#define FMT_HEADER_ONLY
-
-#include <fmt/format.h>
+#include <format> // Updated: Use standard <format> header
 #include <fstream>
 #include <iostream>
 #include <optional>
 #include <ostream>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -124,7 +121,7 @@ namespace feature_isolation
   [[nodiscard]] std::string toupper(std::string s);
 
   template<typename... Args>
-  [[noreturn]] void error(const std::string_view& msg, Args&&... args);
+  [[noreturn]] inline void error(const std::string_view& msg, Args&&... args);
 
   using position_t = std::pair<std::size_t, std::size_t>;
 
@@ -229,9 +226,6 @@ namespace feature_isolation
       void                print(const std::string& output_filename) const;
       const spl_specification_t& get_specification() const;
   };
-
-  template<typename... Args>
-  [[noreturn]] void error(const std::string_view& msg, Args&&... args);
 
   std::string toupper(std::string s);
 
