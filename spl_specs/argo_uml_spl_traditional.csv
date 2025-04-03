@@ -1,0 +1,31 @@
+SPL ArgoUML_SPL
+
+FEATURES    8
+COGNITIVE
+LOGGING
+ACTIVITYDIAGRAM
+STATEDIAGRAM
+SEQUENCEDIAGRAM
+USECASEDIAGRAM
+COLLABORATIONDIAGRAM
+DEPLOYEMENTDIAGRAM
+
+CATEGORIES
+F
+A
+O
+N
+END
+
+AVAILABLE_SYSTEMS
+
+1 // AllDisabled // 00000000
+128 // DeploymentDiagramDisabled // 01111111
+192 // CollaborationDiagramDisabled // 10111111
+224 // UseCaseDiagramDisabled // 11011111
+240 // SequenceDiagramDisabled // 11101111
+248 // StateDiagramDisabled // 11110111
+252 // ActivityDiagramDisabled // 11111011
+254 // LoggingDisabled // 11111101
+255 // CognitiveDisabled // 11111110
+256 // AllEnabled // 11111111
