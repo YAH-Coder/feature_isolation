@@ -11,6 +11,7 @@
 # -----------------
 test
 benchmark
+testing/
 
 # -----------------
 # CMake Files
@@ -38,3 +39,5 @@ Doxyfile.in
 /external_documentation/*.aux
 /external_documentation/*.log
 /external_documentation/*.gz
+
+config.mk
