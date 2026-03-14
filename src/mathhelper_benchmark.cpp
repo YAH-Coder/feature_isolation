@@ -18,26 +18,26 @@ TEST_CASE("Benchmark addition functions", "[arithmetic][benchmark][add]")
   BENCHMARK("Checked add")
   {
     return checked_arithmetic::add(a, b);
-  }
+  };
 
   BENCHMARK("Checked add_assign")
   {
     unsigned_integer result = a; // Assign 'a' to 'result' to mimic the in-place
                                  // modification behavior
     return checked_arithmetic::add_assign(result, b);
-  }
+  };
 
   BENCHMARK("Unchecked add")
   {
     return unchecked_arithmetic::add(a, b);
-  }
+  };
 
   BENCHMARK("Unchecked add_assign")
   {
     unsigned_integer result = a; // Assign 'a' to 'result' to mimic the in-place
                                  // modification behavior
     return unchecked_arithmetic::add_assign(result, b);
-  }
+  };
 }
 
 // Benchmark cases for subtraction functions
@@ -49,26 +49,26 @@ TEST_CASE("Benchmark subtraction functions",
   BENCHMARK("Checked subtract")
   {
     return checked_arithmetic::subtract(a, b);
-  }
+  };
 
   BENCHMARK("Checked subtract_assign")
   {
     unsigned_integer result = a; // Assign 'a' to 'result' to mimic the in-place
                                  // modification behavior
     return checked_arithmetic::subtract_assign(result, b);
-  }
+  };
 
   BENCHMARK("Unchecked subtract")
   {
     return unchecked_arithmetic::subtract(a, b);
-  }
+  };
 
   BENCHMARK("Unchecked subtract_assign")
   {
     unsigned_integer result = a; // Assign 'a' to 'result' to mimic the in-place
                                  // modification behavior
     return unchecked_arithmetic::subtract_assign(result, b);
-  }
+  };
 }
 
 TEST_CASE("Benchmark multiplication functions",
@@ -79,26 +79,26 @@ TEST_CASE("Benchmark multiplication functions",
   BENCHMARK("Checked multiply")
   {
     return checked_arithmetic::multiply(a, b);
-  }
+  };
 
   BENCHMARK("Checked multiply_assign")
   {
     unsigned_integer result = a; // Assign 'a' to 'result' to mimic the in-place
                                  // modification behavior
     return checked_arithmetic::multiply_assign(result, b);
-  }
+  };
 
   BENCHMARK("Unchecked multiply")
   {
     return unchecked_arithmetic::multiply(a, b);
-  }
+  };
 
   BENCHMARK("Unchecked multiply_assign")
   {
     unsigned_integer result = a; // Assign 'a' to 'result' to mimic the in-place
                                  // modification behavior
     return unchecked_arithmetic::multiply_assign(result, b);
-  }
+  };
 }
 
 TEST_CASE("Power function performance", "[power]")
@@ -107,17 +107,17 @@ TEST_CASE("Power function performance", "[power]")
   BENCHMARK("power small base, small exponent")
   {
     return power(2, 10); // 2^10
-  }
+  };
 
   BENCHMARK("power large base, small exponent")
   {
     return power(12'3456, 2); // 123456^2
-  }
+  };
 
   BENCHMARK("power small base, large exponent")
   {
     return power(2, 20); // 2^20
-  }
+  };
 }
 
 TEST_CASE("Power2 function performance", "[power2]")
@@ -126,10 +126,10 @@ TEST_CASE("Power2 function performance", "[power2]")
   BENCHMARK("power2 small exponent")
   {
     return power2(10); // 2^10
-  }
+  };
 
   BENCHMARK("power2 large exponent")
   {
     return power2(20); // 2^20
-  }
+  };
 }
