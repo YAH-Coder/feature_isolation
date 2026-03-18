@@ -9,8 +9,8 @@
 #include "feature_analysis.hpp"
 #include "spl.hpp"
 #include <algorithm>
-#include <bitset>
 #include <compare>
+#include <unordered_map>
 #include <fstream>
 #include <iostream>
 #include <set>
@@ -22,12 +22,9 @@
 namespace feature_isolation
 {
 
-  constexpr size_t MAX_FEATURES = 1024;
-
-  using feature_bitset_t = std::bitset<MAX_FEATURES>;
-  using system_id_t      = unsigned_integer;
+  using system_id_t = unsigned_integer;
   using system_feature_map_t
-      = std::unordered_map<system_id_t, feature_bitset_t>;
+      = std::unordered_map<system_id_t, feature_ids_t>;
 
   template<typename T> std::vector<typename T::value_type> to_vector(const T& c)
   {
@@ -56,10 +53,69 @@ namespace feature_isolation
     return std::includes(s1.begin(), s1.end(), s2.begin(), s2.end());
   }
 
+  [[nodiscard]] bool subset(const feature_ids_t& s1, const feature_ids_t& s2)
+  {
+    return feature_ids_t::subset_of(s2, s1);
+  }
+
   template<typename T>
   [[nodiscard]] bool proper_subset(const std::set<T>& s1, const std::set<T>& s2)
   {
     return subset(s1, s2) && s1.size() > s2.size();
+  }
+
+  [[nodiscard]] bool proper_subset(const feature_ids_t& s1, const feature_ids_t& s2)
+  {
+    return subset(s1, s2) && s1.size() > s2.size();
+  }
+
+  [[nodiscard]] feature_ids_t intersection_of(const feature_ids_t& lhs,
+                                              const feature_ids_t& rhs)
+  {
+    return feature_ids_t::intersection_of(lhs, rhs);
+  }
+
+  template<typename T>
+  [[nodiscard]] T intersection_of(const T& lhs, const T& rhs)
+  {
+    T result {};
+    std::ranges::set_intersection(
+        lhs, rhs, std::insert_iterator { result, result.begin() });
+    return result;
+  }
+
+  [[nodiscard]] feature_ids_t union_of(const feature_ids_t& lhs,
+                                       const feature_ids_t& rhs)
+  {
+    return feature_ids_t::union_of(lhs, rhs);
+  }
+
+  template<typename T> [[nodiscard]] T union_of(const T& lhs, const T& rhs)
+  {
+    T result {};
+    std::ranges::set_union(
+        lhs, rhs, std::insert_iterator { result, result.begin() });
+    return result;
+  }
+
+  [[nodiscard]] feature_ids_t difference_of(const feature_ids_t& lhs,
+                                            const feature_ids_t& rhs)
+  {
+    return feature_ids_t::difference_of(lhs, rhs);
+  }
+
+  template<typename T>
+  [[nodiscard]] T difference_of(const T& lhs, const T& rhs)
+  {
+    T result {};
+    std::ranges::set_difference(
+        lhs, rhs, std::insert_iterator { result, result.begin() });
+    return result;
+  }
+
+  [[nodiscard]] bool overlaps(const feature_ids_t& lhs, const feature_ids_t& rhs)
+  {
+    return feature_ids_t::overlaps(lhs, rhs);
   }
 
   struct difference_t
@@ -99,7 +155,11 @@ namespace feature_isolation
     public:
       explicit feature_isolation_t(const std::string& filename)
           : m_spl { spl_processor_t { filename }.get_specification() }
-          , m_features { m_spl.m_F, m_spl.m_max_rank, m_spl.m_categories }
+          , m_features { m_spl.m_F,
+                         theory_system_space(m_spl),
+                         std::vector<std::string>(m_spl.m_feature_names.begin(),
+                                                  m_spl.m_feature_names.end()),
+                         m_spl.m_category_filter }
       { }
 
       [[nodiscard]] difference_t partition(unsigned_integer feature_id) const;
@@ -112,9 +172,14 @@ namespace feature_isolation
                                const system_ids_t& u) const;
       [[nodiscard]] isolation_result_t
           minimal_differences(unsigned_integer feature_id) const;
+      [[nodiscard]] static differences_t
+          search_minimal_differences(const feature_ids_t&     target_features,
+                                     const system_ids_t&      i_set,
+                                     const system_ids_t&      u_set,
+                                     const system_feature_map_t& system_features);
       [[nodiscard]] isolation_result_t
           some_difference(unsigned_integer feature_id) const;
-      [[nodiscard]] feature_ids_t sid_to_fids(unsigned_integer sid) const;
+      [[nodiscard]] const feature_ids_t& sid_to_fids(unsigned_integer sid) const;
       static void memorize_proper_difference_subset(differences_t&      md,
                                                     const system_ids_t& i,
                                                     const system_ids_t& u);
@@ -142,32 +207,60 @@ namespace feature_isolation
       const spl_specification_t m_spl;
       const feature_analysis_t  m_features;
     private:
-      void explore_I_subsets(size_t                  index,
-                             feature_bitset_t        current_intersection,
-                             system_ids_t&           current_I,
-                             const feature_bitset_t& target_features,
-                             isolation_result_t&     result,
-                             const std::vector<system_id_t>& I_vec,
-                             const std::vector<system_id_t>& U_vec,
-                             const system_feature_map_t& system_features) const;
+      struct witness_candidate_t
+      {
+          system_id_t   sid { zero };
+          bool          from_intersection { false };
+          feature_ids_t kills {};
+      };
 
-      void explore_U_subsets(size_t                  index,
-                             const feature_bitset_t& current_union,
-                             system_ids_t&           current_U,
-                             const feature_bitset_t& current_intersection,
-                             const feature_bitset_t& target_features,
-                             const system_ids_t&     current_I,
-                             isolation_result_t&     result,
-                             const std::vector<system_id_t>& U_vec,
-                             const system_feature_map_t& system_features) const;
+      [[nodiscard]] static unsigned_integer
+          next_internal_feature_id(const feature_ids_t& feature_ids);
+      [[nodiscard]] static feature_ids_t
+          relevant_feature_universe(const system_ids_t&       i_set,
+                                    const system_ids_t&       u_set,
+                                    const system_feature_map_t& system_features,
+                                    const feature_ids_t&      target_features);
+      [[nodiscard]] static std::vector<witness_candidate_t>
+          build_witness_candidates(const feature_ids_t&       bad_features,
+                                   const system_ids_t&        i_set,
+                                   const system_ids_t&        u_set,
+                                   const system_feature_map_t& system_features);
+      [[nodiscard]] static unsigned_integer
+          select_branch_feature(const feature_ids_t& uncovered_features,
+                                const std::vector<witness_candidate_t>& candidates,
+                                const std::unordered_map<unsigned_integer,
+                                                         std::vector<std::size_t>>&
+                                    feature_to_candidate_indices,
+                                const std::vector<bool>& available_candidates);
+      [[nodiscard]] static bool
+          has_covering_candidate(unsigned_integer feature_id,
+                                 const std::unordered_map<unsigned_integer,
+                                                          std::vector<std::size_t>>&
+                                     feature_to_candidate_indices,
+                                 const std::vector<bool>& available_candidates);
+      [[nodiscard]] static bool dominated_by_existing(
+          const differences_t& differences,
+          const system_ids_t&  current_I,
+          const system_ids_t&  current_U);
+      static void search_covering_differences(
+          const feature_ids_t& uncovered_features,
+          system_ids_t&        current_I,
+          system_ids_t&        current_U,
+          const std::vector<witness_candidate_t>& candidates,
+          const std::unordered_map<unsigned_integer, std::vector<std::size_t>>&
+                               feature_to_candidate_indices,
+          const std::vector<bool>& available_candidates,
+          differences_t&             differences);
   };
 
   difference_t feature_isolation_t::partition(unsigned_integer feature_id) const
   {
     system_ids_t I, U;
-    for (const auto& s : m_spl.m_available_systems)
+    for (const auto& s : m_features.system_space().available)
     {
-      if (m_features.m_systems.at(s - 1).all_features().contains(feature_id))
+      const auto& system_features = m_features.m_systems.at(s - 1).all_features();
+      if (system_features.contains(feature_id))
       {
         I.insert(s);
       }
@@ -179,7 +272,7 @@ namespace feature_isolation
     return { I, U };
   }
 
-  feature_ids_t feature_isolation_t::sid_to_fids(unsigned_integer sid) const
+  const feature_ids_t& feature_isolation_t::sid_to_fids(unsigned_integer sid) const
   {
     return m_features.m_systems.at(sid - 1).all_features();
   }
@@ -191,19 +284,12 @@ namespace feature_isolation
     {
       return {};
     }
-    auto result { sid_to_fids(*sids.begin()) };
+    feature_ids_t result { sid_to_fids(*sids.begin()) };
     if (sids.size() > 1)
     {
       for (auto it { ++sids.begin() }; it != sids.end(); ++it)
       {
-        auto set1 { result };
-        result.clear();
-        auto set2 { sid_to_fids(*it) };
-        /* result has been specified according to
-         * https://stackoverflow.com/questions/71390905/why-cant-i-use-a-set-as-the-output-collection-of-transform-operation-on-a-vecto
-         */
-        std::ranges::set_intersection(
-            set1, set2, std::insert_iterator { result, result.begin() });
+        result = intersection_of(result, sid_to_fids(*it));
       }
     }
     return result;
@@ -216,19 +302,12 @@ namespace feature_isolation
     {
       return {};
     }
-    auto result { sid_to_fids(*sids.begin()) };
+    feature_ids_t result { sid_to_fids(*sids.begin()) };
     if (sids.size() > 1)
     {
       for (auto it { ++sids.begin() }; it != sids.end(); ++it)
       {
-        auto set1 { result };
-        result.clear();
-        auto set2 { sid_to_fids(*it) };
-        /* result has been specified according to
-         * https://stackoverflow.com/questions/71390905/why-cant-i-use-a-set-as-the-output-collection-of-transform-operation-on-a-vecto
-         */
-        std::ranges::set_union(
-            set1, set2, std::insert_iterator { result, result.begin() });
+        result = union_of(result, sid_to_fids(*it));
       }
     }
     return result;
@@ -238,12 +317,9 @@ namespace feature_isolation
       feature_isolation_t::flattened_difference(const system_ids_t& i,
                                                 const system_ids_t& u) const
   {
-    feature_ids_t result {};
-    std::ranges::set_difference(
-        flatten_by_intersection(i),
-        flatten_by_union(u),
-        std::insert_iterator { result, result.begin() });
-    return result;
+    const auto intersection = flatten_by_intersection(i);
+    const auto union_set = flatten_by_union(u);
+    return difference_of(intersection, union_set);
   }
 
   std::string d_f_to_string(const feature_ids_t& d_f)
@@ -262,179 +338,262 @@ namespace feature_isolation
     return oss.str();
   }
 
+  differences_t feature_isolation_t::search_minimal_differences(
+      const feature_ids_t&       target_features,
+      const system_ids_t&        i_set,
+      const system_ids_t&        u_set,
+      const system_feature_map_t& system_features)
+  {
+    differences_t result {};
+    const auto relevant_features
+        = relevant_feature_universe(i_set, u_set, system_features, target_features);
+    feature_ids_t bad_features { difference_of(relevant_features, target_features) };
+    bad_features.insert(next_internal_feature_id(relevant_features));
+    const auto candidates
+        = build_witness_candidates(bad_features, i_set, u_set, system_features);
+
+    std::unordered_map<unsigned_integer, std::vector<std::size_t>>
+        feature_to_candidate_indices {};
+    for (std::size_t candidate_index { 0 }; candidate_index < candidates.size();
+         ++candidate_index)
+    {
+      for (const auto feature_id : candidates.at(candidate_index).kills)
+      {
+        feature_to_candidate_indices[feature_id].push_back(candidate_index);
+      }
+    }
+
+    system_ids_t current_I {};
+    system_ids_t current_U {};
+    const std::vector<bool> available_candidates(candidates.size(), true);
+    search_covering_differences(bad_features,
+                                current_I,
+                                current_U,
+                                candidates,
+                                feature_to_candidate_indices,
+                                available_candidates,
+                                result);
+    return result;
+  }
+
   isolation_result_t feature_isolation_t::minimal_differences(
       unsigned_integer feature_id) const
   {
-    isolation_result_t result;
+    isolation_result_t result {};
     auto [I_set, U_set] = partition(feature_id);
-    std::vector<system_id_t> I_vec(I_set.begin(), I_set.end());
-    std::vector<system_id_t> U_vec(U_set.begin(), U_set.end());
 
-    system_feature_map_t system_features;
-    for (const auto& sid : m_spl.m_available_systems)
+    system_feature_map_t system_features {};
+    for (const auto sid : m_features.system_space().available)
     {
-      feature_bitset_t features_bitset;
-
-      const auto& feature_ids = sid_to_fids(sid);
-      for (auto fid : feature_ids)
-      {
-        features_bitset.set(fid - 1); // Adjust for zero-based indexing
-      }
-
-      system_features[sid] = features_bitset;
+      system_features.emplace(sid, sid_to_fids(sid));
     }
 
-    feature_bitset_t target_features;
-    target_features.set(feature_id - 1);
-
-    feature_bitset_t full_intersection;
-    full_intersection.set();
-
-    system_ids_t current_I;
-
-    explore_I_subsets(0,
-                      full_intersection,
-                      current_I,
-                      target_features,
-                      result,
-                      I_vec,
-                      U_vec,
-                      system_features);
-
-    result.features.insert(feature_id);
+    result.features    = flattened_difference(I_set, U_set);
+    result.differences = search_minimal_differences(
+        result.features, I_set, U_set, system_features);
 
     return result;
   }
 
-  void feature_isolation_t::explore_I_subsets(
-      size_t                          index,
-      feature_bitset_t                current_intersection,
-      system_ids_t&                   current_I,
-      const feature_bitset_t&         target_features,
-      isolation_result_t&             result,
-      const std::vector<system_id_t>& I_vec,
-      const std::vector<system_id_t>& U_vec,
-      const system_feature_map_t&     system_features) const
+  unsigned_integer
+      feature_isolation_t::next_internal_feature_id(const feature_ids_t& feature_ids)
   {
-    // Base case
-    if (index == I_vec.size())
+    unsigned_integer max_feature_id { zero };
+    for (const auto feature_id : feature_ids)
     {
-      if (!current_I.empty()
-          && (current_intersection & target_features) == target_features)
-      {
-        // Proceed to explore U subsets
-        feature_bitset_t empty_union;
-        system_ids_t     current_U;
-        explore_U_subsets(0,
-                          empty_union,
-                          current_U,
-                          current_intersection,
-                          target_features,
-                          current_I,
-                          result,
-                          U_vec,
-                          system_features);
-      }
-      return;
+      max_feature_id = std::max(max_feature_id, feature_id);
     }
-
-    // Option 1: Include system at index
-    system_id_t system_id = I_vec[index];
-
-    // Update current_intersection appropriately
-    feature_bitset_t new_intersection;
-    if (current_I.empty())
-    {
-      new_intersection = system_features.at(system_id);
-    }
-    else
-    {
-      new_intersection = current_intersection & system_features.at(system_id);
-    }
-
-    // Prune if new intersection doesn't contain target features
-    if ((new_intersection & target_features) == target_features)
-    {
-      current_I.insert(system_id);
-
-      // Continue exploring further I subsets including this system
-      explore_I_subsets(index + 1,
-                        new_intersection,
-                        current_I,
-                        target_features,
-                        result,
-                        I_vec,
-                        U_vec,
-                        system_features);
-
-      current_I.erase(system_id);
-    }
-
-    // Option 2: Exclude system at index
-    explore_I_subsets(index + 1,
-                      current_intersection,
-                      current_I,
-                      target_features,
-                      result,
-                      I_vec,
-                      U_vec,
-                      system_features);
+    return max_feature_id + one;
   }
 
-  void feature_isolation_t::explore_U_subsets(
-      size_t                          index,
-      const feature_bitset_t&         current_union,
-      system_ids_t&                   current_U,
-      const feature_bitset_t&         current_intersection,
-      const feature_bitset_t&         target_features,
-      const system_ids_t&             current_I,
-      isolation_result_t&             result,
-      const std::vector<system_id_t>& U_vec,
-      const system_feature_map_t&     system_features) const
+  feature_ids_t feature_isolation_t::relevant_feature_universe(
+      const system_ids_t&        i_set,
+      const system_ids_t&        u_set,
+      const system_feature_map_t& system_features,
+      const feature_ids_t&       target_features)
   {
-    if (index >= U_vec.size())
+    feature_ids_t universe { target_features };
+    for (const auto sid : i_set)
     {
-      // Check if the difference matches the target features
-      feature_bitset_t diff = current_intersection & (~current_union);
-      if (diff == target_features)
+      universe = union_of(universe, system_features.at(sid));
+    }
+    for (const auto sid : u_set)
+    {
+      universe = union_of(universe, system_features.at(sid));
+    }
+    return universe;
+  }
+
+  std::vector<feature_isolation_t::witness_candidate_t>
+      feature_isolation_t::build_witness_candidates(
+          const feature_ids_t&       bad_features,
+          const system_ids_t&        i_set,
+          const system_ids_t&        u_set,
+          const system_feature_map_t& system_features)
+  {
+    std::vector<witness_candidate_t> candidates {};
+    candidates.reserve(i_set.size() + u_set.size());
+
+    unsigned_integer requirement_feature_id { zero };
+    for (const auto feature_id : bad_features)
+    {
+      requirement_feature_id = feature_id;
+    }
+
+    for (const auto sid : i_set)
+    {
+      const auto present_bad_features
+          = intersection_of(system_features.at(sid), bad_features);
+      auto kills = difference_of(bad_features, present_bad_features);
+      kills.insert(requirement_feature_id);
+      candidates.push_back({ sid, true, kills });
+    }
+
+    for (const auto sid : u_set)
+    {
+      const auto kills = intersection_of(system_features.at(sid), bad_features);
+      if (!kills.empty())
       {
-        // Found a minimal difference
-        memorize_proper_difference_subset(
-            result.differences, current_I, current_U);
+        candidates.push_back({ sid, false, kills });
       }
+    }
+
+    return candidates;
+  }
+
+  unsigned_integer feature_isolation_t::select_branch_feature(
+      const feature_ids_t& uncovered_features,
+      const std::vector<witness_candidate_t>& candidates,
+      const std::unordered_map<unsigned_integer, std::vector<std::size_t>>&
+          feature_to_candidate_indices,
+      const std::vector<bool>& available_candidates)
+  {
+    unsigned_integer selected_feature { zero };
+    std::size_t      smallest_cover_count { std::numeric_limits<std::size_t>::max() };
+    for (const auto feature_id : uncovered_features)
+    {
+      std::size_t cover_count { 0 };
+      if (const auto it = feature_to_candidate_indices.find(feature_id);
+          it != feature_to_candidate_indices.end())
+      {
+        for (const auto candidate_index : it->second)
+        {
+          if (available_candidates.at(candidate_index)
+              && candidates.at(candidate_index).kills.contains(feature_id))
+          {
+            ++cover_count;
+          }
+        }
+      }
+      if (cover_count < smallest_cover_count)
+      {
+        smallest_cover_count = cover_count;
+        selected_feature = feature_id;
+      }
+    }
+    return selected_feature;
+  }
+
+  bool feature_isolation_t::has_covering_candidate(
+      unsigned_integer feature_id,
+      const std::unordered_map<unsigned_integer, std::vector<std::size_t>>&
+          feature_to_candidate_indices,
+      const std::vector<bool>& available_candidates)
+  {
+    const auto it = feature_to_candidate_indices.find(feature_id);
+    if (it == feature_to_candidate_indices.end())
+    {
+      return false;
+    }
+    for (const auto candidate_index : it->second)
+    {
+      if (available_candidates.at(candidate_index))
+      {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool feature_isolation_t::dominated_by_existing(const differences_t& differences,
+                                                  const system_ids_t&  current_I,
+                                                  const system_ids_t&  current_U)
+  {
+    return std::ranges::any_of(differences,
+                               [&](const difference_t& difference) {
+                                 return proper_difference_subset(
+                                     current_I, current_U, difference);
+                               });
+  }
+
+  void feature_isolation_t::search_covering_differences(
+      const feature_ids_t& uncovered_features,
+      system_ids_t&        current_I,
+      system_ids_t&        current_U,
+      const std::vector<witness_candidate_t>& candidates,
+      const std::unordered_map<unsigned_integer, std::vector<std::size_t>>&
+          feature_to_candidate_indices,
+      const std::vector<bool>& available_candidates,
+      differences_t& differences)
+  {
+    if (dominated_by_existing(differences, current_I, current_U))
+    {
       return;
     }
 
-    // Option 1: Include system at index
-    system_id_t      system_id = U_vec[index];
-    feature_bitset_t new_union = current_union | system_features.at(system_id);
-
-    // Prune if new union contains any target features
-    if ((new_union & target_features).none())
+    if (uncovered_features.empty())
     {
-      current_U.insert(system_id);
-      explore_U_subsets(index + 1,
-                        new_union,
-                        current_U,
-                        current_intersection,
-                        target_features,
-                        current_I,
-                        result,
-                        U_vec,
-                        system_features);
-      current_U.erase(system_id);
+      memorize_proper_difference_subset(differences, current_I, current_U);
+      return;
     }
 
-    // Option 2: Exclude system at index
-    explore_U_subsets(index + 1,
-                      current_union,
-                      current_U,
-                      current_intersection,
-                      target_features,
-                      current_I,
-                      result,
-                      U_vec,
-                      system_features);
+    const auto branch_feature = select_branch_feature(uncovered_features,
+                                                      candidates,
+                                                      feature_to_candidate_indices,
+                                                      available_candidates);
+    if (branch_feature == zero)
+    {
+      return;
+    }
+    if (!has_covering_candidate(branch_feature,
+                                feature_to_candidate_indices,
+                                available_candidates))
+    {
+      return;
+    }
+
+    const auto& covering_candidates
+        = feature_to_candidate_indices.at(branch_feature);
+    for (const auto candidate_index : covering_candidates)
+    {
+      if (!available_candidates.at(candidate_index))
+      {
+        continue;
+      }
+
+      const auto& candidate = candidates.at(candidate_index);
+      std::vector<bool> next_available_candidates { available_candidates };
+      for (const auto other_index : covering_candidates)
+      {
+        if (other_index <= candidate_index)
+        {
+          next_available_candidates.at(other_index) = false;
+        }
+      }
+
+      auto& target_set = candidate.from_intersection ? current_I : current_U;
+      target_set.insert(candidate.sid);
+      const auto next_uncovered
+          = difference_of(uncovered_features, candidate.kills);
+      search_covering_differences(next_uncovered,
+                                  current_I,
+                                  current_U,
+                                  candidates,
+                                  feature_to_candidate_indices,
+                                  next_available_candidates,
+                                  differences);
+      target_set.erase(candidate.sid);
+    }
   }
 
   isolation_result_t
@@ -442,23 +601,24 @@ namespace feature_isolation
   {
     auto [i_set, u_set] { partition(feature_id) };
     auto               i { to_vector(i_set) };
+    const auto target_features { flattened_difference(i_set, u_set) };
     isolation_result_t result;
     difference_t       difference;
     if (i.size())
     {
       result.features = sid_to_fids(i.at(0));
       difference.I.insert(i.at(0));
+      if (result.features == target_features)
+      {
+        result.differences.insert(difference);
+        return result;
+      }
     }
     for (auto index { one }; index < i.size(); ++index)
     {
       difference.I.insert(i.at(index));
-      auto temp { result.features };
-      result.features.clear();
-      std::ranges::set_intersection(
-          temp,
-          sid_to_fids(i.at(index)),
-          std::insert_iterator { result.features, result.features.begin() });
-      if (result.features.size() <= one)
+      result.features = intersection_of(result.features, sid_to_fids(i.at(index)));
+      if (result.features == target_features)
       {
         result.differences.insert(difference);
         return result;
@@ -470,13 +630,8 @@ namespace feature_isolation
       for (auto index { zero }; index < u.size(); ++index)
       {
         difference.U.insert(u.at(index));
-        auto temp { result.features };
-        result.features.clear();
-        std::ranges::set_difference(
-            temp,
-            sid_to_fids(u.at(index)),
-            std::insert_iterator { result.features, result.features.begin() });
-        if (result.features.size() <= one)
+        result.features = difference_of(result.features, sid_to_fids(u.at(index)));
+        if (result.features == target_features)
         {
           result.differences.insert(difference);
           return result;
@@ -531,11 +686,11 @@ namespace feature_isolation
                                          bool          all_differences,
                                          bool          feature_names)
   {
-    os << "FEATURE ID" << separator() << "FEATURE NAME" << separator()
-       << "ISOLATION RESULT" << separator();
+    os << "i" << separator() << "FEATURE" << separator() << "ℓ_T(t_i)"
+       << separator() << "CANDIDATE FEATURES" << separator() << "RESULT TYPE" << separator();
     if (all_differences)
     {
-      os << "#MIN. DIFF" << separator() << "MINIMAL DIFFERENCES";
+      os << "#WITNESSES" << separator() << "MINIMAL DIFFERENCES";
     }
     else
     {
@@ -551,13 +706,20 @@ namespace feature_isolation
   {
     auto result { all_differences ? minimal_differences(fid)
                                   : some_difference(fid) };
-    os << fid << separator() << name(fid) << separator() << "{ ";
-    for (auto counter { zero }; auto fid : result.features)
+    os << paper_feature_index(fid) << separator() << paper_feature_label(fid)
+       << separator() << name(fid) << separator() << "{ ";
+    for (auto counter { zero }; auto candidate_fid : result.features)
     {
-      os << (feature_names ? name(fid) : std::to_string(fid))
-         << (++counter < result.features.size() ? ", " : "");
+      os << paper_feature_label(candidate_fid);
+      if (feature_names)
+      {
+        os << " = " << name(candidate_fid);
+      }
+      os << (++counter < result.features.size() ? ", " : "");
     }
-    os << " }" << separator();
+    os << " }" << separator()
+       << (result.features.size() == one ? "UNIQUE" : "AMBIGUOUS")
+       << separator();
     if (all_differences)
     {
       os << result.differences.size() << separator();
@@ -565,11 +727,39 @@ namespace feature_isolation
     for (auto counter { zero }; const auto& difference : result.differences)
     {
       print(os, difference);
-      os << (++counter << result.differences.size()
-                 ? std::string { separator() }
-                 : "");
+      os << (++counter < result.differences.size() ? std::string { separator() } : "");
     }
     os << std::endl;
+  }
+
+
+  std::vector<bool> operator|(std::vector<bool> lhs, const std::vector<bool>& rhs)
+  {
+    const auto size = std::min(lhs.size(), rhs.size());
+    for (std::size_t i { 0 }; i < size; ++i)
+    {
+      lhs[i] = lhs[i] || rhs[i];
+    }
+    return lhs;
+  }
+
+  std::vector<bool> operator&(std::vector<bool> lhs, const std::vector<bool>& rhs)
+  {
+    const auto size = std::min(lhs.size(), rhs.size());
+    for (std::size_t i { 0 }; i < size; ++i)
+    {
+      lhs[i] = lhs[i] && rhs[i];
+    }
+    return lhs;
+  }
+
+  std::vector<bool> operator~(std::vector<bool> value)
+  {
+    for (std::size_t i { 0 }; i < value.size(); ++i)
+    {
+      value[i] = !value[i];
+    }
+    return value;
   }
 
   bool feature_present(const std::vector<bool>& anf_feature,
@@ -593,277 +783,30 @@ namespace feature_isolation
     return false;
   }
 
-  bool feature_and(const std::vector<bool>& and_feature,
-                   const std::vector<bool>& f_feature)
-  {
-    for (auto index { zero }; index < and_feature.size(); ++index)
-    {
-      if (and_feature[index] && !f_feature[index])
-      {
-        return false;
-      };
-    }
-    return true;
-  }
-
-  bool feature_or(const std::vector<bool>& or_feature,
-                  const std::vector<bool>& f_feature)
-  {
-    for (auto index { zero }; index < f_feature.size(); ++index)
-    {
-      if (f_feature[index] && !or_feature[index])
-      {
-        return false;
-      };
-    }
-    return true;
-  }
-
-  bool feature_and_not(const std::vector<bool>& and_not_feature,
-                       const std::vector<bool>& f_feature)
-  {
-    for (auto index { zero }; index < and_not_feature.size(); ++index)
-    {
-      if (and_not_feature[index] && f_feature[index])
-      {
-        return false;
-      };
-    }
-    return true;
-  }
-
-  bool feature_or_not(const std::vector<bool>& or_not_feature,
-                      const std::vector<bool>& f_feature)
-  {
-    for (auto index { zero }; index < f_feature.size(); ++index)
-    {
-      if (!f_feature[index] && !or_not_feature[index])
-      {
-        return false;
-      };
-    }
-    return true;
-  }
-
-  std::vector<bool> operator| (std::vector<bool>        v1,
-                               const std::vector<bool>& v2)
-  {
-    if (v1.size() != v2.size())
-    {
-      throw std::range_error(
-          "operator |(): bool vectors have different sizes!");
-    }
-    for (auto i { zero }; i < v1.size(); ++i)
-    {
-      v1[i] = v1[i] || v2[i];
-    }
-    return v1;
-  }
-
-  std::vector<bool> operator& (std::vector<bool>        v1,
-                               const std::vector<bool>& v2)
-  {
-    if (v1.size() != v2.size())
-    {
-      throw std::range_error(
-          "operator &(): bool vectors have different sizes!");
-    }
-    for (auto i { zero }; i < v1.size(); ++i)
-    {
-      v1[i] = v1[i] && v2[i];
-    }
-    return v1;
-  }
-
-  std::vector<bool> operator~(std::vector<bool> v)
-  {
-    v.flip();
-    return v;
-  }
-
-  auto operator== (const std::vector<bool>& v1, const std::vector<bool>& v2)
-  {
-    if (v1.size() != v2.size())
-    {
-      return false;
-    }
-    for (auto i { zero }; i < v1.size(); ++i)
-    {
-      if (v1[i] != v2[i])
-      {
-        return false;
-      };
-    }
-    return true;
-  }
-
-  unsigned_integer dot_product(const std::vector<bool>& v)
-  {
-    return static_cast<unsigned_integer>(std::ranges::count(v, true));
-  }
-
-  bool feature_bool_and(const std::vector<bool>& f1,
-                        const std::vector<bool>& f2)
-  {
-    for (auto index { zero }; index < f1.size(); ++index)
-    {
-      if (f1[index] && f2[index])
-      {
-        return true;
-      };
-    }
-    return false;
-  }
-
   std::string feature_isolation_t::name(unsigned_integer fid) const
   {
-    auto        cat { one << m_features.category(fid) };
-    bool        first { true };
-    auto        f_desc { m_features.at(fid) };
-    std::string result {};
-    switch (cat)
+    const auto feature_description { m_features.at(fid) };
+    if (m_features.uses_theory_registry())
     {
-      case ::feature_isolation::F :
-        return m_spl.m_feature_names.at(fid - one);
-      case ::feature_isolation::N :
-        return "!" + m_spl.m_feature_names.at(fid - m_features.F - one);
-      case ::feature_isolation::A :
-        for (auto index { zero }; const auto& f : m_features.F_features)
-        {
-          if (feature_and(f_desc, f))
-          {
-            if (first)
-            {
-              result = m_spl.m_feature_names.at(index);
-              first  = false;
-            }
-            else
-            {
-              result += " * " + m_spl.m_feature_names.at(index);
-            }
-          }
-          ++index;
-        }
-        return result;
-      case ::feature_isolation::O :
-        for (auto index { zero }; const auto& f : m_features.F_features)
-        {
-          if (feature_or(f_desc, f))
-          {
-            if (first)
-            {
-              result = m_spl.m_feature_names.at(index);
-              first  = false;
-            }
-            else
-            {
-              result += " + " + m_spl.m_feature_names.at(index);
-            }
-          }
-          ++index;
-        }
-        return result;
-      case ::feature_isolation::AN :
-        for (auto index { zero }; const auto& f : m_features.F_features)
-        {
-          if (feature_and_not(f_desc, f))
-          {
-            if (first)
-            {
-              result = "!" + m_spl.m_feature_names.at(index);
-              first  = false;
-            }
-            else
-            {
-              result += " * !" + m_spl.m_feature_names.at(index);
-            }
-          }
-          ++index;
-        }
-        return result;
-      case ::feature_isolation::ON :
-        for (auto index { zero }; const auto& f : m_features.F_features)
-        {
-          if (feature_or_not(f_desc, f))
-          {
-            if (first)
-            {
-              result = "!" + m_spl.m_feature_names.at(index);
-              first  = false;
-            }
-            else
-            {
-              result += " + !" + m_spl.m_feature_names.at(index);
-            }
-          }
-          ++index;
-        }
-        return result;
-      case ::feature_isolation::ANF :
-        // The following is the implementation of a heuristic
-        // which works well for correct ANF features. It does
-        // not deal correctly with features that aren't ANF features!
-        for (auto index { zero }; const auto& f : m_features.F_features)
-        {
-          if (feature_bool_and(f_desc, f))
-          {
-            if (first)
-            {
-              result = m_spl.m_feature_names.at(index);
-              first  = false;
-            }
-            else
-            {
-              result += " * " + m_spl.m_feature_names.at(index);
-            }
-          }
-          else
-          {
-            if (first)
-            {
-              result = "!" + m_spl.m_feature_names.at(index);
-              first  = false;
-            }
-            else
-            {
-              result += " * !" + m_spl.m_feature_names.at(index);
-            }
-          }
-          ++index;
-        }
-        return result;
-      case ::feature_isolation::ONF :
-        for (auto index { zero }; const auto& f : m_features.F_features)
-        {
-          if (feature_or(f_desc, f))
-          {
-            if (first)
-            {
-              result += m_spl.m_feature_names.at(index);
-              first   = false;
-            }
-            else
-            {
-              result += " + " + m_spl.m_feature_names.at(index);
-            }
-          }
-          else if (feature_or_not(f_desc, f))
-          {
-            if (first)
-            {
-              result += "!" + m_spl.m_feature_names.at(index);
-              first   = false;
-            }
-            else
-            {
-              result += " + !" + m_spl.m_feature_names.at(index);
-            }
-          }
-          ++index;
-        }
-        return result;
+      const auto& record = m_features.feature_registry().at(fid - one);
+      if (!record.display_name.empty())
+      {
+        return record.display_name;
+      }
+      if (!record.simplified_term.empty())
+      {
+        return record.simplified_term;
+      }
+      if (!record.raw_term.empty())
+      {
+        return record.raw_term;
+      }
+      return to_string(record.systems_present);
     }
-    return "Illegal feature id in feature_isolation_t::name()";
+
+    std::ostringstream os;
+    os << m_features.category_name(fid) << ':' << to_string(feature_description);
+    return os.str();
   }
 
   void feature_isolation_t::print(std::ostream& os,
@@ -872,8 +815,12 @@ namespace feature_isolation
   {
     print_header(os, all_differences, feature_names);
     os << std::endl;
-    for (auto fid { one }; fid <= m_features.T; ++fid)
+    for (auto fid { one }; fid <= m_features.feature_count(); ++fid)
     {
+      if (!m_features.includes_feature(fid))
+      {
+        continue;
+      }
       print(os, fid, all_differences, feature_names);
     }
   }
@@ -886,7 +833,7 @@ namespace feature_isolation
     os << "{";
     for (auto i { zero }; auto id : sids)
     {
-      os << ' ' << id << ' ' << (++i < sids.size() ? op : "");
+      os << ' ' << paper_system_label(id) << ' ' << (++i < sids.size() ? op : "");
     }
     os << "}";
   }

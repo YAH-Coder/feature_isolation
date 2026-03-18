@@ -3,185 +3,146 @@
  *
  * @section intro_sec Introduction
  *
- * The Feature Isolation Project provides tools for analyzing and isolating
- * features within Software Product Lines (SPLs) using set theory. It
- * allows parsing SPL specifications,
- * analyzing features across systems, and performing feature isolation to 
- * identify minimal sets of
- * features that differentiate systems.
+ * The Feature Isolation Project analyzes Software Product Lines (SPLs) using the
+ * set-theoretic model from the paper by Ulrich Eisenecker and Richard Müller,
+ * *Software Product Lines and Features from the Perspective of Set Theory with
+ * an Application to Feature Location*.
  *
- * @section background_sec Background
+ * The project parses SPL specifications, derives the valid system space from
+ * Boolean and cardinality constraints, constructs a theory-native feature
+ * registry over that system space, and computes feature-isolation witnesses.
  *
- * This project is based on the scientific paper:
+ * @section background_sec Theory overview
  *
- * **Ulrich Eisenecker and Richard Müller**:
- * *Software Product Lines and Features from the Perspective of Set Theory with an Application to Feature Location*.
+ * The implementation is organized around four spaces:
  *
- * The full paper can be accessed at: [https://doi.org/10.1016/j.jss.2023.111938](https://doi.org/10.1016/j.jss.2023.111938)
+ * - the Boolean base feature set declared in the DSL,
+ * - the candidate system space $P(F)$,
+ * - the valid system space obtained by filtering candidates through the
+ *   conjunction of asserted constraints,
+ * - and the theory feature space derived from the valid systems.
  *
- * The paper presents a formal approach to modeling features and systems in SPLs using set theory.
- * It introduces concepts such as feature identifiers (FIDs), system identifiers (SIDs), and defines
- * operations for feature isolation using set difference, intersection, and union.
- *
- * The project implements these concepts, providing a practical toolset for feature analysis and isolation.
+ * Features are classified from their simplified logical terms into the
+ * categories `Impossible`, `Core`, `Fundamental`, `Not`, `And`, `Or`, and
+ * `Complex`.
  *
  * @section components_sec Components
  *
- * The project consists of the following main components:
+ * - [Mathematical Helper Functions](ef fi_mathhelper)
+ * - [Feature Analysis System](ef feature_analysis)
+ * - [SPL Specification Parser](ef spl_parser)
+ * - [Feature Isolation Analysis](ef feature_isolation)
  *
- * - [Mathematical Helper Functions](\ref fi_mathhelper)
- *   - Provides (optionally safe) arithmetic operations, combinatorial calculations, and utility functions.
- * - [Feature Analysis System](\ref feature_analysis)
- *   - Defines classes and functions for generating and analyzing features across systems.
- * - [SPL Specification Parser](\ref spl_parser)
- *   - Analyzes and processes an SPL specification file with features, categories, dependencies and systems.
- * - [Feature Isolation Analysis](\ref feature_isolation)
- *   - Performs the feature isolation analysis based on the SPL specification and feature analysis results.
+ * @section usage_sec Typical workflow
  *
- * @section usage_sec Usage
- *
- * 1. **Include the desired headers in your application:**
- *    ```cpp
- *    #include "fi_mathhelper.hpp"
- *    #include "feature_analysis.hpp"
- *    #include "spl.hpp"
- *    #include "isolation.hpp"
- *    ```
- *
- * 2. **Parse an SPL specification:**
- *    ```cpp
- *    feature_isolation::spl_processor_t processor("spl_specification.csv");
+ * 1. Parse an SPL specification:
+ *    @code{.cpp}
+ *    feature_isolation::spl_processor_t processor("example.spl");
  *    auto spec = processor.get_specification();
- *    ```
+ *    @endcode
  *
- * 3. **Perform Feature Analysis:**
- *    ```cpp
- *    feature_isolation::feature_analysis_t analysis(spec.m_F, spec.m_max_rank, spec.m_categories);
- *    ```
+ * 2. Derive the valid, available, and missing system spaces:
+ *    @code{.cpp}
+ *    auto valid = feature_isolation::valid_system_ids(spec);
+ *    auto available = feature_isolation::available_valid_system_ids(spec);
+ *    auto missing = feature_isolation::missing_valid_system_ids(spec);
+ *    @endcode
  *
- * 4. **Perform Feature Isolation:**
- *    ```cpp
- *    feature_isolation::feature_isolation_t isolation("spl_specification.csv");
+ * 3. Build the feature registry:
+ *    @code{.cpp}
+ *    feature_isolation::feature_analysis_t analysis(
+ *        spec.m_F,
+ *        feature_isolation::theory_system_space(spec),
+ *        std::vector<std::string>(spec.m_feature_names.begin(),
+ *                                 spec.m_feature_names.end()));
+ *    @endcode
+ *
+ * 4. Run isolation analysis:
+ *    @code{.cpp}
+ *    feature_isolation::feature_isolation_t isolation("example.spl");
  *    isolation.print(std::cout);
- *    ```
+ *    @endcode
  *
- * @section dsl_sec SPL Specification Language
+ * @section dsl_sec SPL DSL
  *
- * The SPL specification is defined using a domain-specific language (DSL). The key elements of the DSL are:
+ * The accepted SPL language contains these top-level sections:
  *
- * - **Token Types:**
- *   - **Comment:** Begins with `//` and must be followed by whitespace. Extends to the end of the line.
- *   - **Keyword:** The reserved words are used to define sections  (e.g.,
- *   `SPL`, `FEATURES`, `CATEGORIES`). The keywords are not case-sensitive; they should not be used 
- *   as feature names.
- *   - **Name:** A sequence of non-whitespace characters used as identifier for features.
- *   - **Value:** Numeric value for counts and identifiers.
+ * - `SPL` — optional SPL name.
+ * - `FEATURES` — mandatory Boolean base feature set.
+ * - `CONSTRAINTS` — optional conjunction of `ASSERT` formulas.
+ * - `AVAILABLE_SYSTEMS` — optional list of valid systems known to be
+ *   available.
+ * - `MISSING_SYSTEMS` — optional list of valid systems known to be missing.
+ * - `CATEGORY_FILTER` — optional post-classification output filter over the
+ *   theory-native categories.
  *
- * - **Keywords:**
- *   - `A`, `AN`, `ANF`, `AVAILABLE_SYSTEMS`, `CATEGORIES`, `END`, `EXCLUDES_ALL`, `EXPLICIT_DEPENDENCIES`, `F`, `FEATURES`, `MAX_RANK`, `MISSING_SYSTEMS`, `N`, `O`, `ON`, `ONF`, `REQUIRES_ALL`, `REQUIRES_ANY`, `REQUIRES_ONE`, `ROOT`, `SPL`
- *   - Keywords must be terminated with whitespace.
+ * Example:
+ * @code{.txt}
+ * SPL MyProduct
  *
- * - **Sections:**
- *   - **`SPL`:** Specifies the name of the software product line (optional).
- *   - **`FEATURES`:** Specifies the number of independent features (`F`) followed by their names. This section is mandatory.
- *   - **`CATEGORIES`:** Specifies which feature categories to include in the
- *   analysis. Valid category names are `F`, `A`, `O`, `N`, `AN`, `ON`, `ANF`,
- *   and `ONF`. If not specified, only `F` (Independant features) is included.
- *   - **`EXPLICIT_DEPENDENCIES`:** Defines dependencies between features. The dependencies are `REQUIRES_ALL`, `REQUIRES_ANY`, `REQUIRES_ONE`, and `EXCLUDES_ALL`. The special feature `ROOT` represents a conceptual feature present in every system.
- *   - **`MISSING_SYSTEMS`:** Specifies systems that are not available (optional). If it occurs, it must appear after `FEATURES`.
- *   - **`AVAILABLE_SYSTEMS`:** Specifies systems that are available (optional). If it occurs, it must occur after `FEATURES`.
- *   - Each section must be concluded with the keyword `END` where applicable.
+ * FEATURES 4 fx fy fz fw
  *
- * - **Dependencies Syntax:**
- *   ```plaintext
- *   feature_name DEPENDENCY_TYPE list_of_feature_names END
- *   ```
- *   - **Examples:**
- *     - `ROOT REQUIRES_ALL F1 F2 F3 END`: Defines `F1`, `F2`, and `F3` as core features present in every system.
- *     - `F4 REQUIRES_ONE F5 F6 END`: `F4` requires either `F5` or `F6`, but not both.
- *     - `F7 EXCLUDES_ALL F8 F9 END`: The presence of `F7` excludes `F8` and `F9`.
+ * CONSTRAINTS
+ *   ASSERT fx -> fy
+ *   ASSERT !(fz && fw)
+ *   ASSERT (fx || fz) -> fw
+ *   ASSERT COUNT(fx, fy, fz) <= 2
+ *   ASSERT COUNT(fy, fz, fw) IN [1,2]
+ * END
  *
- * @section isolation_sec Feature Isolation
+ * AVAILABLE_SYSTEMS 2 4 6 8 END
+ * MISSING_SYSTEMS 10 12 END
  *
- * Feature isolation identifies minimal sets of features that distinguish systems containing a specific feature from those that do not. It is based on set theory operations applied to features and systems.
+ * CATEGORY_FILTER Core Fundamental Not And Or Complex
+ * @endcode
  *
- * **Key Concepts:**
+ * Semantics:
  *
- * - **Feature Identifier (FID):** Unique ID assigned to a feature.
- * - **System Identifier (SID):** Unique ID assigned to a system.
- * - **Set Operations:**
- *   - **Flattening:** Replacing each system description with the set of its FIDs.
- *   - **Intersection (⋂):** Used to find common features across systems.
- *   - **Union (⋃):** Used to combine features from multiple systems.
- *   - **Set Difference (∖):** Used to isolate features present in some systems but not in others.
+ * - If `CONSTRAINTS` is omitted, or if `CONSTRAINTS ... END` is empty, there
+ *   are no constraints.
+ * - `COUNT(...)` counts selected Boolean features and is part of the core
+ *   theory-aligned DSL.
+ * - `AVAILABLE_SYSTEMS` and `MISSING_SYSTEMS` may mention only valid systems.
+ * - If both availability blocks are present, they must form a disjoint
+ *   partition of the valid system space.
+ * - If only one availability block is present, the other is derived by
+ *   complement over the valid system space.
+ * - If neither availability block is present, all valid systems are treated as
+ *   available.
+ * - `CATEGORY_FILTER` affects reporting only. It does not affect validity,
+ *   feature generation, simplification, or classification.
+ * - Attributes and repeated-feature multiplicity are outside the active DSL.
  *
- * **Isolation Process:**
+ * @section isolation_sec Feature isolation
  *
- * 1. **Identify Sets:**
- *    - **I:** Set of SIDs of systems that include the feature (\f$ \text{FID}_i \f$).
- *    - **U:** Set of SIDs of systems that do not include the feature (\f$ \text{FID}_i \f$).
+ * For a theory feature $t$, the active isolation procedure partitions the
+ * available valid systems into:
  *
- * 2. **Compute Flattened Sets:**
- *    - **Flatten I by intersection:** \f$ \widehat{I} = \bigcap I \f$
- *    - **Flatten U by union:** \f$ \widetilde{U} = \bigcup U \f$
- *    - **Isolation Result:** \f$ \overline{D} = \widehat{I} \setminus \widetilde{U} \f$
+ * - $I$: systems in which $t$ is present,
+ * - $U$: systems in which $t$ is absent.
  *
- * 3. **Evaluate Isolation Result:**
- *    - \f$ \overline{D} \f$ must not be empty; an empty set indicates an error.
- *    - If \f$ \overline{D} \f$ contains exactly one element, it should be \f$ \text{FID}_i \f$.
- *    - If \f$ \overline{D} \f$ contains multiple elements, one of them must be \f$ \text{FID}_i \f$.
+ * It then computes:
  *
- * 4. **Analyze Minimal Differences:**
- *    - **Minimal Set Differences:** Find minimal subsets of \f$ I \f$ and \f$ U \f$ that result in the same isolation (\f$ \overline{D} \f$).
- *    - **Definition of Minimality:**
- *      - A set difference \f$ D = I_S \setminus U_S \f$ is minimal if no proper subset of \f$ D \f$ results in \f$ \overline{D} \f$.
- *      - \f$ M \f$ represents all minimal set differences.
+ * - the intersection of feature IDs over $I$,
+ * - the union of feature IDs over $U$,
+ * - and the flattened difference between those two sets.
  *
- * **Mathematical Definitions:**
+ * In the complete-information case the result may uniquely identify a feature.
+ * With missing systems, the same witness may isolate a set of candidate
+ * features instead. The output therefore distinguishes between `UNIQUE` and
+ * `AMBIGUOUS` isolation results.
  *
- * \f[
- * D = I \setminus U
- * \f]
- *
- * \f[
- * \overline{D} = \widehat{I} \setminus \widetilde{U}
- * \f]
- *
- * \f[
- * I_S \subseteq I,\quad U_S \subseteq U
- * \f]
- *
- * \f[
- * D_S \subset D \quad \text{where } D_S = I_S \setminus U_S
- * \f]
- *
- * A minimal \f$ D \f$ satisfies:
- *
- * \f[
- * \forall D_S \in \{ P(D) \setminus D \},\quad \text{if } \overline{D_S} \neq \overline{D}
- * \f]
- *
- * \f[
- * M = \{ D \mid D \text{ is minimal} \}
- * \f]
  * @section references_sec References
  *
- * - Ulrich Eisenecker and Richard Müller, *Software Product Lines and Features from the Perspective of Set Theory with an Application to Feature Location*. [https://doi.org/10.1016/j.jss.2023.111938](https://doi.org/10.1016/j.jss.2023.111938)
+ * - Ulrich Eisenecker and Richard Müller,
+ *   *Software Product Lines and Features from the Perspective of Set Theory
+ *   with an Application to Feature Location*.
  *
- * @section notes_sec Additional Notes
+ * @section notes_sec Additional notes
  *
- * - The project uses the Z3 SMT solver to validate feature dependencies and system constraints.
- * - The SPL specification language allows for flexible definitions of features and their relationships.
- * - The feature isolation analysis can help in feature location tasks and understanding feature interactions.
- * - The domain-specific language (DSL) for specifying an SPL is designed to be both expressive and precise, allowing detailed modeling of functional interactions and constraints.
- *
- * @section authors_sec Authors
- *
- * The authors of the documentation for this project are Yannis Hübenthal and 
- * Ulrich Eisenecker (2024).
- *
- * @section acknowledgements_sec Acknowledgements
- *
- * This project was developed based on the concepts and methodologies presented by Ulrich Eisenecker and Richard Müller.
- *
+ * - The active implementation evaluates its finite constraint language directly.
+ * - The semantic source of truth is
+ *   `external_documentation/theory_dsl_semantics.md`.
+ * - CLI output aims to mirror the paper representation using `t_i`, `β(t_i)`,
+ *   `ℓ_T(t_i)`, and paper-style system labels `s0`, `s1`, ...
  */

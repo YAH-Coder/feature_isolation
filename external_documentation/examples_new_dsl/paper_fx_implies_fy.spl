@@ -1,0 +1,7 @@
+SPL TwoFeatureFxImpliesFy
+
+FEATURES 2 fx fy
+
+CONSTRAINTS
+  ASSERT fx -> fy
+END
