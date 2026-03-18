@@ -6,260 +6,323 @@
 #define CATCH_CONFIG_MAIN
 #include "../include/catch.hpp"
 #include "../include/spl.hpp"
+#include <algorithm>
 #include <cstdio>
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 using namespace feature_isolation;
+
+static system_ids_t make_system_ids(std::initializer_list<unsigned_integer> values)
+{
+  system_ids_t ids {};
+  ids.insert(values.begin(), values.end());
+  return ids;
+}
 
 bool compare_files(const std::string& file1, const std::string& file2)
 {
   std::ifstream f1(file1, std::ifstream::binary | std::ifstream::ate);
   std::ifstream f2(file2, std::ifstream::binary | std::ifstream::ate);
-
   if (f1.fail() || f2.fail())
   {
     return false;
   }
-
   if (f1.tellg() != f2.tellg())
   {
     return false;
   }
-
   f1.seekg(0, std::ifstream::beg);
   f2.seekg(0, std::ifstream::beg);
-
   return std::equal(std::istreambuf_iterator<char>(f1.rdbuf()),
                     std::istreambuf_iterator<char>(),
                     std::istreambuf_iterator<char>(f2.rdbuf()));
 }
 
-TEST_CASE("Process valid SPL specification", "[spl_processor_t]")
+TEST_CASE("Process valid new DSL specification and preserve roundtrip", "[spl_processor_t][new_dsl]")
 {
-  std::string input_filename
-      = "testing_csv/functional_spec.csv"; // Input file for valid SPL
-                                           // specification
-  std::string output1_filename = "testing_csv/output1.csv";
-  std::string output2_filename = "testing_csv/output2.csv";
+  const std::string input_filename = "spl_specs/new_dsl/valid/constraints_boolean_and_count.spl";
+  const std::string output1_filename = "testing/generated/output1.spl";
+  const std::string output2_filename = "testing/generated/output2.spl";
 
-  // First run: Process input file to create output1
   spl_processor_t processor1(input_filename);
-  REQUIRE_NOTHROW(processor1.get_specification()); // Ensure processing succeeds
+  REQUIRE_NOTHROW(processor1.get_specification());
   processor1.print(output1_filename);
 
-  // Second run: Process output1 to create output2
   spl_processor_t processor2(output1_filename);
-  REQUIRE_NOTHROW(processor2.get_specification()); // Ensure processing succeeds
+  REQUIRE_NOTHROW(processor2.get_specification());
   processor2.print(output2_filename);
 
-  // Compare output1 and output2
-  REQUIRE(compare_files(output1_filename, output2_filename) == true);
+  REQUIRE(compare_files(output1_filename, output2_filename));
 
-  // Delete the output files if they are the same
   std::remove(output1_filename.c_str());
   std::remove(output2_filename.c_str());
 }
 
-TEST_CASE("Process SPL with REQUIRES_ALL constraint violation",
-          "[spl_processor_t]")
+TEST_CASE("Process unconstrained new DSL specification", "[spl_processor_t][new_dsl]")
 {
-  std::string input_filename = "testing_csv/requires_all_test.csv";
-
-  // Expect an exception due to the violation of the REQUIRES_ALL constraint
-  REQUIRE_THROWS_WITH(spl_processor_t(input_filename).get_specification(),
-                      Catch::Matchers::Contains(
-                          "violates REQUIRES_ALL constraint for feature"));
-}
-
-TEST_CASE("Process SPL specification with categories", "[spl_processor_t]")
-{
-  std::string                input_filename = "testing_csv/categories_test.csv";
-  spl_processor_t            processor(input_filename);
+  spl_processor_t processor("spl_specs/new_dsl/valid/unconstrained_2f.spl");
   const spl_specification_t& spec = processor.get_specification();
 
-  // Verify that categories are correctly parsed
-  REQUIRE((spec.m_categories & feature_isolation::F) != 0);
-  REQUIRE((spec.m_categories & feature_isolation::A) != 0);
-  REQUIRE((spec.m_categories & feature_isolation::O) != 0);
-  REQUIRE((spec.m_categories & feature_isolation::N) == 0);
+  REQUIRE(spec.m_spl_name == "TwoFeatureUnconstrained");
+  REQUIRE(spec.m_F == 2);
+  REQUIRE(spec.m_feature_names == feature_names_t{ "fx", "fy" });
+  REQUIRE(spec.m_constraints.empty());
+  REQUIRE(spec.m_constraints_specified == false);
+  REQUIRE(valid_system_ids(spec) == make_system_ids({1, 2, 3, 4}));
+  REQUIRE(available_valid_system_ids(spec) == make_system_ids({1, 2, 3, 4}));
+  REQUIRE(missing_valid_system_ids(spec).empty());
 }
 
-TEST_CASE("Process SPL specification with available systems",
-          "[spl_processor_t]")
+TEST_CASE("Process Boolean and cardinality constraints in the new DSL", "[spl_processor_t][new_dsl]")
 {
-  std::string     input_filename = "testing_csv/available_systems_test.csv";
-  spl_processor_t processor(input_filename);
+  spl_processor_t processor("spl_specs/new_dsl/valid/constraints_boolean_and_count.spl");
   const spl_specification_t& spec = processor.get_specification();
 
-  // Verify that only specified systems are available
-  REQUIRE(spec.m_available_systems
-          == spl_specification_t::systems_t { 1, 2, 3 });
+  REQUIRE(spec.m_constraints_specified);
+  REQUIRE(spec.m_constraints.size() == 5);
+  REQUIRE(to_string(spec.m_constraints.at(0)) == "(fx -> fy)");
+  REQUIRE(to_string(spec.m_constraints.at(1)) == "(!(fz && fw))");
+  REQUIRE(to_string(spec.m_constraints.at(2)) == "((fx || fz) -> fw)");
+  REQUIRE(to_string(spec.m_constraints.at(3)) == "COUNT(fx, fy, fz) <= 2");
+  REQUIRE(to_string(spec.m_constraints.at(4)) == "COUNT(fy, fz, fw) IN [1,2]");
+  REQUIRE(valid_system_ids(spec) == make_system_ids({3, 9, 11, 12}));
 }
 
-TEST_CASE("Process SPL specification with missing systems", "[spl_processor_t]")
+TEST_CASE("Parsed constraints carry compiled feature indices for immutable evaluation",
+          "[spl_processor_t][new_dsl][compiled]")
 {
-  std::string     input_filename = "testing_csv/missing_systems_test.csv";
-  spl_processor_t processor(input_filename);
+  spl_processor_t processor("spl_specs/new_dsl/valid/constraints_boolean_and_count.spl");
   const spl_specification_t& spec = processor.get_specification();
 
-  // Verify that the missing systems are excluded from the full list
-  spl_specification_t::systems_t expected_systems;
-  for (unsigned_integer i = 1; i <= spec.m_max_available_systems; ++i)
-  {
-    if (i != 4 && i != 5 && i != 6)
-    {
-      expected_systems.push_back(i);
-    }
-  }
-  REQUIRE(spec.m_available_systems == expected_systems);
+  const auto* implication = std::get_if<theory_formula_t::implication_t>(
+      &spec.m_constraints.at(0).payload());
+  REQUIRE(implication != nullptr);
+  REQUIRE(std::get<theory_formula_t::feature_ref_t>(implication->lhs->payload())
+              .compiled_feature_index
+              .value()
+          == 0);
+  REQUIRE(std::get<theory_formula_t::feature_ref_t>(implication->rhs->payload())
+              .compiled_feature_index
+              .value()
+          == 1);
+
+  const auto* count_compare = std::get_if<theory_count_compare_t>(
+      &spec.m_constraints.at(3).payload());
+  REQUIRE(count_compare != nullptr);
+  REQUIRE(count_compare->compiled_feature_indices
+          == std::vector<unsigned_integer> { 0, 1, 2 });
+
+  const auto* count_interval = std::get_if<theory_count_interval_t>(
+      &spec.m_constraints.at(4).payload());
+  REQUIRE(count_interval != nullptr);
+  REQUIRE(count_interval->compiled_feature_indices
+          == std::vector<unsigned_integer> { 1, 2, 3 });
 }
 
-TEST_CASE("Process SPL specification with MAX_RANK", "[spl_processor_t]")
+TEST_CASE("Optional sections remain optional in the new DSL", "[spl_processor_t][new_dsl]")
 {
-  std::string                input_filename = "testing_csv/max_rank_test.csv";
-  spl_processor_t            processor(input_filename);
-  const spl_specification_t& spec = processor.get_specification();
+  std::istringstream is("SPL Minimal\nFEATURES 2 a b\nCONSTRAINTS\nEND\n");
+  parser_t parser(is, "<memory>");
+  const auto& spec = parser.m_spec;
 
-  // Verify that MAX_RANK is set correctly
-  REQUIRE(spec.m_max_rank == 2);
-}
-
-TEST_CASE("Process SPL specification with syntax error", "[spl_processor_t]")
-{
-  std::string input_filename = "testing_csv/syntax_error_test.csv";
-
-  // Expect an exception due to the syntax error in the FEATURES section
-  REQUIRE_THROWS_WITH(
-      spl_processor_t(input_filename).process(),
-      Catch::Matchers::Contains("Failed to parse SPL specification: expected a "
-                                "numeric feature count, but got"));
-}
-
-TEST_CASE("Process valid SPL specification with detailed checks",
-          "[spl_processor_t]")
-{
-  std::string input_filename
-      = "testing_csv/functional_spec.csv"; // Input file for valid SPL
-                                           // specification
-  spl_processor_t            processor(input_filename);
-  const spl_specification_t& spec = processor.get_specification();
-
-  // Verify SPL name
-  REQUIRE(spec.m_spl_name == "Factorial"); // SPL name is "Factorial"
-
-  // Verify the number of features
-  REQUIRE(spec.m_feature_names.size() == 4); // There are 4 features
-
-  // Verify feature names
-  REQUIRE(spec.m_feature_names[0] == "Checked");
-  REQUIRE(spec.m_feature_names[1] == "Logging");
-  REQUIRE(spec.m_feature_names[2] == "Iterative");
-  REQUIRE(spec.m_feature_names[3] == "Recursive");
-
-  // Verify dependencies
-  // m_requires_one should have size 1, containing ROOT (-1) with dependencies
-  // on Iterative and Recursive
-  REQUIRE(spec.m_requires_one.size() == 1);
-  REQUIRE(spec.m_requires_one.count(-1) == 1); // ROOT is represented by -1
-
-  // Check the dependencies for ROOT
-  auto root_deps = spec.m_requires_one.at(-1);
-  REQUIRE(root_deps.size() == 2);
-
-  // Find the indices for Iterative and Recursive
-  // From feature names, "Iterative" is at index 2, "Recursive" is at index 3
-  REQUIRE(root_deps.count(2) == 1); // Iterative
-  REQUIRE(root_deps.count(3) == 1); // Recursive
-
-  // Verify that other dependencies are empty
-  REQUIRE(spec.m_requires_all.empty());
-  REQUIRE(spec.m_requires_any.empty());
-  REQUIRE(spec.m_excludes_all.empty());
-
-  // Verify available systems
-  spl_specification_t::systems_t expected_available_systems
-      = { 5, 6, 7, 8, 9, 10, 11, 12 };
-  REQUIRE(spec.m_available_systems == expected_available_systems);
-
-  // Verify categories
-  // Since categories are not specified in the functional_spec.csv, check
-  // default value
-  REQUIRE(spec.m_categories == feature_isolation::F); // Default category is F
-
-  // Verify other attributes
-  REQUIRE(spec.m_spl_specified == true);
-  REQUIRE(spec.m_feature_names_specified == true);
-  REQUIRE(spec.m_categories_specified == false); // Categories not specified
-  REQUIRE(spec.m_explicit_dependencies_specified == true);
-  REQUIRE(spec.m_available_systems_specified == true);
+  REQUIRE(spec.m_spl_name == "Minimal");
+  REQUIRE(spec.m_constraints_specified);
+  REQUIRE(spec.m_constraints.empty());
+  REQUIRE(spec.m_available_systems_specified == false);
   REQUIRE(spec.m_missing_systems_specified == false);
-  REQUIRE(spec.m_max_rank_specified == false);
-
-  // Verify MAX_RANK
-  // MAX_RANK is not specified, so it should default to the number of features
-  // (F)
-  REQUIRE(spec.m_max_rank == 4); // Number of features is 4
+  REQUIRE(spec.m_available_systems.empty());
+  REQUIRE(spec.m_missing_systems.empty());
+  REQUIRE(spec.system_space().valid == make_system_ids({1, 2, 3, 4}));
+  REQUIRE(spec.system_space().available == make_system_ids({1, 2, 3, 4}));
+  REQUIRE(spec.system_space().missing.empty());
 }
 
-TEST_CASE("Process SPL with REQUIRES_ANY constraint", "[spl_processor_t]")
+TEST_CASE("System space is computed once and exposed immutably on the specification",
+          "[spl_processor_t][new_dsl][systems]")
 {
-  std::string input_filename = "testing_csv/requires_any_test.csv";
+  std::istringstream is(
+      "SPL Partitioned\n"
+      "FEATURES 2 fx fy\n"
+      "CONSTRAINTS\n"
+      "  ASSERT fx -> fy\n"
+      "END\n"
+      "AVAILABLE_SYSTEMS 3 4 END\n"
+      "MISSING_SYSTEMS 1 END\n");
+  parser_t parser(is, "<memory>");
+  const auto& spec = parser.m_spec;
 
-  spl_processor_t            processor(input_filename);
-  const spl_specification_t& spec = processor.get_specification();
-
-  REQUIRE(spec.m_requires_any.size() == 1);
+  REQUIRE(spec.system_space().valid == make_system_ids({1, 3, 4}));
+  REQUIRE(spec.system_space().available == make_system_ids({3, 4}));
+  REQUIRE(spec.system_space().missing == make_system_ids({1}));
+  REQUIRE(valid_system_ids(spec) == spec.system_space().valid);
+  REQUIRE(available_valid_system_ids(spec) == spec.system_space().available);
+  REQUIRE(missing_valid_system_ids(spec) == spec.system_space().missing);
+  REQUIRE(theory_system_space(spec).valid == spec.system_space().valid);
+  REQUIRE(theory_system_space(spec).available == spec.system_space().available);
+  REQUIRE(theory_system_space(spec).missing == spec.system_space().missing);
 }
 
-TEST_CASE("Process SPL with EXCLUDES_ALL constraint violation",
-          "[spl_processor_t]")
+TEST_CASE("Explicit system sections remain parsed-only while derived spaces are computed separately",
+          "[spl_processor_t][new_dsl][systems]")
 {
-  std::string input_filename = "testing_csv/excludes_all_test.csv";
+  spl_processor_t processor("spl_specs/new_dsl/valid/fx_implies_fy_missing_s0.spl");
+  const auto& spec = processor.get_specification();
 
-  REQUIRE_THROWS_WITH(spl_processor_t(input_filename).get_specification(),
-                      Catch::Matchers::Contains(
-                          "violates EXCLUDES_ALL constraint for feature"));
+  REQUIRE(spec.m_available_systems_specified == false);
+  REQUIRE(spec.m_available_systems.empty());
+  REQUIRE(spec.m_missing_systems_specified);
+  REQUIRE(spec.m_missing_systems == spl_specification_t::systems_t{1});
+  REQUIRE(valid_system_ids(spec) == make_system_ids({1, 3, 4}));
+  REQUIRE(available_valid_system_ids(spec) == make_system_ids({3, 4}));
+  REQUIRE(missing_valid_system_ids(spec) == make_system_ids({1}));
 }
 
-TEST_CASE("Process SPL with REQUIRES_ONE constraint violation",
-          "[spl_processor_t]")
+TEST_CASE("CATEGORY_FILTER stores theory-native categories only", "[spl_processor_t][new_dsl]")
 {
-  std::string input_filename = "testing_csv/requires_one_test.csv";
+  spl_processor_t processor("spl_specs/new_dsl/valid/constraints_boolean_and_count.spl");
+  const auto& spec = processor.get_specification();
 
-  REQUIRE_THROWS_WITH(spl_processor_t(input_filename).get_specification(),
-                      Catch::Matchers::Contains(
-                          "violates REQUIRES_ONE constraint for feature"));
+  REQUIRE(spec.m_category_filter_specified);
+  REQUIRE(spec.m_category_filter.has_value());
+  REQUIRE(spec.m_category_filter->size() == 6);
+  REQUIRE(spec.m_category_filter->front() == theory_feature_category_t::core);
+  REQUIRE(spec.m_category_filter->back() == theory_feature_category_t::complex);
 }
 
-TEST_CASE("Process SPL with missing EXPLICIT_DEPENDENCIES section",
-          "[spl_processor_t]")
+TEST_CASE("New DSL tokenizer recognizes theory operators and keywords", "[tokenizer_t][new_dsl]")
 {
-  std::string     input_filename = "testing_csv/no_explicit_dependencies.csv";
-  spl_processor_t processor(input_filename);
-  const spl_specification_t& spec = processor.get_specification();
+  std::istringstream input(
+      "CONSTRAINTS ASSERT !(fx && fy) ASSERT COUNT(fx, fy) <= 1 ASSERT fx <-> TRUE END");
+  tokenizer_t tokenizer(input);
+  std::vector<std::string> tokens;
+  while (true)
+  {
+    auto token = tokenizer.next();
+    if (token.type() == token_type_t::EMPTY)
+    {
+      break;
+    }
+    tokens.push_back(token.value());
+  }
 
-  REQUIRE(spec.m_requires_all.empty());
-  REQUIRE(spec.m_requires_any.empty());
-  REQUIRE(spec.m_requires_one.empty());
-  REQUIRE(spec.m_excludes_all.empty());
+  REQUIRE(std::find(tokens.begin(), tokens.end(), "CONSTRAINTS") != tokens.end());
+  REQUIRE(std::find(tokens.begin(), tokens.end(), "ASSERT") != tokens.end());
+  REQUIRE(std::find(tokens.begin(), tokens.end(), "COUNT") != tokens.end());
+  REQUIRE(std::find(tokens.begin(), tokens.end(), "&&") != tokens.end());
+  REQUIRE(std::find(tokens.begin(), tokens.end(), "<=") != tokens.end());
+  REQUIRE(std::find(tokens.begin(), tokens.end(), "<->") != tokens.end());
 }
 
-TEST_CASE("Process SPL with duplicate categories", "[spl_processor_t]")
+TEST_CASE("Legacy DSL keywords are rejected", "[spl_processor_t][new_dsl][legacy_removed]")
 {
-  std::string input_filename = "testing_csv/duplicate_categories_test.csv";
-
-  REQUIRE_THROWS_WITH(spl_processor_t(input_filename).get_specification(),
-                      Catch::Matchers::Contains("Duplicate category found: "));
+  SECTION("MAX_RANK")
+  {
+    std::istringstream is("SPL Bad\nFEATURES 2 a b\nMAX_RANK 1\n");
+    REQUIRE_THROWS(parser_t(is, "<memory>"));
+  }
+  SECTION("legacy CATEGORIES")
+  {
+    std::istringstream is("SPL Bad\nFEATURES 2 a b\nCATEGORIES\nF\nEND\n");
+    REQUIRE_THROWS(parser_t(is, "<memory>"));
+  }
+  SECTION("EXPLICIT_DEPENDENCIES")
+  {
+    std::istringstream is("SPL Bad\nFEATURES 2 a b\nEXPLICIT_DEPENDENCIES\na REQUIRES_ALL b END\nEND\n");
+    REQUIRE_THROWS(parser_t(is, "<memory>"));
+  }
 }
 
-TEST_CASE("Process SPL with invalid feature name", "[spl_processor_t]")
+TEST_CASE("COUNT relations produce the expected valid systems", "[spl_processor_t][new_dsl][count]")
 {
-  std::string input_filename = "testing_csv/invalid_feature_name.csv";
+  const std::vector<std::pair<std::string, system_ids_t>> cases = {
+      { "spl_specs/new_dsl/valid/count_eq_1.spl", make_system_ids({2, 3, 5}) },
+      { "spl_specs/new_dsl/valid/count_ne_1.spl", make_system_ids({1, 4, 6, 7, 8}) },
+      { "spl_specs/new_dsl/valid/count_lt_2.spl", make_system_ids({1, 2, 3, 5}) },
+      { "spl_specs/new_dsl/valid/count_le_2.spl", make_system_ids({1, 2, 3, 4, 5, 6, 7}) },
+      { "spl_specs/new_dsl/valid/count_gt_1.spl", make_system_ids({4, 6, 7, 8}) },
+      { "spl_specs/new_dsl/valid/count_ge_2.spl", make_system_ids({4, 6, 7, 8}) },
+      { "spl_specs/new_dsl/valid/count_in_1_2.spl", make_system_ids({2, 3, 4, 5, 6, 7}) },
+  };
 
+  for (const auto& [filename, expected] : cases)
+  {
+    CAPTURE(filename);
+    spl_processor_t processor(filename);
+    REQUIRE(valid_system_ids(processor.get_specification()) == expected);
+  }
+}
+
+TEST_CASE("Availability and missing-system validation errors are surfaced", "[spl_processor_t][new_dsl][validation]")
+{
   REQUIRE_THROWS_WITH(
-      spl_processor_t(input_filename).get_specification(),
-      Catch::Matchers::Contains(
-          "Feature NotFoundFeature is not a specified feature name."));
+      spl_processor_t("spl_specs/new_dsl/invalid/invalid_available_systems.spl").get_specification(),
+      Catch::Matchers::Contains("System 2 listed in AVAILABLE_SYSTEMS is not valid under the declared constraints."));
+  REQUIRE_THROWS_WITH(
+      spl_processor_t("spl_specs/new_dsl/invalid/invalid_missing_systems.spl").get_specification(),
+      Catch::Matchers::Contains("System 2 listed in MISSING_SYSTEMS is not valid under the declared constraints."));
+  REQUIRE_THROWS_WITH(
+      spl_processor_t("spl_specs/new_dsl/invalid/overlapping_available_missing.spl").get_specification(),
+      Catch::Matchers::Contains("System 3 cannot be listed in both AVAILABLE_SYSTEMS and MISSING_SYSTEMS."));
+  REQUIRE_THROWS_WITH(
+      spl_processor_t("spl_specs/new_dsl/invalid/incomplete_partition_available_missing.spl").get_specification(),
+      Catch::Matchers::Contains("AVAILABLE_SYSTEMS and MISSING_SYSTEMS must form a disjoint partition of the valid system space."));
+}
+
+TEST_CASE("Malformed COUNT syntax is rejected", "[spl_processor_t][new_dsl][validation]")
+{
+  REQUIRE_THROWS_WITH(
+      spl_processor_t("spl_specs/new_dsl/invalid/invalid_count_interval.spl").get_specification(),
+      Catch::Matchers::Contains("Invalid COUNT interval"));
+  REQUIRE_THROWS_WITH(
+      spl_processor_t("spl_specs/new_dsl/invalid/duplicate_count_feature.spl").get_specification(),
+      Catch::Matchers::Contains("Duplicate COUNT feature found"));
+}
+
+TEST_CASE("documentation-facing paper examples stay aligned with the canonical fixtures",
+          "[spl_processor_t][theory][examples]")
+{
+  REQUIRE(compare_files("external_documentation/examples_new_dsl/paper_unconstrained_2f.spl",
+                        "spl_specs/new_dsl/valid/unconstrained_2f.spl"));
+  REQUIRE(compare_files("external_documentation/examples_new_dsl/paper_fx_implies_fy.spl",
+                        "spl_specs/new_dsl/valid/fx_implies_fy.spl"));
+  REQUIRE(compare_files("external_documentation/examples_new_dsl/paper_fx_implies_fy_missing_s0.spl",
+                        "spl_specs/new_dsl/valid/fx_implies_fy_missing_s0.spl"));
+  REQUIRE(compare_files("external_documentation/examples_new_dsl/paper_factorial.spl",
+                        "spl_specs/new_dsl/valid/factorial_paper.spl"));
+}
+
+TEST_CASE("Theory paper fixtures are expressed with the new DSL", "[spl_processor_t][theory][fixtures]")
+{
+  SECTION("unconstrained two-feature example")
+  {
+    spl_processor_t processor("spl_specs/new_dsl/valid/unconstrained_2f.spl");
+    const auto& spec = processor.get_specification();
+    REQUIRE(spec.m_F == 2);
+    REQUIRE(valid_system_ids(spec) == make_system_ids({1, 2, 3, 4}));
+  }
+
+  SECTION("constrained two-feature example")
+  {
+    spl_processor_t processor("spl_specs/new_dsl/valid/fx_implies_fy.spl");
+    REQUIRE(valid_system_ids(processor.get_specification()) == make_system_ids({1, 3, 4}));
+  }
+
+  SECTION("missing-system paper example")
+  {
+    spl_processor_t processor("spl_specs/new_dsl/valid/fx_implies_fy_missing_s0.spl");
+    const auto& spec = processor.get_specification();
+    REQUIRE(valid_system_ids(spec) == make_system_ids({1, 3, 4}));
+    REQUIRE(available_valid_system_ids(spec) == make_system_ids({3, 4}));
+    REQUIRE(missing_valid_system_ids(spec) == make_system_ids({1}));
+  }
+
+  SECTION("factorial paper example")
+  {
+    spl_processor_t processor("spl_specs/new_dsl/valid/factorial_paper.spl");
+    REQUIRE(valid_system_ids(processor.get_specification())
+            == make_system_ids({2, 3, 6, 7, 10, 11, 14, 15}));
+  }
 }

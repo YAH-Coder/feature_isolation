@@ -12,6 +12,35 @@ using namespace std;
 
 using namespace feature_isolation;
 
+namespace
+{
+  std::string system_membership_set(const feature_t& systems_present,
+                                    const system_space_t& system_space)
+  {
+    std::vector<unsigned_integer> ordered_valid_system_ids(
+        system_space.valid.begin(), system_space.valid.end());
+    std::ostringstream os;
+    bool first = true;
+    os << "{";
+    for (auto system_index { zero }; system_index < ordered_valid_system_ids.size();
+         ++system_index)
+    {
+      if (!systems_present.at(system_index))
+      {
+        continue;
+      }
+      if (!first)
+      {
+        os << ", ";
+      }
+      os << paper_system_label(ordered_valid_system_ids.at(system_index));
+      first = false;
+    }
+    os << "}";
+    return first ? std::string{"∅"} : os.str();
+  }
+}
+
 int main(int argc, char* argv[])
 {
   if (argc != 5)
@@ -76,16 +105,33 @@ int main(int argc, char* argv[])
   result_file << "=== SPL SPECIFICATION ===" << endl;
   printer_t printer { result_file };
   printer.print_specification(fi.m_spl);
+  if (fi.m_features.uses_theory_registry())
+  {
+    result_file << "\n=== THEORY DSL COVERAGE ===" << endl;
+    printer.print_theory_dsl_coverage(fi.m_spl);
+  }
   result_file << "\n=== SYSTEMS ===" << endl;
   fi.m_features.print(result_file);
   result_file << "=== FEATURES BY CATEGORY ===" << endl;
   fi.m_features.print_features(result_file);
   result_file << "=== FEATURES BY INDEX ===" << endl;
-  for (auto index { one }; index <= fi.m_features.T; ++index)
+  result_file << "i" << separator() << "FEATURE" << separator() << "CATEGORY"
+              << separator() << "t_i" << separator() << "β(t_i)" << separator()
+              << "ℓ_T(t_i)(simplified)" << separator() << "ℓ_T(t_i)(raw term)"
+              << endl;
+  for (const auto& record : fi.m_features.feature_registry())
   {
-    result_file << index << separator() << fi.m_features.category_name(index)
-                << separator() << to_string(fi.m_features.at(index)) << endl;
-  };
+    if (!fi.m_features.includes_category(record.category))
+    {
+      continue;
+    }
+    result_file << paper_feature_index(record.id) << separator()
+                << paper_feature_label(record.id) << separator()
+                << feature_isolation::to_string(record.category) << separator()
+                << system_membership_set(record.systems_present, fi.m_features.system_space())
+                << separator() << to_string(record.systems_present) << separator()
+                << record.simplified_term << separator() << record.raw_term << endl;
+  }
   result_file << "=== ISOLATION RESULTS ===" << endl;
   fi.print(result_file, min_diffs, names);
 }

@@ -10,8 +10,7 @@ INPUT                  = include/mainpage.dox \
                          include/spl.hpp \
                          include/spl.dox \
                          include/isolation.hpp \
-                         include/isolation.dox \
-                         include/sample_output.jpg
+                         include/isolation.dox
 IMAGE_PATH             = images
 RECURSIVE              = NO
 GENERATE_LATEX         = NO

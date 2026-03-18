@@ -6,31 +6,14 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
-    name: Build on ${{ matrix.os }}
+    runs-on: ubuntu-latest
+    name: Build and test
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Install Dependencies on macOS
-        if: matrix.os == 'macos-latest'
-        run: |
-          echo "Installing dependencies on macOS..."
-          brew update
-          brew install fmt z3
-
-      - name: Set Environment Variables on macOS
-        if: matrix.os == 'macos-latest'
-        run: |
-          echo "FMT_PREFIX=$(brew --prefix fmt)" >> $GITHUB_ENV
-          echo "Z3_PREFIX=$(brew --prefix z3)" >> $GITHUB_ENV
-
-      - name: Build and Test on macOS
-        if: matrix.os == 'macos-latest'
+      - name: Build and test
         shell: bash
         run: |
           make clean

@@ -1,78 +1,94 @@
-\documentclass[english,10pt,a4paper,draft,onecolumn]{article}
+\documentclass[english,10pt,a4paper,onecolumn]{article}
 \usepackage[T1]{fontenc}
 \usepackage[width=17cm]{geometry}
 \usepackage{babel}
-\usepackage{xcolor}
 \usepackage{amsmath}
-\usepackage{mathabx}
-\definecolor{light-gray}{gray}{0.95}
-\NewDocumentCommand{\code}{m}{\colorbox{light-gray}{\texttt{#1}}}
-\NewDocumentCommand{\varname}{m}{\mathit{#1}}
-\title{Specification of Feature Isolation\\ \small Version 0.9}
-\author{Ulrich Eisenecker}
+\usepackage{enumitem}
+\title{Theory-Native Feature Isolation}
+\author{Feature Isolation Project}
+\date{}
 \begin{document}
-	\maketitle
-\section{Basic Information and Results}
-Feature isolation is based on the following information:
-\begin{itemize}
-	\item A specification of a software product line including the names of its independent features, the feature categories to be considered, the maximum rank of interaction between any kind of and- and or-features, and optionally explicitly dependent features plus available systems or missing systems all of which resulting in a set with the identifiers of available systems. This specification is denoted by \(\varname{SPL}\). 
-	\item An identifier (\(\varname{ID}\) for short) is a natural number with a lower bound of 1.
-    \item For each feature there exists a description that specifies in which systems it occurs and in which it does not plus an associated unique feature \(ID\) which is called \(\varname{FID}\).
-    \item Each system has a description that specifies the features it consists of plus an associated unique system \(\varname{ID}\) which is called \(\varname{SID}\).
+\maketitle
+
+\section{Scope}
+This note documents the feature-isolation model implemented by the current
+project state. It assumes the theory-native SPL DSL, a valid-system space
+computed from the conjunction of asserted formulas, and a theory feature
+registry derived from that system space.
+
+\section{Inputs}
+Feature isolation operates on:
+\begin{itemize}[leftmargin=*]
+\item the valid system space $S_{valid}$,
+\item the available system space $S_{available}$,
+\item the missing system space $S_{missing}$,
+\item and the theory feature registry generated from $S_{valid}$.
 \end{itemize}
-\paragraph{Evaluation.} To describe the  isolation of a feature \(f_i\) based on its  \(\varname{FID}\) and given a system description \(\varname{SD}\) some operations are introduced:
-\begin{itemize}
-	\item \(\varname{SD}\) can be flattened by replacing all each of its elements by the corresponding set of \(\varname{FID}\)s and applying either set intersection, \(\bigcap\), or set union, \(\bigcup\), to them. 
-	\item Flattening \(\varname{SD}\) with \(\bigcap\) gives \(\widehat{\varname{SD}}\).
-	\item Flattening \(\varname{SD}\) with \(\bigcup\) gives \(\widecheck{\varname{SD}}\).
+
+Only available valid systems participate in the active witness search.
+Missing systems influence interpretation: a witness may isolate more than one
+candidate feature.
+
+\section{Partitioning}
+For a feature $t$, the implementation partitions the available valid systems
+into:
+\[
+I(t) = \{ s \in S_{available} \mid t \text{ is present in } s \}
+\]
+\[
+U(t) = \{ s \in S_{available} \mid t \text{ is absent in } s \}
+\]
+
+A witness is a pair $(I, U)$ with $I \subseteq I(t)$ and $U \subseteq U(t)$.
+
+\section{Flattening}
+Each system identifier is mapped to the set of feature identifiers present in
+that system. The implementation uses two flattening operators:
+\[
+\widehat{I} = \bigcap_{s \in I} F(s)
+\]
+\[
+\widetilde{U} = \bigcup_{s \in U} F(s)
+\]
+where $F(s)$ denotes the feature IDs present in system $s$.
+
+The isolated candidate set of a witness is:
+\[
+\overline{D}(I, U) = \widehat{I} \setminus \widetilde{U}
+\]
+
+\section{Interpretation of results}
+If $|\overline{D}(I, U)| = 1$, the witness is unique with respect to the
+available information. If $|\overline{D}(I, U)| > 1$, the witness is
+ambiguous: it isolates a class of candidate features instead of a singleton.
+
+This ambiguity is expected in the presence of missing systems. The project does
+not collapse such cases to an arbitrary single feature.
+
+\section{Minimal witnesses}
+The implementation searches for minimal witnesses that isolate a fixed target
+candidate set. A witness $(I, U)$ is minimal if no proper reduction of $I$ or
+$U$ isolates the same candidate set.
+
+The result reported for a feature therefore consists of:
+\begin{itemize}[leftmargin=*]
+\item the isolated candidate feature set, and
+\item the set of minimal witness pairs that isolate exactly that set.
 \end{itemize}
 
-The isolation of a feature \(f_i\) specified by its \(\varname{FID}\) involves the following steps:
-
-\begin{enumerate}
-	\item \(I\) is the set with \(\varname{SID}\)s of all systems that include \(\varname{FID_i}\).
-	\item \(U\) is the set with \(\varname{SID}\)s of all systems that do \emph{not} include  \(\varname{FID_i}\).
-	\item \(\widehat{\varname{I}} \setminus \widecheck{\varname{U}}\) gives the result of feature isolation which is denoted by \(\overline{D}\).
-	\(\overline{D}\) must not be equal to \(\emptyset\) as this would indicate a fundamental error during the preceding steps. If \(\overline{D}\) includes exactly one element this must be the \(\varname{FID_i}\) of the feature to be isolated. If \(\overline{D}\) includes more than one element, one of them must be \(\varname{FID_i}\).
-\end{enumerate}
-\paragraph {Minimal set differences.} Given are the following equations and definitions:
-\begin{enumerate}
-	\item \(D = I \setminus U\)
-	\item \(\overline{D} = \widehat{\varname{I}} \setminus \widecheck{\varname{U}}\)
-	\item \(I_S \subseteq I\)
-	\item \(U_S \subseteq U\)
-	\item \(D_S \subset D \coloneq \varname{I_S} \subset I \lor \varname{U_S} \subset U\)
-	\item \(P(D) = \forall (_\varname{I_S \setminus U_S}) \in P(I) \times P(U)\)
-	\item \label{minimality} \(\varname{minimal}(D) \coloneq \forall _\varname{D_S} \in{\{\varname{P(D) \setminus D}\}} \land \overline{D_S} \neq \overline{D}\)
-	\item \(M \coloneq \forall _\varname{D} \land \varname{minimal}(D)\).
-\end{enumerate} 
-
-From \ref{minimality}  follows that any \(D\) that evaluates to \(\overline{D}\) is  \emph{minimal} if there is no proper subset of \(D\) which gives \(\overline{D}\).
-
-In addition, there exists at least one subset of \(D\) which gives \(\overline{D}\), namely \(D\). There can be more than one proper subset of \(D\) which also gives \(\overline{D}\). The set that includes all different subsets of \(D\) that evaluate to \(\overline{D}\), is called \({M}\). \(|M| \geq 1\). 
-
-The following examples illustrate the meaning of \emph{minimal} in a set difference (the elements are \(\varname{FID})\)s. Given are the systems \\
-\( \varname{SD}_1 = \{ 1, 2, 3 \} \), \\
-\( \varname{SD}_2 = \{ 2, 3, 4 \} \), \\
-\( \varname{SD}_3 = \{ 3, 4, 5 \}\), \\
-\( \varname{SD}_4 = \{ 4, 5, 6 \}\), \\
-\( \varname{SD}_5 = \{ 2, 7 \}\) and \\
-\( \varname{SD}_6 = \{ 1, 8 \}\).
-
-With respect to \(FID_2\), the following set intersections \(I\) are minimal as they isolate \(\varname{FID}_2\). \\
-\(I_1 = \varname{SD}_1 \cap \varname{SD}_5\)\\
-\(I_2 = \varname{SD}_2 \cap \varname{SD}_5\)\\
-\(I_4 = \varname{SD}_1 \cap \varname{SD}_2 \cap \varname{SD}_5\) is not minimal because \(I_1\) and \(I_2\) successfully isolate \(\varname{FID}_2\) with less elements. With respect to \(D\), it is important to note that only evaluating \(I\) can give the desired result. Furthermore, \(I\) must not be \(\emptyset\).
-
-With respect to \(\varname{FID}_2\) the set differences \(D_1 = \varname{SD}_1 \setminus \varname{SD}_3 \cup \varname{SD}_6\) and \(D_2 = \varname{SD}_1 \cap \varname{SD}_2 \setminus \varname{SD}_3\) are also minimal as each isolates \(\varname{FID}_2\).
-
-\(D_3 = \varname{SD}_1 \setminus \varname{SD}_3 \cup \varname{SD}_4 \cup \varname{SD}_6\) is not minimal, as \(\varname{SD}_3 \cup \varname{SD}_6\) in \(U\) already removes all unwanted elements of \(I\). It has to be emphasized, that ---different from \(I\)--- \(U\) can be  \(\emptyset\).
-
-\section{Functions, Datatypes and Variables}
-\begin{itemize}
-	\item The datatypes \code{feature\_ids\_t} and \code{system\_ids\_t} represent the set types for \(\varname{FID}\)s and \(\varname{SID}\)s.
-	\item The member variable \code{spl\_specification\_t::m\_avail\-able\_\-systems} which is of type  \code{sys\-tem\_ids\_t} contains the \(\varname{SID}\)s of the actually available systems.
-	\item \code{difference\_t} is the type that represents a single set difference. It defines the data members \code{I} and \code{U}, both of type \code{system\_ids\_t}.They represent the operands \(I\) and \(U\) of a set difference that isolates a feature \(f_i\).
-	\item \code{minimal\_differences\_t} represents \(M\). It defines the data members \code{features} which is of type \code{feature\_ids\_t} and represents \(D\).
+\section{Reporting}
+The visible report labels each result as either:
+\begin{itemize}[leftmargin=*]
+\item \texttt{UNIQUE}, if the candidate feature set has cardinality 1, or
+\item \texttt{AMBIGUOUS}, otherwise.
 \end{itemize}
+
+The report also prints the witness count and the candidate feature IDs.
+
+\section{Limitations}
+The current implementation is theory-correct but exhaustive: it constructs the
+full feature registry derived from the valid-system space. For larger SPLs, the
+main limit is therefore combinatorial growth of the feature space rather than
+an artificial fixed bound inside the witness search.
+
 \end{document}

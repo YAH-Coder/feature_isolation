@@ -7,12 +7,15 @@
 #define FEATURE_ANALYSIS_HPP
 
 #include "../include/fi_mathhelper.hpp"
-#include <algorithm> // Because of iota() and find().
+#include <algorithm>
 #include <array>
+#include <bit>
 #include <climits>
+#include <cstdint>
 #include <iostream>
-#include <memory>  // Add this include
-#include <numeric> // Because of CHAR_BIT.
+#include <iterator>
+#include <optional>
+#include <numeric>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -23,7 +26,7 @@ namespace feature_isolation
 {
   constexpr bool MSB_LSB {
     true
-  }; // Customization point for MSB at left-most position.
+  };
   constexpr unsigned_integer feature_digits { sizeof(unsigned_integer)
                                               * CHAR_BIT };
 
@@ -33,58 +36,396 @@ namespace feature_isolation
 
   template<typename T> void print(std::string m, const T& c);
 
-  // feature_ids_t and system_ids_t are turned into their own types.
-  // This has the advantage that the compiler recognizes when the use of
-  // these types gets mixed up. The disadvantage is that list initialization
-  // is no longer automatically available for these types, as they are no
-  // longer plain old data types. But this does not currently cause any
-  // problems in the program.
-  struct feature_ids_t: ids_t
-  { };
+  class feature_ids_t
+  {
+    public:
+      using value_type = unsigned_integer;
+      using size_type  = std::size_t;
+
+      class const_iterator
+      {
+        public:
+          using iterator_category = std::forward_iterator_tag;
+          using value_type        = unsigned_integer;
+          using difference_type   = std::ptrdiff_t;
+          using pointer           = const value_type*;
+          using reference         = value_type;
+
+          const_iterator() = default;
+          const_iterator(const feature_ids_t* owner, size_type bit_index)
+              : m_owner { owner }
+              , m_bit_index { bit_index }
+          { }
+
+          [[nodiscard]] value_type operator*() const
+          {
+            return static_cast<value_type>(m_bit_index + one);
+          }
+
+          const_iterator& operator++()
+          {
+            if (m_owner == nullptr)
+            {
+              return *this;
+            }
+            m_bit_index = m_owner->next_set_bit(m_bit_index + one);
+            return *this;
+          }
+
+          const_iterator operator++(int)
+          {
+            auto copy { *this };
+            ++(*this);
+            return copy;
+          }
+
+          [[nodiscard]] bool operator==(const const_iterator& other) const
+          {
+            return m_owner == other.m_owner && m_bit_index == other.m_bit_index;
+          }
+
+        private:
+          const feature_ids_t* m_owner { nullptr };
+          size_type            m_bit_index { 0 };
+      };
+
+      feature_ids_t() = default;
+
+      feature_ids_t(std::initializer_list<value_type> ids)
+      {
+        insert(ids.begin(), ids.end());
+      }
+
+      template<typename InputIt>
+      feature_ids_t(InputIt first, InputIt last)
+      {
+        insert(first, last);
+      }
+
+      [[nodiscard]] bool empty() const
+      {
+        return m_size == 0;
+      }
+
+      [[nodiscard]] size_type size() const
+      {
+        return m_size;
+      }
+
+      void clear()
+      {
+        m_words.clear();
+        m_size = 0;
+      }
+
+      [[nodiscard]] bool contains(value_type id) const
+      {
+        if (id == zero)
+        {
+          return false;
+        }
+        const auto bit_index   = static_cast<size_type>(id - one);
+        const auto word_index  = bit_index / bits_per_word;
+        const auto bit_offset  = bit_index % bits_per_word;
+        if (word_index >= m_words.size())
+        {
+          return false;
+        }
+        return (m_words.at(word_index) & (word_type { 1 } << bit_offset)) != 0;
+      }
+      [[nodiscard]] size_type count(value_type id) const
+      {
+        return contains(id) ? one : zero;
+      }
+
+
+      void insert(value_type id)
+      {
+        if (id == zero)
+        {
+          throw std::invalid_argument("Feature identifiers must be positive.");
+        }
+        const auto bit_index  = static_cast<size_type>(id - one);
+        const auto word_index = bit_index / bits_per_word;
+        const auto bit_offset = bit_index % bits_per_word;
+        if (word_index >= m_words.size())
+        {
+          m_words.resize(word_index + one, 0);
+        }
+        const auto mask = word_type { 1 } << bit_offset;
+        if ((m_words.at(word_index) & mask) == 0)
+        {
+          m_words.at(word_index) |= mask;
+          ++m_size;
+        }
+      }
+
+      template<typename InputIt> void insert(InputIt first, InputIt last)
+      {
+        for (; first != last; ++first)
+        {
+          insert(*first);
+        }
+      }
+
+      [[nodiscard]] const_iterator begin() const
+      {
+        return const_iterator { this, next_set_bit(0) };
+      }
+
+      [[nodiscard]] const_iterator end() const
+      {
+        return const_iterator { this, bit_capacity() };
+      }
+
+      [[nodiscard]] bool operator==(const feature_ids_t& other) const
+      {
+        return words_equal(other);
+      }
+
+      [[nodiscard]] bool operator!=(const feature_ids_t& other) const
+      {
+        return !(*this == other);
+      }
+
+      [[nodiscard]] bool operator<(const feature_ids_t& other) const
+      {
+        auto lhs_it = begin();
+        auto rhs_it = other.begin();
+        const auto lhs_end = end();
+        const auto rhs_end = other.end();
+        for (; lhs_it != lhs_end && rhs_it != rhs_end; ++lhs_it, ++rhs_it)
+        {
+          if (*lhs_it < *rhs_it)
+          {
+            return true;
+          }
+          if (*rhs_it < *lhs_it)
+          {
+            return false;
+          }
+        }
+        return lhs_it == lhs_end && rhs_it != rhs_end;
+      }
+
+      [[nodiscard]] static feature_ids_t intersection_of(const feature_ids_t& lhs,
+                                                         const feature_ids_t& rhs)
+      {
+        feature_ids_t result {};
+        const auto word_count = std::min(lhs.m_words.size(), rhs.m_words.size());
+        result.m_words.resize(word_count, 0);
+        for (size_type index { 0 }; index < word_count; ++index)
+        {
+          result.m_words.at(index) = lhs.m_words.at(index) & rhs.m_words.at(index);
+        }
+        result.recount();
+        result.trim_trailing_zero_words();
+        return result;
+      }
+
+      [[nodiscard]] static feature_ids_t union_of(const feature_ids_t& lhs,
+                                                  const feature_ids_t& rhs)
+      {
+        feature_ids_t result {};
+        const auto word_count = std::max(lhs.m_words.size(), rhs.m_words.size());
+        result.m_words.resize(word_count, 0);
+        for (size_type index { 0 }; index < word_count; ++index)
+        {
+          const auto lhs_word
+              = index < lhs.m_words.size() ? lhs.m_words.at(index) : word_type { 0 };
+          const auto rhs_word
+              = index < rhs.m_words.size() ? rhs.m_words.at(index) : word_type { 0 };
+          result.m_words.at(index) = lhs_word | rhs_word;
+        }
+        result.recount();
+        result.trim_trailing_zero_words();
+        return result;
+      }
+
+      [[nodiscard]] static feature_ids_t difference_of(const feature_ids_t& lhs,
+                                                       const feature_ids_t& rhs)
+      {
+        feature_ids_t result {};
+        result.m_words.resize(lhs.m_words.size(), 0);
+        for (size_type index { 0 }; index < lhs.m_words.size(); ++index)
+        {
+          const auto rhs_word
+              = index < rhs.m_words.size() ? rhs.m_words.at(index) : word_type { 0 };
+          result.m_words.at(index) = lhs.m_words.at(index) & ~rhs_word;
+        }
+        result.recount();
+        result.trim_trailing_zero_words();
+        return result;
+      }
+
+      [[nodiscard]] static bool overlaps(const feature_ids_t& lhs,
+                                         const feature_ids_t& rhs)
+      {
+        const auto word_count = std::min(lhs.m_words.size(), rhs.m_words.size());
+        for (size_type index { 0 }; index < word_count; ++index)
+        {
+          if ((lhs.m_words.at(index) & rhs.m_words.at(index)) != 0)
+          {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      [[nodiscard]] static bool subset_of(const feature_ids_t& lhs,
+                                          const feature_ids_t& rhs)
+      {
+        const auto word_count = std::max(lhs.m_words.size(), rhs.m_words.size());
+        for (size_type index { 0 }; index < word_count; ++index)
+        {
+          const auto lhs_word
+              = index < lhs.m_words.size() ? lhs.m_words.at(index) : word_type { 0 };
+          const auto rhs_word
+              = index < rhs.m_words.size() ? rhs.m_words.at(index) : word_type { 0 };
+          if ((lhs_word & ~rhs_word) != 0)
+          {
+            return false;
+          }
+        }
+        return true;
+      }
+
+    private:
+      using word_type = std::uint64_t;
+      static constexpr size_type bits_per_word = sizeof(word_type) * CHAR_BIT;
+
+      std::vector<word_type> m_words {};
+      size_type              m_size { 0 };
+
+      [[nodiscard]] size_type bit_capacity() const
+      {
+        return m_words.size() * bits_per_word;
+      }
+
+      [[nodiscard]] size_type next_set_bit(size_type start) const
+      {
+        if (m_words.empty())
+        {
+          return 0;
+        }
+        auto word_index = start / bits_per_word;
+        if (word_index >= m_words.size())
+        {
+          return bit_capacity();
+        }
+
+        auto bit_offset = start % bits_per_word;
+        auto word = m_words.at(word_index) & (~word_type { 0 } << bit_offset);
+        while (true)
+        {
+          if (word != 0)
+          {
+            const auto bit_in_word = static_cast<size_type>(std::countr_zero(word));
+            return word_index * bits_per_word + bit_in_word;
+          }
+          ++word_index;
+          if (word_index >= m_words.size())
+          {
+            return bit_capacity();
+          }
+          word = m_words.at(word_index);
+        }
+      }
+
+      void recount()
+      {
+        m_size = 0;
+        for (const auto word : m_words)
+        {
+          m_size += static_cast<size_type>(std::popcount(word));
+        }
+      }
+
+      void trim_trailing_zero_words()
+      {
+        while (!m_words.empty() && m_words.back() == 0)
+        {
+          m_words.pop_back();
+        }
+      }
+
+      [[nodiscard]] bool words_equal(const feature_ids_t& other) const
+      {
+        const auto word_count = std::max(m_words.size(), other.m_words.size());
+        for (size_type index { 0 }; index < word_count; ++index)
+        {
+          const auto lhs_word
+              = index < m_words.size() ? m_words.at(index) : word_type { 0 };
+          const auto rhs_word
+              = index < other.m_words.size() ? other.m_words.at(index) : word_type { 0 };
+          if (lhs_word != rhs_word)
+          {
+            return false;
+          }
+        }
+        return true;
+      }
+  };
 
   struct system_ids_t: ids_t
   { };
 
-  // using feature_ids_t = ids_t;
-  // using system_ids_t = ids_t;
+  enum class theory_feature_category_t
+  {
+    unclassified,
+    impossible,
+    core,
+    fundamental,
+    not_feature,
+    and_feature,
+    or_feature,
+    complex
+  };
+
+  struct feature_record_t
+  {
+      unsigned_integer          id { zero };
+      feature_t                 systems_present {};
+      theory_feature_category_t category {
+        theory_feature_category_t::unclassified
+      };
+      std::string raw_term {};
+      std::string simplified_term {};
+      std::string display_name {};
+  };
+
+  struct system_space_t
+  {
+      system_ids_t valid {};
+      system_ids_t available {};
+      system_ids_t missing {};
+  };
 
   std::string to_string(const feature_t& fd);
-
-  constexpr unsigned_integer F { one };
-  constexpr unsigned_integer N { feature_isolation::power2(1) };
-  constexpr unsigned_integer A { feature_isolation::power2(2) };
-  constexpr unsigned_integer O { feature_isolation::power2(3) };
-  constexpr unsigned_integer FN { F + N };
-  constexpr unsigned_integer AN { feature_isolation::power2(4) };
-  constexpr unsigned_integer ON { feature_isolation::power2(5) };
-  constexpr unsigned_integer ANF { feature_isolation::power2(6) };
-  constexpr unsigned_integer ONF { feature_isolation::power2(7) };
-  constexpr unsigned_integer FAO { F + A + O };
-  constexpr unsigned_integer FAON { FAO + N };
-  constexpr unsigned_integer FAONANON { FAON + AN + ON };
-  constexpr unsigned_integer ALL { FAONANON + ANF + ONF };
-
-  static const std::array<std::string, 8> feature_categories
-      = { "F", "N", "A", "O", "AN", "ON", "ANF", "ONF" };
-
+  std::string to_string(theory_feature_category_t category);
   [[nodiscard]] char separator(const char s = 0);
+
+  [[nodiscard]] constexpr unsigned_integer paper_feature_index(unsigned_integer feature_id)
+  {
+    return feature_id - one;
+  }
+
+  [[nodiscard]] inline std::string paper_feature_label(unsigned_integer feature_id)
+  {
+    return "t" + std::to_string(paper_feature_index(feature_id));
+  }
+
+  [[nodiscard]] inline std::string paper_system_label(unsigned_integer system_id)
+  {
+    return "s" + std::to_string(system_id - one);
+  }
 
   class system_t
   {
     public:
-      // clang-format off
-      feature_ids_t F_feature_ids,
-                    N_feature_ids,
-                    A_feature_ids,
-                    O_feature_ids,
-                    AN_feature_ids,
-                    ON_feature_ids,
-                    ANF_feature_ids,
-                    ONF_feature_ids;
-      // clang-format on
-      [[nodiscard]] unsigned_integer DF() const;
+      feature_ids_t feature_ids {};
       [[nodiscard]] unsigned_integer T() const;
-      [[nodiscard]] feature_ids_t    all_features() const;
+      [[nodiscard]] const feature_ids_t& all_features() const;
   };
 
   using systems_t = std::vector<system_t>;
@@ -92,28 +433,22 @@ namespace feature_isolation
   class feature_analysis_t
   {
     public:
-      explicit feature_analysis_t(unsigned_integer f,
-                                  unsigned_integer max_rank,
-                                  unsigned_integer feature_categories_
-                                  = ::feature_isolation::ALL);
+      explicit feature_analysis_t(
+          unsigned_integer                                  f,
+          const system_space_t&                             system_space,
+          std::vector<std::string>                          feature_names = {},
+          std::optional<std::vector<theory_feature_category_t>> category_filter
+              = std::nullopt);
 
-      using cui = const unsigned_integer;
-      cui F, N, A, O, AN, ON, ANF, ONF, DF, T, R, C, S;
-      // clang-format off
-      const features_t F_features, 
-                       N_features, 
-                       A_features, 
-                       O_features,
-                       AN_features,
-                       ON_features,
-                       ANF_features, 
-                       ONF_features;
-      // clang-format on
-      [[nodiscard]] feature_t at(unsigned_integer feature_id) const;
-      [[nodiscard]] unsigned_integer
-          category(unsigned_integer feature_id) const;
-      [[nodiscard]] std::string
-           category_name(unsigned_integer feature_id) const;
+      [[nodiscard]] feature_t         at(unsigned_integer feature_id) const;
+      [[nodiscard]] unsigned_integer  category(unsigned_integer feature_id) const;
+      [[nodiscard]] std::string       category_name(unsigned_integer feature_id) const;
+      [[nodiscard]] bool uses_theory_registry() const;
+      [[nodiscard]] bool includes_category(
+          theory_feature_category_t category) const;
+      [[nodiscard]] bool includes_feature(unsigned_integer feature_id) const;
+      [[nodiscard]] const system_space_t& system_space() const;
+      [[nodiscard]] const std::vector<feature_record_t>& feature_registry() const;
       void print_feature(std::ostream& os, const feature_t& feature) const;
       void print_features(std::ostream& os) const;
       void print_categories(std::ostream& os) const;
@@ -126,40 +461,37 @@ namespace feature_isolation
                                  unsigned_integer system_id) const;
       void print_systems_features(std::ostream& os) const;
       void print(std::ostream& os) const;
-    public:
-      // clang-format off
-      cui F_offset, 
-          N_offset, 
-          A_offset, 
-          O_offset, 
-          AN_offset, 
-          ON_offset,
-          ANF_offset,
-          ONF_offset;
-      // cang-format on
-      std::array<cui, 8>               m_feature_offsets;
-      std::array<const features_t*, 8> m_all_features;
-    public:
-      const systems_t m_systems;
+      [[nodiscard]] unsigned_integer feature_count() const;
+      [[nodiscard]] unsigned_integer system_count() const;
+      [[nodiscard]] unsigned_integer base_feature_count() const;
+      [[nodiscard]] unsigned_integer valid_system_count() const;
+
     private:
-      [[nodiscard]] features_t initialize_F_features() const;
-      [[nodiscard]] features_t initialize_N_features() const;
-      void and_combine(feature_t& f1, const feature_t& f2) const;
-      [[nodiscard]] features_t initialize_A_features() const;
-      void or_combine(feature_t& f1, const feature_t& f2) const;
-      [[nodiscard]] features_t initialize_O_features() const;
-      [[nodiscard]] features_t initialize_AN_features() const;
-      [[nodiscard]] features_t initialize_ON_features() const;
-      [[nodiscard]] features_t initialize_ANF_features() const;
-      [[nodiscard]] features_t initialize_ONF_features() const;
-      void                     insert_id(systems_t&       systems,
-                                         const feature_t& feature,
-                                         unsigned_integer feature_id,
-                                         unsigned_integer category) const;
-      [[nodiscard]] systems_t  initialize_systems() const;
+      [[nodiscard]] std::string feature_name(unsigned_integer feature_index) const;
+      [[nodiscard]] std::string raw_term_for(const feature_t& systems_present) const;
+      [[nodiscard]] std::string simplified_term_for(const feature_t& systems_present) const;
+      [[nodiscard]] theory_feature_category_t
+          classify_simplified_term(const std::string& simplified_term) const;
+      [[nodiscard]] bool should_materialize_details(
+          theory_feature_category_t category) const;
+      [[nodiscard]] std::vector<feature_record_t> initialize_feature_registry() const;
+      [[nodiscard]] systems_t initialize_registry_backed_systems() const;
+
+      const unsigned_integer              m_base_feature_count;
+      const unsigned_integer              m_valid_system_count;
+      const unsigned_integer              m_max_system_id;
+      const system_space_t                m_system_space;
+      const std::vector<std::string>      m_feature_names;
+      const std::optional<std::vector<theory_feature_category_t>> m_category_filter;
+      const std::vector<std::string>      m_resolved_feature_names;
+      const std::vector<unsigned_integer> m_ordered_valid_system_ids;
+      const std::vector<unsigned_integer> m_invalid_system_minterms;
+
+    public:
+      const std::vector<feature_record_t> m_feature_registry;
+      const systems_t                     m_systems;
   };
 
 } // namespace feature_isolation
 
 #endif // FEATURE_ANALYSIS_HPP
-

@@ -2,56 +2,138 @@
 \usepackage[T1]{fontenc}
 \usepackage[width=17cm]{geometry}
 \usepackage{babel}
-\title{Specification of a Domain Specific Language for Specyfing \\ a Software Product Line\\ \small Version 1.1}
+\usepackage{enumitem}
+\title{Specification of the Theory-Native SPL Domain Specific Language}
 \author{Ulrich Eisenecker, Yannis Hübenthal}
 \begin{document}
-	\maketitle
+\maketitle
+
+\section{Purpose}
+This document specifies the domain specific language accepted by the current theory-native SPL implementation. The DSL describes a Boolean base feature set, a conjunction of logical constraints, optional availability information about valid systems, and an optional output-side category filter.
+
 \section{Token Types}
-	Token types are \emph{comment}, \emph{keyword}, \emph{name} and \emph{value}.
-	\begin{itemize}
-	\item A comment begins with \emph{//} and must be followed by a white space (space, tab). It extends to the next newline character.
-	\item Keywords are listed below. 
-	\item A name is a sequence of any non-white space characters. It is terminated by a white space. 
-	\item A number is any sequence of characters that gives a valid integer. It is terminated by any character that cannot be part of an integer, e.\ g. a space. 
-	\end{itemize}
-	
-\section{Keywords}
-Keywords are \emph{A}, \emph{AN}, \emph{ANF}, \emph{AVAILABLE\_SYSTEMS}, \emph{CATEGORIES}, \emph{END}, \emph{EXCLUDES\_ALL}, \emph{EXPLIC\-IT\_DEPENDENCIES}, \emph{F}, \emph{FEATURES}, \emph{MAX\_RANK}, \emph{MISSING\_SYSTEMS}, \emph{N}, \emph{O}, \emph{ON}, \emph{ONF}, \emph{RE\-QUIRES\_-ALL}, \emph{REQUIRES\_ANY}, \emph{REQUIRES\_ONE}, \emph{ROOT} and \emph{SPL}. \\
-A keyword must be terminated with a white space. \\
-Keywords are not case-sensitive. \\
-Strictly speaking, keywords are not reserved words. Nevertheless, they should not be used as names, e.g. names of features.
-\section{SPL}
-SPL has the cardinality 0..1. It allows the specification of a name for a software product line. The name must not contain any white spaces. 
-\section{FEATURES}
-FEATURES has the cardinality 1. It specifies the number of independent features of a software product line, followed by the names of the independent features. There must be exactly as many feature names as the number of features specified. \\
-\emph{Important}: The list of feature names is \emph{not} terminated with \emph{END}.
-\section{CATEGORIES}
-CATEGORIES has the cardinality 0..1. CATEGORIES is used to specify which feature categories are to be included in the feature analysis and feature isolation. Valid category names are F, A, O, N, AN, ON, ANF and ONF. If CATEGORY is not specified, it is assumed that F is the only category. The category names can be specified in any order. If a category name is specified more than once, an error is output. CATEGORY can appear anywhere in the SPL specification.
-\section{EXPLICIT\_DEPENDENCIES}
-EXPLICIT\_DEPENDENCIES has the cardinality 0..1. It is used to explicitly specify dependent features. Dependencies are REQUIRES\_ALL, REQUIRES\_ONE, REQUIRES\_ANY and EXCLUDES\_ALL. In addi\-tion, there is a special feature called ROOT, which is the root feature that is a conceptual part of every system, but is neither specified, analyzed nor isolated.
-Each dependency is specified in the form \em{feature\_name – dependency – list\_of\_feature\_names}\em{}. The list of feature names begins with at least one feature name and is concluded with END.\\
-Examples \\
-\begin{itemize}
-\item ROOT REQUIRES\_ALL F1 F2 F3 END defines F1, F2 and F3 as core features that occur in every system of the SPL.
-\item F4 REQUIRES\_ALL F1 END specifies that F4 also requires F1 to be present in a system.
-\item F5 REQUIRES\_ONE F6 F7 END specifies that F5 requires that either F6 or F7 is also included, which corresponds to an exclusive-or group.
-\item F8 REQUIRES\_ANY F9 F10 END indicates that F8 requires that F9 or F10 or both F9 and F10 are also included. This corresponds to an inclusive-or group.
-\item F11 EXCLUDES\_ALL F12 F13 END specifies that the presence of F11 excludes the presence of F12 or F13.
-\item The following specifications are syntactically correct and semantically valid, but redundant:
-\begin{itemize}
-\item FA REQUIRES\_ALL FB END
-\item FA REQUIRES\_ONE FB END
-\item FA REQUIRES\_ANY FB END
+Token types are \emph{comment}, \emph{keyword}, \emph{name}, \emph{value}, and symbolic operators.
+\begin{itemize}[leftmargin=*]
+\item A comment begins with \emph{//} and must be followed by white space (space or tab). It extends to the next newline character.
+\item Keywords are listed below.
+\item A name is a sequence of non-white-space characters and is terminated by white space or punctuation.
+\item A value is an integer.
+\item Symbolic operators are \emph{!}, \emph{\&\&}, \emph{||}, \emph{->}, \emph{<->}, \emph{(}, \emph{)}, \emph{[}, \emph{]}, \emph{,}, and the comparison operators.
 \end{itemize}
-\item ROOT REQUIRES\_ONE FC FD END specifies that either FC or FD must be present in a system; it is not possible for both features to be present or absent in a system.
-\begin{itemize}
-After the parsing of the SPL specification is completed, a SAT solver is executed to check the specified dependencies for consistency, also with regard to any specified existing or missing systems. The list of explicit dependencies must be concluded with END. If EXPLICIT\_DEPENDENCIES is missing, there are no explicitly dependent features.
-\section{MISSING\_SYSTEMS}
-MISSING\_SYSTEMS has a cardinality of 0..1 and specifies all systems that are not available. It must occur after FEATURES. Each missing system is specified by its ID. The ID of the first system is 1, the ID of the last system is $ 2^F $. In the system with ID 1, every feature is not available, in the system with the highest ID, every feature is available. The list of system IDs must be concluded with END.
 
-If EXPLICIT\_DEPENDENCIES is also specified, no system ID may be specified that is not available due to the constraints. It is permissible to specify missing systems that would exist if the constraints were applied.
+\section{Keywords}
+Keywords are \emph{ASSERT}, \emph{AVAILABLE\_SYSTEMS}, \emph{CATEGORY\_FILTER}, \emph{CONSTRAINTS}, \emph{COUNT}, \emph{END}, \emph{FALSE}, \emph{FEATURES}, \emph{IN}, \emph{MISSING\_SYSTEMS}, \emph{SPL}, and \emph{TRUE}. Keywords are not case-sensitive.
 
-The specification of MISSING\_SYSTEMS can be omitted. If MISSING\_SYSTEMS occurs, AVAILABLE\_\-SYSTEMS may no longer be specified and vice versa. If neither MISSING\_SYSTEMS nor AVAILABLE\_SYS\-TEMS are specified, it is assumed that all systems that can occur according to the constraints are present.
+\section{SPL}
+\texttt{SPL} has cardinality 0..1. It specifies the optional name of the software product line. The name must not contain white space.
+
+\section{FEATURES}
+\texttt{FEATURES} has cardinality 1. It specifies the number of Boolean base features followed by exactly that many feature names.
+
+Example:
+\begin{quote}
+\texttt{FEATURES 3 fa fb fc}
+\end{quote}
+
+\section{CONSTRAINTS}
+\texttt{CONSTRAINTS} has cardinality 0..1. It contains zero or more \texttt{ASSERT} statements and is concluded by \texttt{END}. The semantics is the conjunction of all asserted formulas.
+
+If \texttt{CONSTRAINTS} is omitted, there are no constraints. If \texttt{CONSTRAINTS} is present but contains no \texttt{ASSERT} statements, there are also no constraints.
+
+Example:
+\begin{quote}
+\texttt{CONSTRAINTS\\
+ASSERT fa -> fb\\
+ASSERT !(fb \&\& fc)\\
+END}
+\end{quote}
+
+\subsection{Supported formulas}
+Formulas may contain:
+\begin{itemize}[leftmargin=*]
+\item feature variables
+\item \texttt{TRUE} and \texttt{FALSE}
+\item negation \texttt{!}
+\item conjunction \texttt{\&\&}
+\item disjunction \texttt{||}
+\item implication \texttt{->}
+\item equivalence \texttt{<->}
+\item parentheses
+\item cardinality expressions of the form \texttt{COUNT(...)}
+\end{itemize}
+
+The operator precedence is:
+\begin{enumerate}[leftmargin=*]
+\item \texttt{!}
+\item \texttt{\&\&}
+\item \texttt{||}
+\item \texttt{->}
+\item \texttt{<->}
+\end{enumerate}
+
+\subsection{Cardinality expressions}
+A cardinality expression counts how many of the listed features are present in a system.
+
+Supported forms are:
+\begin{itemize}[leftmargin=*]
+\item \texttt{COUNT(f1, f2, ..., fn) = k}
+\item \texttt{COUNT(f1, f2, ..., fn) != k}
+\item \texttt{COUNT(f1, f2, ..., fn) < k}
+\item \texttt{COUNT(f1, f2, ..., fn) <= k}
+\item \texttt{COUNT(f1, f2, ..., fn) > k}
+\item \texttt{COUNT(f1, f2, ..., fn) >= k}
+\item \texttt{COUNT(f1, f2, ..., fn) IN [a,b]}
+\end{itemize}
+
 \section{AVAILABLE\_SYSTEMS}
-AVAILABLE\_SYSTEMS has a cardinality of 0..1 and specifies all systems that are available. It must be specified after FEATURES. Each available system is identified by its ID. The ID of the first system is 1, the ID of the last system is $ 2^F $. No feature is available in the system with ID 1, every feature is available in the system with the highest ID. The list of system IDs must be concluded with END. If EXPLICIT\_DEPENDENCIES is also specified, no system ID may be specified that does not exist due to the constraints. It is permissible not to specify any available systems that would exist if the constraints were applied. The specification of AVAILABLE\_SYSTEMS can be omitted. If AVAILABLE\_SYSTEMS occurs, MISSING\_SYSTEMS may no longer be specified and vice versa. If neither MISSING\_SYSTEMS nor AVAILABLE\_SYSTEMS are specified, it is assumed that all systems that can occur according to the constraints are present.
+\texttt{AVAILABLE\_SYSTEMS} has cardinality 0..1. It specifies a set of valid systems known to be available. Every listed system must satisfy the conjunction of all asserted formulas.
+
+If this block is present, it contributes to the explicit partition of the valid-system space.
+
+\section{MISSING\_SYSTEMS}
+\texttt{MISSING\_SYSTEMS} has cardinality 0..1. It specifies a set of valid systems known to be missing. Every listed system must satisfy the conjunction of all asserted formulas.
+
+If this block is present, it contributes to the explicit partition of the valid-system space.
+
+\section{Availability consistency}
+A specification is invalid if:
+\begin{itemize}[leftmargin=*]
+\item a listed available system is not valid,
+\item a listed missing system is not valid,
+\item a system is listed as both available and missing, or
+\item both blocks are present and their union is not exactly the valid-system set.
+\end{itemize}
+
+If both blocks are present, they must form a disjoint partition of the valid-system set. If only one of the two blocks is present, the other one is derived by complement with respect to the valid-system set. If neither block is present, all valid systems are treated as available.
+
+\section{CATEGORY\_FILTER}
+\texttt{CATEGORY\_FILTER} has cardinality 0..1. It is an optional output filter over the theory-native categories:
+\begin{quote}
+\texttt{Impossible Core Fundamental Not And Or Complex}
+\end{quote}
+
+\texttt{CATEGORY\_FILTER} affects reporting and post-classification selection only. It does not change valid systems, the generated feature registry, logical simplification, or category derivation.
+
+\section{Canonical example files}
+The repository keeps four paper-aligned example files as canonical references:
+\begin{itemize}[leftmargin=*]
+\item \texttt{spl\_specs/new\_dsl/valid/unconstrained\_2f.spl}
+\item \texttt{spl\_specs/new\_dsl/valid/fx\_implies\_fy.spl}
+\item \texttt{spl\_specs/new\_dsl/valid/fx\_implies\_fy\_missing\_s0.spl}
+\item \texttt{spl\_specs/new\_dsl/valid/factorial\_paper.spl}
+\end{itemize}
+Documentation-facing copies of these examples are stored under
+\texttt{external\_documentation/examples\_new\_dsl/} and should remain byte-for-byte aligned with the canonical fixtures.
+
+\section{System semantics}
+Let \(F\) be the Boolean base feature set declared by \texttt{FEATURES}. The candidate system space is \(P(F)\). The valid system space \(S_{valid}\) contains exactly those systems that satisfy the conjunction of all asserted formulas.
+
+If no constraints are specified, then \(S_{valid} = P(F)\).
+
+\section{Theory feature semantics}
+The DSL does not enumerate theory features directly. Theory features are derived from the valid-system space, and their categories are derived from the simplified logical term. The DSL therefore contains no syntax for legacy generation controls.
+
+\section{Removed legacy constructs}
+The DSL contains no syntax for \texttt{MAX\_RANK}, legacy \texttt{CATEGORIES}, or \texttt{EXPLICIT\_DEPENDENCIES}. These constructs are outside the active theory-native language.
+
 \end{document}

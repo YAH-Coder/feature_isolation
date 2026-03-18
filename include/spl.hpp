@@ -10,10 +10,8 @@
 #include <exception>
 #include <stdexcept>
 
-#define FMT_HEADER_ONLY
-
-#include <fmt/format.h>
 #include <fstream>
+#include <memory>
 #include <iostream>
 #include <optional>
 #include <ostream>
@@ -22,16 +20,148 @@
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
+#include <variant>
 #include <vector>
-#include <z3++.h>
 
 namespace feature_isolation
 {
   using feature_names_t = std::vector<std::string>;
-  using dependencies_t
-      = std::unordered_map<signed int, std::set<unsigned_integer>>;
 
   extern char csv_separator;
+
+
+  enum class theory_formula_kind_t
+  {
+    feature_ref,
+    true_literal,
+    false_literal,
+    negation,
+    conjunction,
+    disjunction,
+    implication,
+    equivalence,
+    count_compare,
+    count_interval
+  };
+
+  enum class theory_count_compare_op_t
+  {
+    eq,
+    ne,
+    lt,
+    le,
+    gt,
+    ge
+  };
+
+  struct theory_count_compare_t
+  {
+      feature_names_t                 features {};
+      std::vector<unsigned_integer>   compiled_feature_indices {};
+      theory_count_compare_op_t       op { theory_count_compare_op_t::eq };
+      unsigned_integer                value { zero };
+  };
+
+  struct theory_count_interval_t
+  {
+      feature_names_t               features {};
+      std::vector<unsigned_integer> compiled_feature_indices {};
+      unsigned_integer              lower { zero };
+      unsigned_integer              upper { zero };
+  };
+
+  class theory_formula_t;
+  using theory_formula_ptr_t = std::shared_ptr<const theory_formula_t>;
+
+  class theory_formula_t final
+  {
+    public:
+      struct feature_ref_t final
+      {
+          std::string feature_name {};
+          std::optional<unsigned_integer> compiled_feature_index {};
+      };
+
+      struct true_literal_t final
+      { };
+
+      struct false_literal_t final
+      { };
+
+      struct negation_t final
+      {
+          theory_formula_ptr_t operand {};
+      };
+
+      struct conjunction_t final
+      {
+          std::vector<theory_formula_ptr_t> operands {};
+      };
+
+      struct disjunction_t final
+      {
+          std::vector<theory_formula_ptr_t> operands {};
+      };
+
+      struct implication_t final
+      {
+          theory_formula_ptr_t lhs {};
+          theory_formula_ptr_t rhs {};
+      };
+
+      struct equivalence_t final
+      {
+          theory_formula_ptr_t lhs {};
+          theory_formula_ptr_t rhs {};
+      };
+
+      using payload_t = std::variant<feature_ref_t,
+                                     true_literal_t,
+                                     false_literal_t,
+                                     negation_t,
+                                     conjunction_t,
+                                     disjunction_t,
+                                     implication_t,
+                                     equivalence_t,
+                                     theory_count_compare_t,
+                                     theory_count_interval_t>;
+
+      static theory_formula_t feature(const std::string&               name,
+                                      std::optional<unsigned_integer> compiled_feature_index = std::nullopt);
+      static theory_formula_t true_literal();
+      static theory_formula_t false_literal();
+      static theory_formula_t negation(const theory_formula_t& operand);
+      static theory_formula_t conjunction(const std::vector<theory_formula_t>& operands);
+      static theory_formula_t disjunction(const std::vector<theory_formula_t>& operands);
+      static theory_formula_t implication(const theory_formula_t& lhs,
+                                          const theory_formula_t& rhs);
+      static theory_formula_t equivalence(const theory_formula_t& lhs,
+                                          const theory_formula_t& rhs);
+      static theory_formula_t count_compare_formula(
+          const feature_names_t&               features,
+          const std::vector<unsigned_integer>& compiled_feature_indices,
+          theory_count_compare_op_t            op,
+          unsigned_integer                     value);
+      static theory_formula_t count_interval_formula(
+          const feature_names_t&               features,
+          const std::vector<unsigned_integer>& compiled_feature_indices,
+          unsigned_integer                     lower,
+          unsigned_integer                     upper);
+
+      [[nodiscard]] const payload_t& payload() const;
+      [[nodiscard]] theory_formula_kind_t kind() const;
+
+    private:
+      explicit theory_formula_t(payload_t payload);
+      payload_t m_payload;
+  };
+
+  using theory_constraints_t = std::vector<theory_formula_t>;
+  using theory_category_filter_t = std::vector<theory_feature_category_t>;
+
+  [[nodiscard]] std::string to_string(theory_count_compare_op_t op);
+  [[nodiscard]] std::string to_string(const theory_formula_t& formula);
+  [[nodiscard]] std::string to_string(const theory_category_filter_t& filter);
 
   namespace error_msgs
   {
@@ -52,47 +182,37 @@ namespace feature_isolation
       using systems_t = std::vector<unsigned_integer>;
       const std::string      m_filename;
       const std::string      m_spl_name;
-      const unsigned_integer m_max_rank;
       const unsigned_integer m_F;
       const unsigned_integer m_max_available_systems;
       const feature_names_t  m_feature_names;
-      const unsigned_integer m_categories;
-      const dependencies_t   m_requires_all, m_requires_any, m_requires_one,
-          m_excludes_all;
+      const theory_constraints_t m_constraints;
+      const std::optional<theory_category_filter_t> m_category_filter;
       const systems_t m_available_systems;
       const systems_t m_missing_systems;
+      const system_space_t m_system_space;
       const bool      m_spl_specified, m_feature_names_specified,
-          m_categories_specified, m_explicit_dependencies_specified,
-          m_missing_systems_specified, m_available_systems_specified,
-          m_max_rank_specified;
+          m_constraints_specified, m_category_filter_specified,
+          m_missing_systems_specified, m_available_systems_specified;
 
       spl_specification_t(const std::string&                filename,
                           const std::optional<std::string>& spl_name,
-                          std::optional<unsigned_integer>   max_rank,
                           unsigned_integer                  F,
-                          unsigned_integer       max_available_systems,
-                          const feature_names_t& feature_names,
-                          const dependencies_t&  requires_all,
-                          const dependencies_t&  requires_any,
-                          const dependencies_t&  requires_one,
-                          const dependencies_t&  excludes_all,
-                          const systems_t&       available_systems,
-                          const systems_t&       missing_systems,
-                          bool                   spl_specified,
-                          bool                   feature_names_specified,
-                          bool                   categories_specified,
-                          bool             explicit_dependencies_specified,
-                          bool             missing_systems_specified,
-                          bool             available_systems_specified,
-                          bool             max_rank_specified,
-                          unsigned_integer categories = feature_isolation::F);
+                          unsigned_integer                  max_available_systems,
+                          const feature_names_t&            feature_names,
+                          const theory_constraints_t&       constraints,
+                          const std::optional<theory_category_filter_t>& category_filter,
+                          const systems_t&                  available_systems,
+                          const systems_t&                  missing_systems,
+                          bool                              spl_specified,
+                          bool                              feature_names_specified,
+                          bool                              constraints_specified,
+                          bool                              category_filter_specified,
+                          bool                              missing_systems_specified,
+                          bool                              available_systems_specified);
+
+      [[nodiscard]] const system_space_t& system_space() const;
     private:
       bool validate_systems() const;
-      bool check_constraints(const std::string&    constraint_type,
-                             const dependencies_t& constraints_map,
-                             unsigned_integer      system_id,
-                             unsigned_integer      system,
-                             z3::context&          ctx) const;
   };
 
   enum class token_type_t
@@ -108,14 +228,16 @@ namespace feature_isolation
   namespace kw
   {
     constexpr std::string_view COMMENT { "//" }, SPL { "SPL" },
-        MAX_RANK { "MAX_RANK" }, FEATURES { "FEATURES" }, ROOT { "ROOT" },
-        CATEGORIES { "CATEGORIES" }, F { "F" }, N { "N" }, O { "O" }, A { "A" },
-        AN { "AN" }, ON { "ON" }, ANF { "ANF" }, ONF { "ONF" }, END { "END" },
-        EXPLICIT_DEPENDENCIES { "EXPLICIT_DEPENDENCIES" },
-        REQUIRES_ALL { "REQUIRES_ALL" }, REQUIRES_ANY { "REQUIRES_ANY" },
-        REQUIRES_ONE { "REQUIRES_ONE" }, EXCLUDES_ALL { "EXCLUDES_ALL" },
+        FEATURES { "FEATURES" }, END { "END" },
         MISSING_SYSTEMS { "MISSING_SYSTEMS" },
-        AVAILABLE_SYSTEMS { "AVAILABLE_SYSTEMS" };
+        AVAILABLE_SYSTEMS { "AVAILABLE_SYSTEMS" },
+        CONSTRAINTS { "CONSTRAINTS" }, ASSERT { "ASSERT" },
+        CATEGORY_FILTER { "CATEGORY_FILTER" }, TRUE_LITERAL { "TRUE" },
+        FALSE_LITERAL { "FALSE" }, COUNT { "COUNT" }, IN { "IN" },
+        NOT_OP { "!" }, AND_OP { "&&" }, OR_OP { "||" }, IMPLIES_OP { "->" },
+        IFF_OP { "<->" }, LPAREN { "(" }, RPAREN { ")" }, LBRACKET { "[" },
+        RBRACKET { "]" }, COMMA { "," }, EQ_OP { "=" }, NE_OP { "!=" },
+        LT_OP { "<" }, LE_OP { "<=" }, GT_OP { ">" }, GE_OP { ">=" };
     extern const std::unordered_map<std::string_view, token_type_t> keywords;
   } // namespace kw
 
@@ -168,40 +290,46 @@ namespace feature_isolation
 
   class parser_t final
   {
+    private:
+      std::optional<token_t> m_buffered_token {};
+
     public:
       parser_t(std::istream& is, std::string filename);
       tokenizer_t         m_tokenizer;
       spl_specification_t m_spec;
-    private:
       std::optional<std::string>                   parse_spl();
-      std::optional<unsigned_integer>              parse_max_rank();
       std::pair<unsigned_integer, feature_names_t> parse_features();
-      unsigned_integer                             parse_categories();
-
-      struct dependency_maps_t
-      {
-          dependencies_t requires_all;
-          dependencies_t requires_any;
-          dependencies_t requires_one;
-          dependencies_t excludes_all;
-      };
-
-      dependency_maps_t
-          parse_explicit_dependencies(const feature_names_t& feature_names);
+      theory_constraints_t                         parse_constraints(const feature_names_t& feature_names);
+      std::optional<theory_category_filter_t>      parse_category_filter();
       spl_specification_t::systems_t parse_available_systems();
       spl_specification_t::systems_t parse_missing_systems();
+      token_t next_token();
+      token_t peek_token();
+      bool is_section_keyword(const token_t& token) const;
+      theory_formula_t parse_formula(const feature_names_t& feature_names);
+      theory_formula_t parse_equivalence(const feature_names_t& feature_names);
+      theory_formula_t parse_implication(const feature_names_t& feature_names);
+      theory_formula_t parse_disjunction(const feature_names_t& feature_names);
+      theory_formula_t parse_conjunction(const feature_names_t& feature_names);
+      theory_formula_t parse_unary(const feature_names_t& feature_names);
+      theory_formula_t parse_atom(const feature_names_t& feature_names);
+      theory_formula_t parse_count_expression(const feature_names_t& feature_names);
+      feature_names_t parse_count_feature_list(const feature_names_t& feature_names);
+      theory_feature_category_t parse_theory_category(const token_t& token) const;
       std::optional<signed int>
                                      feature_index(const std::string&     feature,
                                                    const feature_names_t& feature_names) const;
-      spl_specification_t::systems_t effective_available_systems(
-          unsigned_integer                      max_available_systems,
-          const spl_specification_t::systems_t& available_systems,
-          const spl_specification_t::systems_t& missing_systems,
-          bool                                  available_systems_specified,
-          bool missing_systems_specified) const;
-
       spl_specification_t parse_specification(const std::string& filename);
   };
+
+  struct theory_dsl_coverage_t
+  {
+      std::vector<std::string> supported_capabilities;
+      std::vector<std::string> unsupported_capabilities;
+  };
+
+  [[nodiscard]] theory_dsl_coverage_t
+      theory_dsl_coverage(const spl_specification_t& spec);
 
   class printer_t final
   {
@@ -209,11 +337,11 @@ namespace feature_isolation
       printer_t(std::ostream& os);
       void print_specification(const spl_specification_t& spec);
       void print_spl_name(const spl_specification_t& spec);
-      void print_max_rank(const spl_specification_t& spec);
       void print_features(const spl_specification_t& spec);
-      void print_categories(const spl_specification_t& spec);
-      void print_dependencies(const spl_specification_t& spec);
+      void print_constraints(const spl_specification_t& spec);
+      void print_category_filter(const spl_specification_t& spec);
       void print_systems(const spl_specification_t& spec);
+      void print_theory_dsl_coverage(const spl_specification_t& spec);
     private:
       std::ostream& m_os;
   };
@@ -235,7 +363,14 @@ namespace feature_isolation
 
   std::string toupper(std::string s);
 
-  z3::expr exactly(unsigned n, z3::expr_vector const & xs);
+  [[nodiscard]] bool system_satisfies_constraints(
+      const spl_specification_t& spec, unsigned_integer system_id);
+  [[nodiscard]] system_ids_t valid_system_ids(const spl_specification_t& spec);
+  [[nodiscard]] system_ids_t available_valid_system_ids(
+      const spl_specification_t& spec);
+  [[nodiscard]] system_ids_t missing_valid_system_ids(
+      const spl_specification_t& spec);
+  [[nodiscard]] system_space_t theory_system_space(const spl_specification_t& spec);
 
 } // namespace feature_isolation
 
