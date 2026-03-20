@@ -430,6 +430,93 @@ namespace feature_isolation
 
   using systems_t = std::vector<system_t>;
 
+  enum class report_mode_t
+  {
+    full,
+    summary,
+    isolation_only,
+    selected_features
+  };
+
+  enum class feasibility_risk_t
+  {
+    safe,
+    large,
+    risky,
+    impractical
+  };
+
+  struct report_request_t final
+  {
+      report_mode_t mode { report_mode_t::full };
+      std::optional<std::vector<theory_feature_category_t>> requested_categories {};
+      bool include_complex_details { true };
+      bool include_raw_terms { true };
+      bool include_simplified_terms { true };
+      bool include_isolation { true };
+      bool minimal_differences_only { true };
+      bool include_feature_names { false };
+
+      [[nodiscard]] static report_request_t unrestricted();
+      [[nodiscard]] static report_request_t
+          from_category_hint(
+              std::optional<std::vector<theory_feature_category_t>> categories);
+      [[nodiscard]] bool includes_category(
+          theory_feature_category_t category) const;
+  };
+
+  struct report_feasibility_t final
+  {
+      unsigned_integer base_feature_count { 0 };
+      unsigned_integer valid_system_count { 0 };
+      unsigned_integer theory_feature_count { 0 };
+      unsigned_integer simple_feature_upper_bound { 0 };
+      unsigned_integer complex_feature_lower_bound { 0 };
+      unsigned_integer included_feature_upper_bound { 0 };
+      long double      estimated_analysis_runtime_ms { 0.0L };
+      long double      estimated_isolation_runtime_ms { 0.0L };
+      long double      estimated_total_runtime_ms { 0.0L };
+      long double      estimated_output_bytes { 0.0L };
+      feasibility_risk_t risk { feasibility_risk_t::safe };
+      bool               approval_recommended { false };
+      std::vector<std::string> observations {};
+
+      [[nodiscard]] std::string summary() const;
+  };
+
+  struct report_plan_option_t final
+  {
+      std::string                       label {};
+      std::string                       rationale {};
+      std::optional<report_request_t>   request {};
+      std::optional<report_feasibility_t> feasibility {};
+      bool                              executable_now { true };
+  };
+
+  struct report_execution_plan_t final
+  {
+      report_request_t                  requested_request {};
+      report_feasibility_t              requested_feasibility {};
+      report_request_t                  recommended_request {};
+      report_feasibility_t              recommended_feasibility {};
+      bool                              adjustment_recommended { false };
+      std::string                       rationale {};
+      std::vector<report_plan_option_t> alternatives {};
+
+      [[nodiscard]] std::string summary() const;
+  };
+
+  [[nodiscard]] std::string to_string(report_mode_t mode);
+  [[nodiscard]] std::string to_string(feasibility_risk_t risk);
+  [[nodiscard]] report_feasibility_t
+      estimate_report_feasibility(unsigned_integer      base_feature_count,
+                                  const system_space_t& system_space,
+                                  const report_request_t& report_request);
+  [[nodiscard]] report_execution_plan_t
+      plan_report_execution(unsigned_integer      base_feature_count,
+                            const system_space_t& system_space,
+                            const report_request_t& report_request);
+
   class feature_analysis_t
   {
     public:
@@ -437,8 +524,13 @@ namespace feature_isolation
           unsigned_integer                                  f,
           const system_space_t&                             system_space,
           std::vector<std::string>                          feature_names = {},
-          std::optional<std::vector<theory_feature_category_t>> category_filter
-              = std::nullopt);
+          report_request_t                                  report_request
+              = report_request_t::unrestricted());
+      explicit feature_analysis_t(
+          unsigned_integer                                  f,
+          const system_space_t&                             system_space,
+          std::vector<std::string>                          feature_names,
+          std::optional<std::vector<theory_feature_category_t>> category_filter);
 
       [[nodiscard]] feature_t         at(unsigned_integer feature_id) const;
       [[nodiscard]] unsigned_integer  category(unsigned_integer feature_id) const;
@@ -448,6 +540,7 @@ namespace feature_isolation
           theory_feature_category_t category) const;
       [[nodiscard]] bool includes_feature(unsigned_integer feature_id) const;
       [[nodiscard]] const system_space_t& system_space() const;
+      [[nodiscard]] const report_request_t& report_request() const;
       [[nodiscard]] const std::vector<feature_record_t>& feature_registry() const;
       void print_feature(std::ostream& os, const feature_t& feature) const;
       void print_features(std::ostream& os) const;
@@ -474,6 +567,10 @@ namespace feature_isolation
           classify_simplified_term(const std::string& simplified_term) const;
       [[nodiscard]] bool should_materialize_details(
           theory_feature_category_t category) const;
+      [[nodiscard]] bool should_materialize_simplified_term(
+          theory_feature_category_t category) const;
+      [[nodiscard]] bool should_materialize_raw_term(
+          theory_feature_category_t category) const;
       [[nodiscard]] std::vector<feature_record_t> initialize_feature_registry() const;
       [[nodiscard]] systems_t initialize_registry_backed_systems() const;
 
@@ -482,7 +579,7 @@ namespace feature_isolation
       const unsigned_integer              m_max_system_id;
       const system_space_t                m_system_space;
       const std::vector<std::string>      m_feature_names;
-      const std::optional<std::vector<theory_feature_category_t>> m_category_filter;
+      const report_request_t              m_report_request;
       const std::vector<std::string>      m_resolved_feature_names;
       const std::vector<unsigned_integer> m_ordered_valid_system_ids;
       const std::vector<unsigned_integer> m_invalid_system_minterms;

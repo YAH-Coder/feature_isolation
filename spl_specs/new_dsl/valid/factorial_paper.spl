@@ -1,0 +1,7 @@
+SPL FactorialPaper
+
+FEATURES 4 r i l c
+
+CONSTRAINTS
+  ASSERT COUNT(r, i) = 1
+END

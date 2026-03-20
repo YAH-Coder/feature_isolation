@@ -9,6 +9,8 @@ RMDIR ?= rm -rf
 CXXSTANDARD := -std=c++23
 CPPFLAGS += -Iinclude
 CXXFLAGS += $(CXXSTANDARD) -Wall -pedantic -g -O0
+DEPFLAGS := -MMD -MP
+BENCH_CXXFLAGS := $(CXXSTANDARD) -Wall -pedantic -O2 -DNDEBUG
 
 SANITIZE ?= 0
 ifeq ($(SANITIZE),1)
@@ -23,6 +25,7 @@ MATH_DIR := $(OUTPUT_DIR)/mathhelper
 SPL_DIR := $(OUTPUT_DIR)/spl
 ANALYSIS_DIR := $(OUTPUT_DIR)/analysis
 ISOLATION_DIR := $(OUTPUT_DIR)/isolation
+BUILD_DIRS := $(GENERATED_DIR) $(MATH_DIR) $(SPL_DIR) $(ANALYSIS_DIR) $(ISOLATION_DIR)
 
 # Executable prefix
 ifeq ($(OS),Windows_NT)
@@ -31,68 +34,68 @@ else
     EXE_PREFIX := ./
 endif
 
-# Sources and dependencies
+# Sources
 MATH_TEST_SRC := src/mathhelper_test.cpp
-MATH_TEST_DEPS := include/fi_mathhelper.hpp
 MATH_BENCH_SRC := src/mathhelper_benchmark.cpp
-MATH_BENCH_DEPS := include/fi_mathhelper.hpp
 THEORY_BENCH_SRC := src/theory_benchmark.cpp
-THEORY_BENCH_DEPS := include/spl.hpp include/feature_analysis.hpp include/isolation.hpp
-
-SPL_TEST_SRC := src/spl_test.cpp
 SPL_SRC := src/spl.cpp
-SPL_ANALYSIS_SRC := src/feature_analysis.cpp
-SPL_DEPS := include/spl.hpp include/feature_analysis.hpp
-
-ANALYSIS_TEST_SRC := src/analysis_test.cpp
 ANALYSIS_SRC := src/feature_analysis.cpp
-
+SPL_TEST_SRC := src/spl_test.cpp
+ANALYSIS_TEST_SRC := src/analysis_test.cpp
 ISOLATION_TEST_SRC := src/isolation_test.cpp
-ISOLATION_DEPS := include/isolation.hpp
 ISOLATION_CLI_SRC := src/feature_isolation.cpp
 
 # Final executables
 TEST_MATH_BIN := $(MATH_DIR)/test_math
-BENCHMARK_BIN := $(MATH_DIR)/benchmark
+MATH_BENCHMARK_BIN := $(MATH_DIR)/benchmark
 THEORY_BENCHMARK_BIN := $(ANALYSIS_DIR)/theory_benchmark
 TEST_SPL_BIN := $(SPL_DIR)/test_spl
 TEST_ANALYSIS_BIN := $(ANALYSIS_DIR)/test_analysis
 TEST_ISOLATION_BIN := $(ISOLATION_DIR)/test_isolation
-FEATURE_ISOLATION_CLI_BIN := $(GENERATED_DIR)/feature_isolation_cli
+CLI_BIN := $(GENERATED_DIR)/cli
+CLI_TEST_SCRIPT := testing/cli_regression.py
 
 # Object files
 SPL_OBJS := $(SPL_DIR)/spl.o $(SPL_DIR)/feature_analysis.o $(SPL_DIR)/spl_test.o
 ANALYSIS_OBJS := $(ANALYSIS_DIR)/feature_analysis.o $(ANALYSIS_DIR)/analysis_test.o
 ISOLATION_OBJS := $(ISOLATION_DIR)/feature_analysis.o $(ISOLATION_DIR)/spl.o $(ISOLATION_DIR)/isolation_test.o
 CLI_OBJS := $(GENERATED_DIR)/spl.o $(GENERATED_DIR)/feature_analysis.o $(GENERATED_DIR)/feature_isolation.o
+ALL_OBJS := $(sort $(SPL_OBJS) $(ANALYSIS_OBJS) $(ISOLATION_OBJS) $(CLI_OBJS))
+ALL_DEPS := $(ALL_OBJS:.o=.d)
+
+# Convenience commands
+COMPILE.cxx = $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEPFLAGS) -c
+LINK.cxx = $(CXX) $(CPPFLAGS) $(CXXFLAGS)
+LINK_BENCH.cxx = $(CXX) $(CPPFLAGS) $(BENCH_CXXFLAGS)
 
 # Default target
 .DEFAULT_GOAL := all
 
 # User-facing targets
-all: test benchmark
+all: test bench
 
-BENCH_CXXFLAGS := $(CXXSTANDARD) -Wall -pedantic -O2 -DNDEBUG
+cli: $(CLI_BIN)
+feature_isolation_cli: cli
 
-test: test_math test_spl test_analysis test_isolation
+test: test_math test_spl test_analysis test_isolation test_cli
 
 test_math: $(TEST_MATH_BIN)
 	$(EXE_PREFIX)$(TEST_MATH_BIN)
 
-test_spl: $(TEST_SPL_BIN)
-	$(MKDIR_P) $(GENERATED_DIR)
+test_spl: $(TEST_SPL_BIN) | $(GENERATED_DIR)
 	$(EXE_PREFIX)$(TEST_SPL_BIN)
 
-test_analysis: $(TEST_ANALYSIS_BIN)
+test_analysis: $(TEST_ANALYSIS_BIN) | $(GENERATED_DIR)
 	$(EXE_PREFIX)$(TEST_ANALYSIS_BIN)
 
-test_isolation: $(TEST_ISOLATION_BIN)
+test_isolation: $(TEST_ISOLATION_BIN) | $(GENERATED_DIR)
 	$(EXE_PREFIX)$(TEST_ISOLATION_BIN)
 
-feature_isolation_cli: $(FEATURE_ISOLATION_CLI_BIN)
+test_cli: $(CLI_BIN) | $(GENERATED_DIR)
+	python3 $(CLI_TEST_SCRIPT)
 
-benchmark: $(BENCHMARK_BIN) $(THEORY_BENCHMARK_BIN)
-
+bench: $(MATH_BENCHMARK_BIN) $(THEORY_BENCHMARK_BIN)
+benchmark: bench
 benchmark_theory: $(THEORY_BENCHMARK_BIN)
 
 docs: Doxyfile
@@ -101,87 +104,73 @@ docs: Doxyfile
 help:
 	@echo "Usage: make [target]"
 	@echo
-	@echo "Targets:"
-	@echo "  all            Build and run all tests, then build benchmark"
-	@echo "  test           Build and run all tests"
-	@echo "  test_math      Build and run the mathhelper test"
-	@echo "  test_spl       Build and run the SPL test"
-	@echo "  test_analysis  Build and run the analysis test"
-	@echo "  test_isolation Build and run the isolation test"
-	@echo "  feature_isolation_cli Build only the feature isolation CLI binary"
-	@echo "  benchmark      Build the benchmark executables"
-	@echo "  benchmark_theory Build the theory benchmark executable"
-	@echo "  docs           Generate documentation with Doxygen (optional)"
-	@echo "  SANITIZE=1     Enable AddressSanitizer for builds"
-	@echo "  clean          Remove build artifacts"
-	@echo "  help           Show this help message"
+	@echo "Primary targets:"
+	@echo "  cli             Build the CLI executable ($(CLI_BIN))"
+	@echo "  test            Build and run the full test suite"
+	@echo "  bench           Build benchmark executables"
+	@echo "  clean           Remove all build artifacts and generated dependency files"
+	@echo "  help            Show this help message"
+	@echo
+	@echo "CLI quick start:"
+	@echo "  ./$(CLI_BIN) --help"
+	@echo "  ./$(CLI_BIN) guided"
+	@echo "  ./$(CLI_BIN) plan <spl-file>"
+	@echo "  ./$(CLI_BIN) analyze <spl-file> <output-file> -min-diffs=<false|true> -feature-names=<false|true>"
+	@echo
+	@echo "Compatibility aliases:"
+	@echo "  feature_isolation_cli -> cli"
+	@echo "  benchmark            -> bench"
+	@echo
+	@echo "Individual targets:"
+	@echo "  test_math, test_spl, test_analysis, test_isolation, test_cli"
+	@echo "  benchmark_theory, docs"
+	@echo
+	@echo "Variables:"
+	@echo "  SANITIZE=1      Enable AddressSanitizer for builds"
 
 clean:
-	$(RM) $(TEST_MATH_BIN) $(BENCHMARK_BIN) $(THEORY_BENCHMARK_BIN)
-	$(RM) $(TEST_SPL_BIN)
-	$(RM) $(TEST_ANALYSIS_BIN) $(ANALYSIS_OBJS)
-	$(RM) $(TEST_ISOLATION_BIN) $(ISOLATION_OBJS)
-	$(RM) $(FEATURE_ISOLATION_CLI_BIN)
-	$(RMDIR) docs/html
+	$(RMDIR) $(BUILD_DIRS) docs/html
 
 # Directory rules
-$(MATH_DIR) $(SPL_DIR) $(ANALYSIS_DIR) $(ISOLATION_DIR) $(GENERATED_DIR):
+$(BUILD_DIRS):
 	$(MKDIR_P) $@
 
+# Auto-generated header dependencies
+-include $(ALL_DEPS)
+
 # Build rules
-$(TEST_MATH_BIN): $(MATH_TEST_SRC) $(MATH_TEST_DEPS) | $(MATH_DIR)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $< -o $@
+$(TEST_MATH_BIN): $(MATH_TEST_SRC) | $(MATH_DIR)
+	$(LINK.cxx) $< -o $@ $(LDFLAGS) $(LDLIBS)
 
-$(BENCHMARK_BIN): $(MATH_BENCH_SRC) $(MATH_BENCH_DEPS) | $(MATH_DIR)
-	$(CXX) $(CPPFLAGS) $(BENCH_CXXFLAGS) $< -o $@
+$(MATH_BENCHMARK_BIN): $(MATH_BENCH_SRC) | $(MATH_DIR)
+	$(LINK_BENCH.cxx) $< -o $@ $(LDFLAGS) $(LDLIBS)
 
-$(THEORY_BENCHMARK_BIN): $(THEORY_BENCH_SRC) $(THEORY_BENCH_DEPS) $(SPL_SRC) $(ANALYSIS_SRC) | $(ANALYSIS_DIR)
-	$(CXX) $(CPPFLAGS) $(BENCH_CXXFLAGS) $(THEORY_BENCH_SRC) $(SPL_SRC) $(ANALYSIS_SRC) -o $@ $(LDFLAGS) $(LDLIBS)
+$(THEORY_BENCHMARK_BIN): $(THEORY_BENCH_SRC) $(SPL_SRC) $(ANALYSIS_SRC) | $(ANALYSIS_DIR)
+	$(LINK_BENCH.cxx) $(THEORY_BENCH_SRC) $(SPL_SRC) $(ANALYSIS_SRC) -o $@ $(LDFLAGS) $(LDLIBS)
 
 $(TEST_SPL_BIN): $(SPL_OBJS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(LDLIBS)
+	$(LINK.cxx) $^ -o $@ $(LDFLAGS) $(LDLIBS)
 
 $(TEST_ANALYSIS_BIN): $(ANALYSIS_OBJS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(LDLIBS)
+	$(LINK.cxx) $^ -o $@ $(LDFLAGS) $(LDLIBS)
 
 $(TEST_ISOLATION_BIN): $(ISOLATION_OBJS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(LDLIBS)
+	$(LINK.cxx) $^ -o $@ $(LDFLAGS) $(LDLIBS)
 
-$(FEATURE_ISOLATION_CLI_BIN): $(CLI_OBJS)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(LDLIBS)
+$(CLI_BIN): $(CLI_OBJS)
+	$(LINK.cxx) $^ -o $@ $(LDFLAGS) $(LDLIBS)
 
-# Object rules
-$(SPL_DIR)/spl.o: $(SPL_SRC) $(SPL_DEPS) | $(SPL_DIR)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+# Object rules with automatic dependency generation
+$(SPL_DIR)/%.o: src/%.cpp | $(SPL_DIR)
+	$(COMPILE.cxx) $< -o $@
 
-$(SPL_DIR)/feature_analysis.o: $(ANALYSIS_SRC) | $(SPL_DIR)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+$(ANALYSIS_DIR)/%.o: src/%.cpp | $(ANALYSIS_DIR)
+	$(COMPILE.cxx) $< -o $@
 
-$(SPL_DIR)/spl_test.o: $(SPL_TEST_SRC) $(SPL_DEPS) | $(SPL_DIR)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+$(ISOLATION_DIR)/%.o: src/%.cpp | $(ISOLATION_DIR)
+	$(COMPILE.cxx) $< -o $@
 
-$(GENERATED_DIR)/spl.o: $(SPL_SRC) $(SPL_DEPS) | $(GENERATED_DIR)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+$(GENERATED_DIR)/%.o: src/%.cpp | $(GENERATED_DIR)
+	$(COMPILE.cxx) $< -o $@
 
-$(GENERATED_DIR)/feature_analysis.o: $(ANALYSIS_SRC) | $(GENERATED_DIR)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
-
-$(GENERATED_DIR)/feature_isolation.o: $(ISOLATION_CLI_SRC) $(ISOLATION_DEPS) | $(GENERATED_DIR)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
-
-$(ANALYSIS_DIR)/feature_analysis.o: $(ANALYSIS_SRC) | $(ANALYSIS_DIR)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
-
-$(ANALYSIS_DIR)/analysis_test.o: $(ANALYSIS_TEST_SRC) | $(ANALYSIS_DIR)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
-
-$(ISOLATION_DIR)/feature_analysis.o: $(ANALYSIS_SRC) | $(ISOLATION_DIR)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
-
-$(ISOLATION_DIR)/spl.o: $(SPL_SRC) $(SPL_DEPS) | $(ISOLATION_DIR)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
-
-$(ISOLATION_DIR)/isolation_test.o: $(ISOLATION_TEST_SRC) $(ISOLATION_DEPS) | $(ISOLATION_DIR)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
-
-.PHONY: all test test_math test_spl test_analysis test_isolation feature_isolation_cli benchmark benchmark_theory docs clean help
+.PHONY: all cli feature_isolation_cli test test_math test_spl test_analysis test_isolation test_cli bench benchmark benchmark_theory docs clean help
