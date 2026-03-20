@@ -1,0 +1,66 @@
+/**
+ * @file documentation_guide.dox
+ * @brief Guided entry page for users and developers reading the generated docs.
+ *
+ * @page documentation_guide Documentation guide and reading paths
+ * @tableofcontents
+ *
+ * @section docs_goal Goal of this guide
+ *
+ * This page helps readers choose a sensible path through the generated
+ * documentation instead of jumping directly into the raw class and file
+ * indexes. The repository serves two audiences:
+ *
+ * - users who need to write and validate SPL files in the repository DSL,
+ * - developers who need to understand the parser, analysis pipeline, and
+ *   isolation implementation.
+ *
+ * @section docs_user_track User path: authoring an SPL file
+ *
+ * Read these pages in order if your goal is to create or understand an SPL
+ * input file:
+ *
+ * 1. @ref spl_authoring_guide
+ * 2. @ref spl_examples_guide
+ * 3. @ref spl_parser
+ *
+ * This path explains the full DSL structure, valid section usage, operator
+ * rules, availability annotations, reporting filters, worked examples, and the
+ * parser-backed executable semantics.
+ *
+ * @section docs_dev_track Developer path: implementation overview
+ *
+ * Read these pages in order if your goal is to understand how the repository
+ * executes the DSL and performs analysis:
+ *
+ * 1. @ref spl_parser
+ * 2. @ref feature_analysis
+ * 3. @ref feature_isolation
+ * 4. @ref fi_mathhelper
+ *
+ * This path takes you from parsing and system-space derivation to derived
+ * feature construction, isolation witnesses, and the arithmetic helpers used by
+ * the implementation.
+ *
+ * @section docs_reference_track API reference path
+ *
+ * After the guided pages above, use the generated reference views for exact
+ * type and function behavior:
+ *
+ * - Classes
+ * - Files
+ * - Namespaces
+ * - File Members
+ *
+ * The guided pages explain intent and workflow. The reference views document
+ * the exact symbols that implement those workflows.
+ *
+ * @section docs_related Key destination pages
+ *
+ * - @ref spl_authoring_guide
+ * - @ref spl_examples_guide
+ * - @ref spl_parser
+ * - @ref feature_analysis
+ * - @ref feature_isolation
+ * - @ref fi_mathhelper
+ */

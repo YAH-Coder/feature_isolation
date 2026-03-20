@@ -1,51 +1,85 @@
 /**
  * @file isolation.dox
- * @brief Theory-native feature-isolation overview.
+ * @brief Repository feature-isolation overview.
  *
  * @page feature_isolation Feature Isolation Analysis
+ * @tableofcontents
  *
- * The isolation layer operates on the theory-native feature registry derived
- * from the valid and available system spaces. It answers the question:
+ * @section iso_purpose Purpose
  *
- * "Which minimal system witnesses isolate this theory feature, or this class of
- * candidate features, from the other available valid systems?"
+ * The isolation module searches for system witnesses that isolate a target
+ * derived feature, or a remaining candidate feature set, relative to the other
+ * available valid systems of an SPL.
  *
- * @section iso_core_idea Core idea
+ * @section isolation_nav_sec Navigation and related pages
  *
- * For a given feature ID, the active implementation partitions the available
- * valid systems into:
+ * Recommended reading order:
  *
- * - `I`: systems in which the feature is present,
- * - `U`: systems in which the feature is absent.
+ * - @ref documentation_guide
+ * - @ref spl_parser
+ * - @ref feature_analysis
+ * - @ref feature_isolation
  *
- * From these sets it computes:
+ * Related pages:
  *
- * - the intersection of feature IDs over `I`,
- * - the union of feature IDs over `U`,
- * - and the flattened difference
- *   \f$\bigcap I \setminus \bigcup U\f$.
+ * - @ref spl_examples_guide
+ * - @ref fi_mathhelper
+
+ * @section iso_theory_bridge Theory-to-implementation bridge
  *
- * That flattened difference is the candidate feature set isolated by the
- * witness `(I, U)`.
+ * In `main.pdf`, feature location is described with `Loc(t)` over atoms and a
+ * system-to-atoms mapping. The repository does not construct that atom layer.
+ * Its executable isolation semantics are instead expressed directly in the
+ * derived-feature ID space built by `feature_analysis_t`.
  *
- * @section iso_result_model Result model
+ * This page therefore documents the implementation's operationalization of the
+ * paper idea, not a second independent theory.
+ *
+ * @section iso_core Core operational model
+ *
+ * For a target feature ID, `feature_isolation_t` partitions the available valid
+ * systems into:
+ *
+ * - `I`: systems in which the target derived feature is present,
+ * - `U`: systems in which the target derived feature is absent.
+ *
+ * It then computes:
+ *
+ * - `flatten_by_intersection(I)` — the features common to all systems in `I`,
+ * - `flatten_by_union(U)` — the features appearing in at least one system in
+ *   `U`,
+ * - `flattened_difference(I, U)` — the candidate features isolated by the
+ *   witness pair.
+ *
+ * The module can return either one witness (`some_difference`) or search the
+ * minimal witness family (`minimal_differences`).
+ *
+ * @section iso_results Result model
  *
  * `difference_t` stores one witness pair `(I, U)`.
  *
  * `isolation_result_t` stores:
- * - `features`: the isolated candidate feature set,
- * - `differences`: the set of minimal witness pairs that isolate exactly that
- *   candidate set.
  *
- * This is important in the missing-systems case: the isolated result may be a
- * set of multiple candidate features rather than a singleton. The visible report
- * therefore labels results as `UNIQUE` or `AMBIGUOUS`.
+ * - `features` — the isolated candidate feature set,
+ * - `differences` — the witness pairs that isolate exactly that set.
  *
- * @section iso_public_api Public API
+ * When the isolated feature set has size one, the visible report labels the
+ * result `UNIQUE`. Larger isolated sets are reported as `AMBIGUOUS`, which is
+ * especially relevant when some valid systems are marked missing.
  *
- * `feature_isolation_t` is the main entry point.
+ * @section iso_search Search strategy
  *
- * Key member functions:
+ * The active implementation uses a dynamic witness search over available
+ * systems and feature IDs. Internal helpers such as
+ * `build_witness_candidates`, `select_branch_feature`, and
+ * `search_minimal_differences` build and prune the witness search space.
+ *
+ * The current implementation no longer depends on a fixed compile-time bitset
+ * width for witness search.
+ *
+ * @section iso_api Public API
+ *
+ * `feature_isolation_t` is the main entry point. Its public operations include:
  *
  * - `partition(feature_id)`
  * - `sid_to_fids(system_id)`
@@ -57,40 +91,13 @@
  * - `print(...)`
  * - `name(feature_id)`
  *
- * `search_minimal_differences(...)` is the dynamic witness-search helper used
- * by the current implementation. It no longer depends on a fixed compile-time
- * bitset size.
+ * The class owns the parsed SPL specification, the resolved report request,
+ * and the derived feature-analysis object used by the search.
  *
- * @section iso_reporting Reporting
+ * @section iso_limits Limits and cost model
  *
- * The theory-native report prints these columns:
- *
- * - `FEATURE ID`
- * - `FEATURE NAME` or the simplified term
- * - `CANDIDATE FEATURES`
- * - `RESULT TYPE`
- * - witness information
- *
- * `RESULT TYPE` is `UNIQUE` when the isolated candidate set has size 1 and
- * `AMBIGUOUS` otherwise.
- *
- * @section iso_usage Typical usage
- *
- * @code{.cpp}
- * feature_isolation::feature_isolation_t isolation("example.spl");
- * isolation.print(std::cout);
- * @endcode
- *
- * or for a single feature:
- *
- * @code{.cpp}
- * feature_isolation::feature_isolation_t isolation("example.spl");
- * isolation.print(std::cout, 1, true, true);
- * @endcode
- *
- * @section iso_limitations Limitations
- *
- * The current implementation still constructs the complete theory feature space
- * from the valid-system space. That is semantically correct but can become
- * combinatorially expensive for larger SPLs.
+ * Isolation runs on top of the finite derived feature registry. This keeps the
+ * semantics explicit and inspectable, but the cost still grows with the size of
+ * the valid system space and the number of derived features. Large SPLs may
+ * therefore incur substantial report and isolation costs.
  */

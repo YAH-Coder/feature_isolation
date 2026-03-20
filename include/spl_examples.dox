@@ -1,0 +1,152 @@
+/**
+ * @file spl_examples.dox
+ * @brief Canonical examples and common authoring mistakes for the repository DSL.
+ *
+ * @page spl_examples_guide SPL examples and common mistakes
+ * @tableofcontents
+ *
+ * @section spl_examples_intro Purpose
+ *
+ * This page complements @ref spl_authoring_guide by showing the canonical SPL
+ * fixtures kept in the repository and by collecting parser and semantic pitfalls
+ * that are easy to miss when writing files by hand.
+ *
+ * @section spl_examples_nav_sec Navigation and related pages
+ *
+ * Recommended reading order:
+ *
+ * - @ref documentation_guide
+ * - @ref spl_authoring_guide
+ * - @ref spl_examples_guide
+ * - @ref spl_parser
+ *
+ * Related pages:
+ *
+ * - @ref feature_analysis
+
+ * @section spl_examples_canonical Canonical valid examples
+ *
+ * The following fixtures are the canonical positive examples used by the
+ * repository:
+ *
+ * - `spl_specs/new_dsl/valid/unconstrained_2f.spl`
+ * - `spl_specs/new_dsl/valid/fx_implies_fy.spl`
+ * - `spl_specs/new_dsl/valid/fx_implies_fy_missing_s0.spl`
+ * - `spl_specs/new_dsl/valid/factorial_paper.spl`
+ *
+ * Documentation-facing copies live under
+ * `external_documentation/examples_new_dsl/`.
+ *
+ * @subsection spl_examples_unconstrained Unconstrained two-feature example
+ *
+ * @code{.text}
+ * SPL TwoFeatureUnconstrained
+ * FEATURES 2 fx fy
+ * @endcode
+ *
+ * Use this when you want the full candidate system space `P(F)` with no
+ * additional constraints.
+ *
+ * @subsection spl_examples_implication Implication example
+ *
+ * @code{.text}
+ * SPL TwoFeatureFxImpliesFy
+ *
+ * FEATURES 2 fx fy
+ *
+ * CONSTRAINTS
+ *   ASSERT fx -> fy
+ * END
+ * @endcode
+ *
+ * This is the smallest canonical example with a non-trivial valid system space.
+ *
+ * @subsection spl_examples_missing Missing-system example
+ *
+ * @code{.text}
+ * SPL TwoFeatureFxImpliesFyMissingS0
+ *
+ * FEATURES 2 fx fy
+ *
+ * CONSTRAINTS
+ *   ASSERT fx -> fy
+ * END
+ *
+ * MISSING_SYSTEMS 1 END
+ * @endcode
+ *
+ * This is the paper-facing missing-system scenario used in the repository.
+ *
+ * @subsection spl_examples_factorial Factorial paper example
+ *
+ * @code{.text}
+ * SPL FactorialPaper
+ *
+ * FEATURES 4 r i l c
+ *
+ * CONSTRAINTS
+ *   ASSERT COUNT(r, i) = 1
+ * END
+ * @endcode
+ *
+ * This demonstrates the repository `COUNT(...)` syntax for a cardinality-style
+ * constraint.
+ *
+ * @section spl_examples_invalid Useful invalid patterns
+ *
+ * The repository also keeps negative fixtures under `spl_specs/new_dsl/invalid/`
+ * for parser and semantic rejection tests. Typical invalid patterns include:
+ *
+ * - `FEATURES` count does not match the number of names that follow,
+ * - a formula references an undeclared feature name,
+ * - a `COUNT(...)` list repeats the same feature name,
+ * - `COUNT(...) IN [a,b]` is written with `a > b`,
+ * - an available or missing system ID is not valid,
+ * - the same system ID appears in both availability sections,
+ * - both availability sections are present but do not partition the valid system
+ *   space.
+ *
+ * @section spl_examples_pitfalls Common authoring pitfalls
+ *
+ * @subsection spl_examples_pitfall_order Referencing names before FEATURES
+ *
+ * `FEATURES` must appear before formulas that reference feature names. Declare
+ * the basis first, then add `CONSTRAINTS`.
+ *
+ * @subsection spl_examples_pitfall_repeat Repeating top-level sections
+ *
+ * The intended grammar uses each top-level section at most once. The current
+ * parser does not reject repeated sections explicitly; later parsed payload may
+ * overwrite earlier payload. Treat repeated sections as invalid authoring style
+ * even if a particular file appears to parse.
+ *
+ * @subsection spl_examples_pitfall_end Omitting END
+ *
+ * `CONSTRAINTS` must use `END`.
+ *
+ * `AVAILABLE_SYSTEMS`, `MISSING_SYSTEMS`, and `CATEGORY_FILTER` can terminate at
+ * the next top-level section or end-of-file, but explicitly writing `END` is
+ * the clearest and most stable style.
+ *
+ * @subsection spl_examples_pitfall_filter CATEGORY_FILTER is not semantic input
+ *
+ * `CATEGORY_FILTER` changes reporting only. It does not change parsing, system
+ * validity, derived-feature generation, or feature simplification.
+ *
+ * @subsection spl_examples_pitfall_count COUNT(...) is repository syntax
+ *
+ * `COUNT(...)` is supported by the repository, but it is not the paper's own
+ * surface notation. In theory-facing explanations, treat it as a repository
+ * encoding of the paper's arithmetic cardinality idea.
+ *
+ * @section spl_examples_next Where to go next
+ *
+ * For the full authoring walkthrough, see @ref spl_authoring_guide.
+ *
+ * For the parser data structures and executable semantics, see:
+ *
+ * - @ref spl_parser
+ * - @ref feature_isolation::theory_formula_t "theory_formula_t"
+ * - @ref feature_isolation::spl_specification_t "spl_specification_t"
+ * - @ref feature_isolation::spl_processor_t "spl_processor_t"
+ */

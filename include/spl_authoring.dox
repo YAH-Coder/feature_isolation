@@ -1,0 +1,294 @@
+/**
+ * @file spl_authoring.dox
+ * @brief Tutorial for writing complete SPL specifications in the repository DSL.
+ *
+ * @page spl_authoring_guide How to write a complete SPL file
+ * @tableofcontents
+ *
+ * @section spl_authoring_start Start here
+ *
+ * This page is the user-facing authoring guide for the repository DSL. It is
+ * intended to be sufficient for writing a complete valid SPL file without
+ * opening the Markdown files under `external_documentation/`.
+ *
+ * For the parser and executable semantics behind this guide, see
+ * @ref spl_parser. For canonical examples and common mistakes, see
+ * @ref spl_examples_guide.
+ *
+ * @section spl_authoring_nav_sec Navigation and related pages
+ *
+ * Recommended reading order:
+ *
+ * - @ref documentation_guide
+ * - @ref spl_authoring_guide
+ * - @ref spl_examples_guide
+ * - @ref spl_parser
+ *
+ * Related pages:
+ *
+ * - @ref feature_analysis
+
+ * @section spl_authoring_scope What the DSL describes
+ *
+ * A repository SPL file declares:
+ *
+ * - the Boolean **fundamental features** of the product line,
+ * - optional logical constraints over those features,
+ * - optional information about which valid systems are available or missing,
+ * - an optional reporting filter over derived-feature categories.
+ *
+ * The DSL does not list derived features directly. The implementation derives
+ * them after it computes the valid system space.
+ *
+ * @section spl_authoring_lexical Lexical rules
+ *
+ * The current tokenizer accepts the following conventions:
+ *
+ * - whitespace between tokens is ignored,
+ * - `//` starts a line comment that runs to the end of the line,
+ * - names are word tokens built from letters, digits, `_`, `#`, and `.`,
+ * - integer literals are non-negative decimal integers,
+ * - word keywords are case-insensitive.
+ *
+ * The symbolic operators accepted by the current parser are:
+ *
+ * - `!`
+ * - `&&`
+ * - `||`
+ * - `->`
+ * - `<->`
+ * - `(`
+ * - `)`
+ * - `[`
+ * - `]`
+ * - `,`
+ * - `=`
+ * - `!=`
+ * - `<`
+ * - `<=`
+ * - `>`
+ * - `>=`
+ *
+ * @section spl_authoring_skeleton Full file skeleton
+ *
+ * The intended top-level shape of a complete SPL file is:
+ *
+ * @code{.text}
+ * [ SPL <name> ]
+ * FEATURES <count> <feature-1> ... <feature-n>
+ * [ CONSTRAINTS
+ *     ASSERT <formula>
+ *     ...
+ *   END ]
+ * [ AVAILABLE_SYSTEMS <system-id> ... [END] ]
+ * [ MISSING_SYSTEMS <system-id> ... [END] ]
+ * [ CATEGORY_FILTER <category> ... [END] ]
+ * @endcode
+ *
+ * `FEATURES` is mandatory. All other sections are optional.
+ *
+ * The grammar intends each top-level section to appear at most once. The
+ * current parser does not reject repeated sections explicitly; later parsed
+ * payload can overwrite earlier payload. Do not rely on that implementation
+ * detail.
+ *
+ * @section spl_authoring_sections Section-by-section guide
+ *
+ * @subsection spl_authoring_spl SPL
+ *
+ * `SPL` stores an optional product-line name.
+ *
+ * @code{.text}
+ * SPL FactorialPaper
+ * @endcode
+ *
+ * @subsection spl_authoring_features FEATURES
+ *
+ * `FEATURES` declares the Boolean fundamental-feature basis.
+ *
+ * @code{.text}
+ * FEATURES 3 fa fb fc
+ * @endcode
+ *
+ * The first number is the declared number of feature names that must follow.
+ * Feature names used later in formulas must be declared here first.
+ *
+ * @subsection spl_authoring_constraints CONSTRAINTS
+ *
+ * `CONSTRAINTS` is optional. It contains zero or more `ASSERT` statements and
+ * is terminated by `END`.
+ *
+ * @code{.text}
+ * CONSTRAINTS
+ *   ASSERT fa -> fb
+ *   ASSERT !(fb && fc)
+ * END
+ * @endcode
+ *
+ * All asserted formulas are conjoined. If the block is omitted, there are no
+ * constraints and every candidate system in `P(F)` is valid.
+ *
+ * @subsection spl_authoring_available AVAILABLE_SYSTEMS
+ *
+ * `AVAILABLE_SYSTEMS` lists valid systems that are available to the repository
+ * for analysis.
+ *
+ * @code{.text}
+ * AVAILABLE_SYSTEMS 1 3 4 END
+ * @endcode
+ *
+ * The parser accepts `END`, but it also stops this section at the next
+ * top-level section or at end-of-file. Using `END` is still the clearest style.
+ *
+ * @subsection spl_authoring_missing MISSING_SYSTEMS
+ *
+ * `MISSING_SYSTEMS` lists valid systems that are known to be missing.
+ *
+ * @code{.text}
+ * MISSING_SYSTEMS 1 END
+ * @endcode
+ *
+ * The same stop rules apply as for `AVAILABLE_SYSTEMS`.
+ *
+ * If only one of `AVAILABLE_SYSTEMS` or `MISSING_SYSTEMS` is present, the other
+ * side is derived by complement within the valid system space. If neither is
+ * present, all valid systems are treated as available.
+ *
+ * @subsection spl_authoring_filter CATEGORY_FILTER
+ *
+ * `CATEGORY_FILTER` is an optional reporting filter. It does not change
+ * parsing, constraint evaluation, validity, or derived-feature construction.
+ *
+ * @code{.text}
+ * CATEGORY_FILTER Core Fundamental Not END
+ * @endcode
+ *
+ * Accepted labels are:
+ *
+ * - `Impossible`
+ * - `Core`
+ * - `Fundamental`
+ * - `Not`
+ * - `And`
+ * - `Or`
+ * - `Complex`
+ *
+ * These are repository serialization labels. In theory-facing prose they map to
+ * the paper's category names.
+ *
+ * @section spl_authoring_formulas Formula language
+ *
+ * A formula may contain:
+ *
+ * - feature variables,
+ * - `TRUE` and `FALSE`,
+ * - negation `!`,
+ * - conjunction `&&`,
+ * - disjunction `||`,
+ * - implication `->`,
+ * - equivalence `<->`,
+ * - parentheses,
+ * - `COUNT(...)` expressions.
+ *
+ * @subsection spl_authoring_precedence Operator precedence
+ *
+ * The current parser uses this precedence order:
+ *
+ * 1. `!`
+ * 2. `&&`
+ * 3. `||`
+ * 4. `->`
+ * 5. `<->`
+ *
+ * Associativity in the current parser:
+ *
+ * - `->` is right-associative,
+ * - `<->` is left-associative.
+ *
+ * @subsection spl_authoring_count COUNT(...) expressions
+ *
+ * `COUNT(...)` counts how many listed declared fundamental features are true in
+ * a candidate system.
+ *
+ * Supported forms are:
+ *
+ * - `COUNT(f1, f2, ..., fn) = k`
+ * - `COUNT(f1, f2, ..., fn) != k`
+ * - `COUNT(f1, f2, ..., fn) < k`
+ * - `COUNT(f1, f2, ..., fn) <= k`
+ * - `COUNT(f1, f2, ..., fn) > k`
+ * - `COUNT(f1, f2, ..., fn) >= k`
+ * - `COUNT(f1, f2, ..., fn) IN [a,b]`
+ *
+ * Implementation rules checked against the parser:
+ *
+ * - every listed name must already appear in `FEATURES`,
+ * - duplicate names inside one `COUNT(...)` list are rejected,
+ * - `IN [a,b]` is inclusive,
+ * - `a <= b` is required.
+ *
+ * `COUNT(...)` is repository surface syntax for the paper's cardinality idea.
+ * The paper presents equivalent constraints arithmetically, for example as
+ * `fx + fy + fz <= 1`.
+ *
+ * @section spl_authoring_consistency Availability consistency rules
+ *
+ * The current implementation rejects a specification if:
+ *
+ * - an available system is not valid,
+ * - a missing system is not valid,
+ * - the same system is listed as both available and missing,
+ * - both sections are present but do not form a disjoint partition of the valid
+ *   system space.
+ *
+ * @section spl_authoring_minimal Minimal complete example
+ *
+ * A minimal complete file with only the mandatory section:
+ *
+ * @code{.text}
+ * SPL TwoFeatureUnconstrained
+ * FEATURES 2 fx fy
+ * @endcode
+ *
+ * This corresponds to the canonical fixture
+ * `spl_specs/new_dsl/valid/unconstrained_2f.spl`.
+ *
+ * @section spl_authoring_full Full worked example
+ *
+ * A fuller file with constraints, missing systems, and a reporting filter:
+ *
+ * @code{.text}
+ * SPL TwoFeatureFxImpliesFyMissingS0
+ *
+ * FEATURES 2 fx fy
+ *
+ * CONSTRAINTS
+ *   ASSERT fx -> fy
+ * END
+ *
+ * MISSING_SYSTEMS 1 END
+ *
+ * CATEGORY_FILTER Core Fundamental Not END
+ * @endcode
+ *
+ * In this example:
+ *
+ * - the declared basis is `{fx, fy}`,
+ * - only systems satisfying `fx -> fy` are valid,
+ * - system `1` is marked as missing if it is valid,
+ * - reporting is restricted to the selected categories.
+ *
+ * @section spl_authoring_afterparse What happens after parsing
+ *
+ * After parsing, the repository derives executable semantics from the file
+ * through:
+ *
+ * - @ref feature_isolation::spl_specification_t "spl_specification_t"
+ * - @ref feature_isolation::valid_system_ids
+ * - @ref feature_isolation::available_valid_system_ids
+ * - @ref feature_isolation::missing_valid_system_ids
+ * - @ref feature_isolation::theory_system_space
+ * - @ref feature_isolation::spl_processor_t "spl_processor_t"
+ *
+ * That system space is then consumed by feature analysis and isolation.
+ */
