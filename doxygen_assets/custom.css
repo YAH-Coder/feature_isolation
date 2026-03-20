@@ -1,0 +1,595 @@
+/*
+ * Custom Doxygen theme for the Feature Isolation Project.
+ * Intentionally conservative: modernized spacing, typography, code blocks,
+ * cards/tables, and navigation without replacing Doxygen's structure.
+ */
+
+/* ---------- Base palette and typography ---------- */
+:root {
+  --fi-bg: #f6f8fb;
+  --fi-surface: #ffffff;
+  --fi-surface-2: #f1f5f9;
+  --fi-border: #dbe3ee;
+  --fi-border-strong: #c9d5e3;
+  --fi-text: #17212b;
+  --fi-text-soft: #52606d;
+  --fi-accent: #2563eb;
+  --fi-accent-soft: #dbeafe;
+  --fi-success: #0f766e;
+  --fi-warning: #b45309;
+  --fi-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --fi-radius: 14px;
+  --fi-radius-sm: 10px;
+  --fi-code-bg: #0f172a;
+  --fi-code-text: #e2e8f0;
+  --fi-inline-code-bg: #eef2ff;
+}
+
+html, body {
+  background: var(--fi-bg);
+  color: var(--fi-text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+               "Segoe UI", Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+}
+
+body, table, div, p, dl {
+  color: var(--fi-text);
+}
+
+a, .qindex a, .sm-dox a, .contents a {
+  color: var(--fi-accent);
+  text-decoration: none;
+}
+
+a:hover, .contents a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Top area ---------- */
+#top {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  border-bottom: 1px solid var(--fi-border);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+
+#titlearea {
+  border-bottom: 0;
+}
+
+#projectname {
+  font-size: 2rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--fi-text);
+}
+
+#projectbrief {
+  margin-top: 0.35rem;
+  color: var(--fi-text-soft);
+  font-size: 1rem;
+}
+
+#main-nav {
+  border-top: 1px solid var(--fi-border);
+  border-bottom: 1px solid var(--fi-border);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+}
+
+/* ---------- Sidebar tree ---------- */
+#side-nav,
+#nav-tree,
+.ui-resizable-handle {
+  background: #f8fafc;
+  border-right: 1px solid var(--fi-border);
+}
+
+#nav-tree .label a,
+#nav-tree .selected a,
+#nav-tree .item a {
+  color: var(--fi-text);
+}
+
+#nav-tree .selected,
+#nav-tree .children_ul .selected {
+  background: var(--fi-accent-soft);
+  border-radius: 8px;
+}
+
+#nav-tree .selected a {
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+/* ---------- Main content shell ---------- */
+div.contents,
+.contents,
+div.header,
+div.textblock,
+div.ingroups {
+  max-width: 1100px;
+}
+
+.contents {
+  margin: 1.5rem auto 2rem auto;
+  padding: 0 1rem 2rem 1rem;
+}
+
+div.header {
+  margin: 1rem 1rem 0.75rem 1rem;
+  padding: 1.25rem 1.4rem;
+  background: var(--fi-surface);
+  border: 1px solid var(--fi-border);
+  border-radius: var(--fi-radius);
+  box-shadow: var(--fi-shadow);
+}
+
+div.headertitle {
+  padding: 0;
+}
+
+.title {
+  color: var(--fi-text);
+  font-weight: 760;
+  letter-spacing: -0.02em;
+}
+
+div.textblock,
+div.contents > p,
+div.contents > ul,
+div.contents > ol {
+  color: var(--fi-text);
+}
+
+/* ---------- Headings ---------- */
+.contents h1,
+.contents h2,
+.contents h3,
+.contents h4,
+.contents h5 {
+  color: var(--fi-text);
+  letter-spacing: -0.015em;
+}
+
+.contents h1 { font-size: 2rem; margin-top: 1rem; }
+.contents h2 {
+  font-size: 1.45rem;
+  margin-top: 1.85rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--fi-border);
+}
+.contents h3 { font-size: 1.2rem; margin-top: 1.35rem; }
+
+/* ---------- Cards / panels ---------- */
+dl.section,
+div.fragment,
+table.memberdecls,
+table.fieldtable,
+div.memitem,
+div.memproto,
+div.memdoc,
+div.directory,
+div.summary,
+div.toc {
+  background: var(--fi-surface);
+  border: 1px solid var(--fi-border);
+  border-radius: var(--fi-radius);
+  box-shadow: var(--fi-shadow);
+}
+
+dl.section {
+  margin: 1rem 0;
+  overflow: hidden;
+}
+
+dl.note dt,
+dl.warning dt,
+dl.attention dt,
+dl.important dt,
+dl.todo dt {
+  font-weight: 700;
+  color: var(--fi-text);
+}
+
+dl.note dd,
+dl.warning dd,
+dl.attention dd,
+dl.important dd,
+dl.todo dd {
+  margin-left: 0;
+  padding: 0.9rem 1rem 1rem 1rem;
+}
+
+dl.note dt { background: #eff6ff; }
+dl.warning dt, dl.attention dt { background: #fff7ed; }
+dl.important dt { background: #ecfeff; }
+
+/* ---------- Tables ---------- */
+table.memberdecls,
+table.fieldtable,
+table.params,
+table.directory {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+}
+
+table.memberdecls td,
+table.memberdecls th,
+table.fieldtable td,
+table.fieldtable th,
+table.params td,
+table.params th,
+table.directory td,
+table.directory th {
+  padding: 0.78rem 0.9rem;
+  border-bottom: 1px solid var(--fi-border);
+}
+
+table.memberdecls tr:last-child td,
+table.fieldtable tr:last-child td,
+table.params tr:last-child td,
+table.directory tr:last-child td {
+  border-bottom: 0;
+}
+
+.memitem {
+  margin: 1.2rem 0;
+  overflow: hidden;
+}
+
+.memproto, .memdoc {
+  border: 0;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.memproto {
+  background: linear-gradient(180deg, #f8fbff 0%, #f1f5f9 100%);
+  border-bottom: 1px solid var(--fi-border);
+  padding: 0.95rem 1rem;
+}
+
+.memdoc {
+  padding: 1rem 1rem 1.1rem 1rem;
+}
+
+.mlabel {
+  background: #e2e8f0;
+  color: #334155;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-weight: 600;
+}
+
+/* ---------- Code ---------- */
+div.fragment {
+  margin: 1rem 0;
+  overflow: auto;
+  background: var(--fi-code-bg);
+  border-color: #0b1220;
+}
+
+div.fragment .line,
+div.fragment,
+.fragment {
+  color: var(--fi-code-text);
+}
+
+pre.fragment {
+  padding: 1rem 1.1rem;
+}
+
+code, tt {
+  background: var(--fi-inline-code-bg);
+  color: #1e3a8a;
+  border-radius: 8px;
+  padding: 0.15rem 0.38rem;
+  font-family: "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Avoid unreadable inline code inside dark code blocks */
+div.fragment code,
+pre.fragment code,
+div.fragment tt,
+pre.fragment tt {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+/* ---------- Top navigation polish ---------- */
+#main-nav,
+.tabs,
+.tabs2,
+.tabs3,
+.tablist {
+  background: #ffffff !important;
+  border-color: var(--fi-border) !important;
+}
+
+#main-nav a,
+#main-nav a:visited,
+.tabs a,
+.tabs2 a,
+.tabs3 a,
+.tablist li a,
+.sm-dox a {
+  color: var(--fi-text) !important;
+}
+
+#main-nav .current a,
+.tabs .current a,
+.tabs2 .current a,
+.tabs3 .current a,
+.tablist li.current a {
+  color: #ffffff !important;
+  background: var(--fi-accent) !important;
+  border-radius: 999px;
+}
+
+#main-nav .current,
+.tabs .current,
+.tabs2 .current,
+.tabs3 .current,
+.tablist li.current {
+  background: transparent !important;
+}
+
+#main-nav a:hover,
+.tabs a:hover,
+.tabs2 a:hover,
+.tabs3 a:hover,
+.tablist li a:hover {
+  color: var(--fi-accent) !important;
+  text-decoration: none;
+}
+
+/* ---------- Remove duplicate per-page TOC when tree nav is enabled ---------- */
+div.toc,
+.contents > .toc,
+div.contents > .toc,
+div.textblock > .toc {
+  display: none !important;
+}
+
+/* ---------- Search / tabs ---------- */
+.sm-dox ul a span.sub-arrow,
+.tablist li a,
+.tabs a,
+.tabs2 a,
+.tabs3 a {
+  color: var(--fi-text);
+}
+
+.tablist li.current a,
+.tabs .current a,
+.tabs2 .current a,
+.tabs3 .current a {
+  color: var(--fi-accent);
+  font-weight: 700;
+}
+
+#MSearchBox {
+  border-radius: 999px;
+  border: 1px solid var(--fi-border-strong);
+  background: white;
+}
+
+/* ---------- Utility blocks ---------- */
+.summary, .ingroups, .toc {
+  padding: 0.95rem 1rem;
+  margin: 1rem 0;
+}
+
+div.ingroups {
+  color: var(--fi-text-soft);
+}
+
+/* ---------- Mobile responsiveness ---------- */
+@media (max-width: 1024px) {
+  .contents {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  div.header {
+    margin-left: 0.75rem;
+    margin-right: 0.75rem;
+  }
+
+  #projectname {
+    font-size: 1.6rem;
+  }
+}
+
+/* ---------- Dark mode ---------- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fi-bg: #0b1120;
+    --fi-surface: #0f172a;
+    --fi-surface-2: #111c31;
+    --fi-border: #23324a;
+    --fi-border-strong: #30415f;
+    --fi-text: #e5edf7;
+    --fi-text-soft: #9cb0c9;
+    --fi-accent: #7db7ff;
+    --fi-accent-soft: rgba(59, 130, 246, 0.18);
+    --fi-success: #5eead4;
+    --fi-warning: #fdba74;
+    --fi-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    --fi-code-bg: #020617;
+    --fi-code-text: #dbe7f5;
+    --fi-inline-code-bg: #1d2940;
+  }
+
+  html, body,
+  body, table, div, p, dl {
+    background: var(--fi-bg);
+    color: var(--fi-text);
+  }
+
+  #top {
+    background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+  }
+
+  #main-nav,
+  .tabs,
+  .tabs2,
+  .tabs3,
+  .tablist {
+    background: #0f172a !important;
+    border-color: var(--fi-border) !important;
+  }
+
+  #main-nav a,
+  #main-nav a:visited,
+  .tabs a,
+  .tabs2 a,
+  .tabs3 a,
+  .tablist li a,
+  .sm-dox a {
+    color: var(--fi-text) !important;
+  }
+
+  #main-nav .current a,
+  .tabs .current a,
+  .tabs2 .current a,
+  .tabs3 .current a,
+  .tablist li.current a {
+    color: #081120 !important;
+    background: var(--fi-accent) !important;
+  }
+
+  #projectname,
+  .title,
+  .contents h1, .contents h2, .contents h3, .contents h4, .contents h5,
+  #nav-tree .label a,
+  #nav-tree .item a {
+    color: var(--fi-text);
+  }
+
+  #nav-tree .selected a {
+    color: #bfdbfe;
+  }
+
+  table.memberdecls td,
+  table.memberdecls th,
+  table.fieldtable td,
+  table.fieldtable th,
+  table.params td,
+  table.params th,
+  table.directory td,
+  table.directory th {
+    color: var(--fi-text);
+  }
+
+  a, .qindex a, .sm-dox a, .contents a {
+    color: var(--fi-accent);
+  }
+
+  .mlabel {
+    background: #22304a;
+    color: #dbeafe;
+  }
+
+  code, tt {
+    color: #bfdbfe;
+  }
+}
+
+
+/* ---------- Doxygen 1.16 top navigation hard overrides ---------- */
+#main-nav,
+#navrow1,
+#navrow2,
+#navrow3,
+#nav-path,
+.tabs,
+.tabs2,
+.tabs3 {
+  background: #0b0f14 !important;
+  border-color: #1f2937 !important;
+}
+
+#main-nav a,
+#main-nav a:visited,
+#navrow1 a,
+#navrow1 a:visited,
+#navrow2 a,
+#navrow2 a:visited,
+#navrow3 a,
+#navrow3 a:visited,
+#nav-path a,
+#nav-path a:visited,
+.tabs a,
+.tabs a:visited,
+.tabs2 a,
+.tabs2 a:visited,
+.tabs3 a,
+.tabs3 a:visited,
+.tablist li a,
+.tablist li a:visited,
+.sm-dox a,
+.sm-dox a:visited,
+#main-nav .sm-dox a,
+#navrow1 .sm-dox a,
+#navrow2 .sm-dox a,
+#navrow3 .sm-dox a {
+  color: #f8fafc !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+#main-nav a:hover,
+#navrow1 a:hover,
+#navrow2 a:hover,
+#navrow3 a:hover,
+#nav-path a:hover,
+.tabs a:hover,
+.tabs2 a:hover,
+.tabs3 a:hover,
+.tablist li a:hover,
+.sm-dox a:hover {
+  color: #ffffff !important;
+  background: rgba(255,255,255,0.08) !important;
+  text-decoration: none !important;
+}
+
+#main-nav .current a,
+#navrow1 .current a,
+#navrow2 .current a,
+#navrow3 .current a,
+.tabs .current a,
+.tabs2 .current a,
+.tabs3 .current a,
+.tablist li.current a {
+  color: #ffffff !important;
+  background: #2563eb !important;
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+}
+
+#main-nav .current,
+#navrow1 .current,
+#navrow2 .current,
+#navrow3 .current,
+.tabs .current,
+.tabs2 .current,
+.tabs3 .current,
+.tablist li.current {
+  background: transparent !important;
+}
+
+/* ---------- Disable page outline panel on the right ---------- */
+#doc-content .toc-interactive,
+#doc-content .toc,
+div#nav-tree-contents + .toc,
+div.contents .toc.interactive,
+div.contents > .toc-interactive,
+div.contents > .toc {
+  display: none !important;
+}

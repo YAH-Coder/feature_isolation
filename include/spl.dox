@@ -1,10 +1,34 @@
 /**
  * @file spl.dox
- * @brief SPL DSL overview.
+ * @brief Repository SPL DSL overview.
  *
- * The project accepts a theory-aligned Boolean SPL DSL.
+ * @page spl_parser SPL DSL Overview
+ * @tableofcontents
  *
- * Top-level sections:
+ * @section spl_purpose Purpose
+ *
+ * The SPL module parses the repository DSL, validates its structural rules,
+ * compiles theory formulas to an executable form, evaluates those formulas on
+ * concrete system IDs, and derives the `system_space_t` consumed by feature
+ * analysis and isolation.
+ *
+ * This page is the API-and-semantics overview. For user-facing authoring
+ * guidance, start with @ref spl_authoring_guide. For canonical fixtures and
+ * common pitfalls, see @ref spl_examples_guide.
+
+ *
+ * @section spl_start_here Start here
+ *
+ * Recommended reading order:
+ *
+ * - @ref spl_authoring_guide
+ * - @ref spl_examples_guide
+ * - @ref spl_parser
+ *
+ * @section spl_top_level Top-level DSL structure
+ *
+ * The accepted DSL contains these sections:
+ *
  * - `SPL <name>`
  * - `FEATURES <count> <feature...>`
  * - optional `CONSTRAINTS ... ASSERT <formula> ... END`
@@ -12,16 +36,71 @@
  * - optional `MISSING_SYSTEMS ... END`
  * - optional `CATEGORY_FILTER ...`
  *
- * Formulas support Boolean connectives `!`, `&&`, `||`, `->`, `<->`, literals
- * `TRUE` and `FALSE`, and cardinality constraints such as
- * `COUNT(a, b, c) <= 2` and `COUNT(a, b, c) IN [1,2]`.
+ * `FEATURES` is required. The remaining sections are optional and are parsed
+ * into `spl_specification_t`.
  *
- * `COUNT(...)` counts selected Boolean features. It is part of the paper-aligned
- * core and should not be confused with repeated-feature multiplicity, which is
- * outside the current DSL.
+ * @section spl_formulas Supported formula language
  *
- * The parser stores asserted formulas in `spl_specification_t::m_constraints`
- * as a theory-native AST (`theory_formula_t`). Valid systems are derived only
- * from those formulas. `CATEGORY_FILTER` is a post-classification reporting
- * filter and never changes the generated feature space.
+ * The formula language supports:
+ *
+ * - feature references,
+ * - `TRUE` and `FALSE`,
+ * - unary negation `!`,
+ * - conjunction `&&`,
+ * - disjunction `||`,
+ * - implication `->`,
+ * - equivalence `<->`,
+ * - `COUNT(...)` comparison constraints such as `<=`, `>=`, `==`, `!=`, `<`,
+ *   and `>`,
+ * - `COUNT(...) IN [lower, upper]` interval constraints.
+ *
+ * The parser stores formulas in `theory_formula_t` with nested node types such
+ * as `feature_ref_t`, `negation_t`, `conjunction_t`, `count_compare_t`, and
+ * `count_interval_t`.
+ *
+ * `COUNT(...)` is repository syntax for expressing the paper's cardinality
+ * idea. The paper itself presents equivalent constraints arithmetically rather
+ * than with a literal `COUNT(...)` token.
+ *
+ * @section spl_execution Execution semantics
+ *
+ * The parser compiles feature references to numeric indices, after which
+ * `system_satisfies_constraints` evaluates the conjunction of asserted formulas
+ * for each candidate system ID. From that executable semantics the module
+ * derives:
+ *
+ * - `valid_system_ids(spec)`
+ * - `available_valid_system_ids(spec)`
+ * - `missing_valid_system_ids(spec)`
+ * - `theory_system_space(spec)`
+ *
+ * Availability blocks are interpreted only over valid systems. If exactly one
+ * of `AVAILABLE_SYSTEMS` or `MISSING_SYSTEMS` is given, the other is derived by
+ * complement within the valid system space.
+ *
+ * @section spl_reporting Reporting-related fields
+ *
+ * `CATEGORY_FILTER` is parsed into `spl_specification_t::m_category_filter`.
+ * It is a reporting hint only: it does not alter formula evaluation, validity,
+ * or derived-feature construction.
+ *
+ * `theory_dsl_coverage` summarizes which DSL capabilities of a specification
+ * are used and which paper-level notions remain outside the active parser.
+ *
+ * @section spl_examples Canonical examples
+ *
+ * Canonical valid fixtures used by the repository include:
+ *
+ * - `spl_specs/new_dsl/valid/unconstrained_2f.spl`
+ * - `spl_specs/new_dsl/valid/fx_implies_fy.spl`
+ * - `spl_specs/new_dsl/valid/fx_implies_fy_missing_s0.spl`
+ * - `spl_specs/new_dsl/valid/factorial_paper.spl`
+ *
+ * See @ref spl_examples_guide for walkthroughs and common invalid patterns.
+ *
+ * @section spl_boundaries Module boundaries
+ *
+ * This module owns parsing and executable constraint semantics. It does not
+ * classify derived features and it does not compute isolation witnesses.
+ * Those responsibilities belong to the feature-analysis and isolation modules.
  */

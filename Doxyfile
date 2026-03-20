@@ -3,15 +3,20 @@ PROJECT_NUMBER         =
 PROJECT_BRIEF          = Analyzing and isolating features within Software Product Lines (SPLs)
 OUTPUT_DIRECTORY       = docs
 INPUT                  = include/mainpage.dox \
+                         include/documentation_guide.dox \
                          include/fi_mathhelper.hpp \
                          include/fi_mathhelper.dox \
                          include/feature_analysis.hpp \
                          include/feature_analysis.dox \
                          include/spl.hpp \
                          include/spl.dox \
+                         include/spl_authoring.dox \
+                         include/spl_examples.dox \
                          include/isolation.hpp \
-                         include/isolation.dox
-IMAGE_PATH             = images
+                         include/isolation.dox \
+                         src/feature_analysis.cpp \
+                         src/spl.cpp \
+                         src/feature_isolation.cpp
 RECURSIVE              = NO
 GENERATE_LATEX         = NO
 GENERATE_HTML          = YES
@@ -25,4 +30,17 @@ EXTRACT_ALL            = YES
 EXTRACT_PRIVATE        = YES
 EXTRACT_STATIC         = YES
 WARN_IF_UNDOCUMENTED   = YES
-WARN_AS_ERROR          = NO
+WARN_AS_ERROR          = YES
+
+# Documentation UX and styling
+GENERATE_TREEVIEW      = YES
+FULL_SIDEBAR           = YES
+PAGE_OUTLINE_PANEL     = NO
+DISABLE_INDEX          = NO
+HTML_DYNAMIC_SECTIONS  = YES
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+DOT_IMAGE_FORMAT       = svg
+HTML_EXTRA_STYLESHEET  = doxygen_assets/custom.css
+
+TOC_INCLUDE_HEADINGS   = 0

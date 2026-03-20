@@ -1,20 +1,66 @@
 /**
  * @file feature_analysis.dox
- * @brief Theory-native feature analysis overview.
+ * @brief Derived-feature analysis overview.
  *
  * @page feature_analysis Feature Analysis System
+ * @tableofcontents
  *
- * The feature-analysis layer derives theory features from the valid system
- * space of an SPL. Its active semantics are system-first:
+ * @section fa_purpose Purpose
  *
- * 1. start from the Boolean base feature set declared by the DSL,
- * 2. enumerate candidate systems,
- * 3. keep exactly the valid systems that satisfy the conjunction of asserted
- *    formulas,
- * 4. derive the theory feature registry over that valid system space,
- * 5. classify each theory feature from its simplified logical term.
+ * The feature-analysis layer turns an SPL's finite system space into a derived
+ * feature registry that can be reported, filtered, and consumed by the
+ * isolation layer. It is the repository's executable realization of the
+ * derived-feature-space part of the theory.
  *
- * The theory-native categories are:
+ * @section feature_analysis_nav_sec Navigation and related pages
+ *
+ * Recommended reading order:
+ *
+ * - @ref documentation_guide
+ * - @ref spl_parser
+ * - @ref feature_analysis
+ * - @ref feature_isolation
+ *
+ * Related pages:
+ *
+ * - @ref spl_authoring_guide
+ * - @ref fi_mathhelper
+
+ * @section fa_pipeline Executed pipeline
+ *
+ * In the active implementation, analysis proceeds as follows:
+ *
+ * 1. accept the declared fundamental-feature count,
+ * 2. accept a `system_space_t` containing valid, available, and missing system
+ *    identifiers,
+ * 3. materialize one `feature_record_t` per derived feature,
+ * 4. compute the feature's system-membership vector,
+ * 5. derive its raw and simplified logical terms,
+ * 6. classify the simplified term into one of the repository categories,
+ * 7. initialize per-system feature membership for reporting and isolation.
+ *
+ * The implementation works over a finite, enumerated system space. It does not
+ * try to symbolically represent the entire theory beyond that executable model.
+ *
+ * @section fa_data_model Main data structures
+ *
+ * The principal analysis data types are:
+ *
+ * - `feature_t` — a Boolean membership vector over the ordered valid systems.
+ * - `feature_ids_t` — a compact set-like container for positive feature IDs.
+ * - `feature_record_t` — one derived feature with its identifier,
+ *   membership vector, category, raw term, simplified term, and display name.
+ * - `system_space_t` — the valid, available, and missing system-ID subsets.
+ * - `system_t` — the derived features present in one concrete system.
+ * - `report_request_t` — reporting controls such as category restrictions and
+ *   detail toggles.
+ * - `report_feasibility_t` and `report_execution_plan_t` — planning metadata
+ *   for report generation.
+ *
+ * @section fa_categories Categories
+ *
+ * The code classifies derived features into these categories:
+ *
  * - `Impossible`
  * - `Core`
  * - `Fundamental`
@@ -23,41 +69,37 @@
  * - `Or`
  * - `Complex`
  *
- * @section fa_public_types Public types
+ * These are repository serialization tokens. They correspond to paper-level
+ * category concepts, but the printed spellings are the implementation's stable
+ * external labels.
  *
- * - `feature_t` stores system-membership information.
- * - `feature_record_t` stores one derived theory feature, including:
- *   - its internal numeric identifier,
- *   - its system-membership vector,
- *   - its raw logical term,
- *   - its simplified logical term,
- *   - its derived category,
- *   - and an optional display name.
- * - `system_space_t` stores the valid, available, and missing system sets.
- * - `system_t` stores the features observed in one concrete system.
+ * @section fa_api Central analysis object
  *
- * @section fa_feature_analysis_t feature_analysis_t
+ * `feature_analysis_t` is the central object of this module. It stores:
  *
- * `feature_analysis_t` is the central analysis object. In the active
- * theory-native path it is constructed with:
+ * - the declared fundamental-feature count,
+ * - the chosen `system_space_t`,
+ * - the resolved feature names,
+ * - the active report request,
+ * - the derived feature registry,
+ * - and the per-system feature membership view.
  *
- * - the size of the Boolean base feature set,
- * - the valid-system set,
- * - the available-system set,
- * - the missing-system set,
- * - and the declared feature names.
+ * Its public API supports category lookup, feature inclusion tests, report
+ * planning, and multiple report-printing views.
  *
- * @section fa_printing Reporting
+ * @section fa_reporting Reporting conventions
  *
- * User-facing reporting should stay aligned with the paper representation. In
- * particular, the CLI should present:
+ * User-facing reporting aims to stay close to the paper representation where
+ * practical. The implementation therefore prints paper-style labels such as
+ * `t_i`, `β(t_i)`, and `s_i`, while still using repository IDs and registry
+ * structures internally.
  *
- * - paper-style indices `i`,
- * - paper-style feature labels `t_i`,
- * - system-set representations of features,
- * - characteristic vectors `β(t_i)`,
- * - simplified and raw logical terms `ℓ_T(t_i)`.
+ * `CATEGORY_FILTER` and `report_request_t` affect what is printed, but they do
+ * not change the valid system space or the derived feature registry itself.
  *
- * Internal identifiers may remain implementation-specific as long as the
- * printed output stays paper-aligned.
+ * @section fa_boundaries Module boundaries
+ *
+ * This module does not parse the DSL. Parsing and formula evaluation live in
+ * the SPL module. Likewise, witness search itself lives in the isolation
+ * module, although it depends on the feature registry produced here.
  */

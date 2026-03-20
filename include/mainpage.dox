@@ -1,148 +1,82 @@
 /**
  * @mainpage Feature Isolation Project
  *
- * @section intro_sec Introduction
+ * @tableofcontents
  *
- * The Feature Isolation Project analyzes Software Product Lines (SPLs) using the
- * set-theoretic model from the paper by Ulrich Eisenecker and Richard Müller,
- * *Software Product Lines and Features from the Perspective of Set Theory with
- * an Application to Feature Location*.
+ * @section intro_sec Purpose
  *
- * The project parses SPL specifications, derives the valid system space from
- * Boolean and cardinality constraints, constructs a theory-native feature
- * registry over that system space, and computes feature-isolation witnesses.
+ * This repository analyzes Software Product Lines (SPLs) with a finite,
+ * executable model grounded in the set-theoretic presentation in `main.pdf`.
+ * The code reads a repository DSL, derives the valid system space, constructs a
+ * derived feature registry over that system space, classifies the derived
+ * features, and computes feature-isolation witnesses.
  *
- * @section background_sec Theory overview
+ * `main.pdf` is the external theory authority. Repository module pages and API
+ * comments document how the implementation encodes or operationalizes that
+ * theory; they do not redefine it.
  *
- * The implementation is organized around four spaces:
+ * @section start_here_sec Start here
  *
- * - the Boolean base feature set declared in the DSL,
- * - the candidate system space $P(F)$,
- * - the valid system space obtained by filtering candidates through the
- *   conjunction of asserted constraints,
- * - and the theory feature space derived from the valid systems.
+ * New readers should begin with @ref documentation_guide. That page gives
+ * separate reading paths for SPL authors and implementation-oriented readers.
  *
- * Features are classified from their simplified logical terms into the
- * categories `Impossible`, `Core`, `Fundamental`, `Not`, `And`, `Or`, and
- * `Complex`.
+ * The most important user-facing pages are:
  *
- * @section components_sec Components
+ * - @ref spl_authoring_guide
+ * - @ref spl_examples_guide
+ * - @ref spl_parser
  *
- * - [Mathematical Helper Functions](ef fi_mathhelper)
- * - [Feature Analysis System](ef feature_analysis)
- * - [SPL Specification Parser](ef spl_parser)
- * - [Feature Isolation Analysis](ef feature_isolation)
+ * The most important implementation pages are:
  *
- * @section usage_sec Typical workflow
+ * - @ref feature_analysis
+ * - @ref feature_isolation
+ * - @ref fi_mathhelper
  *
- * 1. Parse an SPL specification:
- *    @code{.cpp}
- *    feature_isolation::spl_processor_t processor("example.spl");
- *    auto spec = processor.get_specification();
- *    @endcode
+ * @section theory_sec Implemented semantic pipeline
  *
- * 2. Derive the valid, available, and missing system spaces:
- *    @code{.cpp}
- *    auto valid = feature_isolation::valid_system_ids(spec);
- *    auto available = feature_isolation::available_valid_system_ids(spec);
- *    auto missing = feature_isolation::missing_valid_system_ids(spec);
- *    @endcode
+ * The active implementation follows this pipeline:
  *
- * 3. Build the feature registry:
- *    @code{.cpp}
- *    feature_isolation::feature_analysis_t analysis(
- *        spec.m_F,
- *        feature_isolation::theory_system_space(spec),
- *        std::vector<std::string>(spec.m_feature_names.begin(),
- *                                 spec.m_feature_names.end()));
- *    @endcode
+ * 1. Parse the declared Boolean fundamental-feature set `F` and the asserted
+ *    constraint formulas from the SPL DSL.
+ * 2. Enumerate the candidate system space `P(F)`.
+ * 3. Retain exactly the valid systems that satisfy all asserted formulas.
+ * 4. Split the valid system space into the `valid`, `available`, and `missing`
+ *    subsets represented by `system_space_t`.
+ * 5. Derive a repository feature registry over that finite system space.
+ * 6. Classify each derived feature from its simplified logical term.
+ * 7. Run isolation analysis over the available valid systems.
  *
- * 4. Run isolation analysis:
- *    @code{.cpp}
- *    feature_isolation::feature_isolation_t isolation("example.spl");
- *    isolation.print(std::cout);
- *    @endcode
+ * The implementation is therefore system-first. It does not manipulate the
+ * paper's atom model directly.
  *
- * @section dsl_sec SPL DSL
+ * @section terminology_sec Repository terminology
  *
- * The accepted SPL language contains these top-level sections:
+ * Theory-facing documentation should prefer the paper-aligned terms:
  *
- * - `SPL` — optional SPL name.
- * - `FEATURES` — mandatory Boolean base feature set.
- * - `CONSTRAINTS` — optional conjunction of `ASSERT` formulas.
- * - `AVAILABLE_SYSTEMS` — optional list of valid systems known to be
- *   available.
- * - `MISSING_SYSTEMS` — optional list of valid systems known to be missing.
- * - `CATEGORY_FILTER` — optional post-classification output filter over the
- *   theory-native categories.
+ * - **fundamental features** for the declared Boolean feature set,
+ * - **valid system space** for the systems satisfying the asserted formulas,
+ * - **derived feature space** for the repository feature registry induced from
+ *   the valid systems.
  *
- * Example:
- * @code{.txt}
- * SPL MyProduct
+ * User-visible category labels are repository serialization tokens:
+ * `Impossible`, `Core`, `Fundamental`, `Not`, `And`, `Or`, and `Complex`.
+ * These correspond to the paper's category names but are printed in the forms
+ * used by the code and CLI.
  *
- * FEATURES 4 fx fy fz fw
+ * @section components_sec Guided documentation map
  *
- * CONSTRAINTS
- *   ASSERT fx -> fy
- *   ASSERT !(fz && fw)
- *   ASSERT (fx || fz) -> fw
- *   ASSERT COUNT(fx, fy, fz) <= 2
- *   ASSERT COUNT(fy, fz, fw) IN [1,2]
- * END
+ * - @ref documentation_guide — entry page and reading paths
+ * - @ref spl_authoring_guide — how to write a complete SPL file
+ * - @ref spl_examples_guide — canonical examples and common mistakes
+ * - @ref spl_parser — parser and executable semantics
+ * - @ref feature_analysis — derived-feature construction and reporting
+ * - @ref feature_isolation — witness search and isolation output
+ * - @ref fi_mathhelper — arithmetic and combinatorial helpers
  *
- * AVAILABLE_SYSTEMS 2 4 6 8 END
- * MISSING_SYSTEMS 10 12 END
+ * @section work_sec Generated reference views
  *
- * CATEGORY_FILTER Core Fundamental Not And Or Complex
- * @endcode
- *
- * Semantics:
- *
- * - If `CONSTRAINTS` is omitted, or if `CONSTRAINTS ... END` is empty, there
- *   are no constraints.
- * - `COUNT(...)` counts selected Boolean features and is part of the core
- *   theory-aligned DSL.
- * - `AVAILABLE_SYSTEMS` and `MISSING_SYSTEMS` may mention only valid systems.
- * - If both availability blocks are present, they must form a disjoint
- *   partition of the valid system space.
- * - If only one availability block is present, the other is derived by
- *   complement over the valid system space.
- * - If neither availability block is present, all valid systems are treated as
- *   available.
- * - `CATEGORY_FILTER` affects reporting only. It does not affect validity,
- *   feature generation, simplification, or classification.
- * - Attributes and repeated-feature multiplicity are outside the active DSL.
- *
- * @section isolation_sec Feature isolation
- *
- * For a theory feature $t$, the active isolation procedure partitions the
- * available valid systems into:
- *
- * - $I$: systems in which $t$ is present,
- * - $U$: systems in which $t$ is absent.
- *
- * It then computes:
- *
- * - the intersection of feature IDs over $I$,
- * - the union of feature IDs over $U$,
- * - and the flattened difference between those two sets.
- *
- * In the complete-information case the result may uniquely identify a feature.
- * With missing systems, the same witness may isolate a set of candidate
- * features instead. The output therefore distinguishes between `UNIQUE` and
- * `AMBIGUOUS` isolation results.
- *
- * @section references_sec References
- *
- * - Ulrich Eisenecker and Richard Müller,
- *   *Software Product Lines and Features from the Perspective of Set Theory
- *   with an Application to Feature Location*.
- *
- * @section notes_sec Additional notes
- *
- * - The active implementation evaluates its finite constraint language directly.
- * - The semantic source of truth is
- *   `external_documentation/theory_dsl_semantics.md`.
- * - CLI output aims to mirror the paper representation using `t_i`, `β(t_i)`,
- *   `ℓ_T(t_i)`, and paper-style system labels `s0`, `s1`, ...
+ * In addition to the guided pages above, Doxygen also generates reference views
+ * for classes, files, namespaces, and file members. Use those indexes when you
+ * need exact symbol-level behavior after reading the overview and tutorial
+ * pages.
  */
