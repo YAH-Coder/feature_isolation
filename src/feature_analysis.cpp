@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <deque>
 #include <cmath>
+#include <iomanip>
 #include <limits>
 #include <map>
 
@@ -17,6 +18,79 @@
 
 namespace feature_isolation
 {
+  namespace
+  {
+    [[nodiscard]] std::string format_decimal(long double value, int decimals)
+    {
+      std::ostringstream os {};
+      os << std::fixed << std::setprecision(decimals) << value;
+      auto rendered { os.str() };
+      while (!rendered.empty() && rendered.back() == '0')
+      {
+        rendered.pop_back();
+      }
+      if (!rendered.empty() && rendered.back() == '.')
+      {
+        rendered.pop_back();
+      }
+      return rendered;
+    }
+  }
+
+  std::string human_readable_duration(long double runtime_ms)
+  {
+    const auto seconds = runtime_ms / 1000.0L;
+    if (seconds < 60.0L)
+    {
+      return format_decimal(seconds, seconds < 10.0L ? 1 : 0) + " s";
+    }
+
+    const auto total_seconds = static_cast<unsigned long long>(std::llround(seconds));
+    const auto minutes = total_seconds / 60ULL;
+    const auto remaining_seconds = total_seconds % 60ULL;
+    if (minutes < 60ULL)
+    {
+      std::ostringstream os {};
+      os << minutes << " min";
+      if (remaining_seconds != 0ULL)
+      {
+        os << ' ' << remaining_seconds << " s";
+      }
+      return os.str();
+    }
+
+    const auto hours = minutes / 60ULL;
+    const auto remaining_minutes = minutes % 60ULL;
+    std::ostringstream os {};
+    os << hours << " h";
+    if (remaining_minutes != 0ULL)
+    {
+      os << ' ' << remaining_minutes << " min";
+    }
+    return os.str();
+  }
+
+  std::string human_readable_size(long double bytes)
+  {
+    constexpr long double kib = 1024.0L;
+    constexpr long double mib = kib * 1024.0L;
+    constexpr long double gib = mib * 1024.0L;
+
+    if (bytes >= gib)
+    {
+      return format_decimal(bytes / gib, 2) + " GiB";
+    }
+    if (bytes >= mib)
+    {
+      return format_decimal(bytes / mib, 2) + " MiB";
+    }
+    if (bytes >= kib)
+    {
+      return format_decimal(bytes / kib, 1) + " KiB";
+    }
+    return format_decimal(bytes, 0) + " bytes";
+  }
+
   report_request_t report_request_t::unrestricted()
   {
     return report_request_t {};
@@ -248,10 +322,33 @@ namespace feature_isolation
     const auto simple_included_upper_bound
         = std::min(estimate.included_feature_upper_bound,
                    estimate.simple_feature_upper_bound);
-    const auto complex_included_upper_bound
+    auto complex_included_upper_bound
         = estimate.included_feature_upper_bound > simple_included_upper_bound
               ? estimate.included_feature_upper_bound - simple_included_upper_bound
               : 0;
+
+    const bool complex_category_requested
+        = !report_request.requested_categories.has_value()
+          || std::ranges::find(report_request.requested_categories.value(),
+                               theory_feature_category_t::complex)
+                 != report_request.requested_categories.value().end();
+    estimate.complex_workload_uncertain
+        = report_request.mode != report_mode_t::summary
+          && report_request.include_complex_details
+          && complex_category_requested
+          && estimate.complex_feature_lower_bound == 0
+          && estimate.theory_feature_count >= saturated_power2_count(12)
+          && estimate.valid_system_count >= 10;
+
+    if (estimate.complex_workload_uncertain)
+    {
+      const auto fallback_complex_share
+          = std::max<unsigned_integer>(1, estimate.theory_feature_count / 8);
+      complex_included_upper_bound
+          = std::max(complex_included_upper_bound,
+                     std::min(estimate.included_feature_upper_bound,
+                              fallback_complex_share));
+    }
 
     estimate.estimated_analysis_runtime_ms
         = setup_runtime_ms_constant
@@ -264,7 +361,7 @@ namespace feature_isolation
       estimate.estimated_analysis_runtime_ms
           += static_cast<long double>(simple_included_upper_bound)
              * simple_detail_runtime_ms_per_feature;
-      if (report_request.include_complex_details)
+      if (report_request.include_complex_details && complex_category_requested)
       {
         const auto valid_system_square
             = static_cast<long double>(estimate.valid_system_count)
@@ -375,6 +472,12 @@ namespace feature_isolation
           estimate.observations,
           "Complex derived features are likely to dominate the requested detail work.");
     }
+    if (estimate.complex_workload_uncertain)
+    {
+      append_observation(
+          estimate.observations,
+          "Complex-feature cost is still uncertain here, so a non-complex first pass is the safer default.");
+    }
     if (!report_request.include_complex_details)
     {
       append_observation(
@@ -420,8 +523,8 @@ namespace feature_isolation
        << valid_system_count << ", derived features≈" << theory_feature_count
        << ", included features≤" << included_feature_upper_bound
        << ", complex features≥" << complex_feature_lower_bound
-       << ", estimated runtime≈" << estimated_total_runtime_ms << " ms"
-       << ", estimated output≈" << estimated_output_bytes << " bytes"
+       << ", estimated runtime≈" << human_readable_duration(estimated_total_runtime_ms)
+       << ", estimated output≈" << human_readable_size(estimated_output_bytes)
        << ", risk=" << to_string(risk);
     return os.str();
   }
@@ -601,10 +704,45 @@ namespace feature_isolation
     }
 
     auto best_candidate = executable_candidates.front();
-    if (requested_feasibility.risk != feasibility_risk_t::safe)
+    if (requested_feasibility.complex_workload_uncertain)
     {
       for (const auto& candidate : executable_candidates)
       {
+        if (same_request(candidate.request, report_request))
+        {
+          continue;
+        }
+        if (candidate.request.mode == report_request.mode
+            && !candidate.request.include_complex_details
+            && risk_rank(candidate.feasibility.risk)
+                   <= risk_rank(requested_feasibility.risk))
+        {
+          best_candidate = candidate;
+          break;
+        }
+      }
+    }
+
+    if (requested_feasibility.risk != feasibility_risk_t::safe
+        || requested_feasibility.complex_workload_uncertain)
+    {
+      for (const auto& candidate : executable_candidates)
+      {
+        if (requested_feasibility.complex_workload_uncertain
+            && !same_request(best_candidate.request, report_request))
+        {
+          if (same_request(candidate.request, report_request))
+          {
+            continue;
+          }
+          if (candidate.request.mode != best_candidate.request.mode
+              && risk_rank(candidate.feasibility.risk)
+                     == risk_rank(best_candidate.feasibility.risk))
+          {
+            continue;
+          }
+        }
+
         const auto candidate_rank { risk_rank(candidate.feasibility.risk) };
         const auto best_rank { risk_rank(best_candidate.feasibility.risk) };
         if (candidate_rank < best_rank)
@@ -631,6 +769,10 @@ namespace feature_isolation
     if (plan.adjustment_recommended)
     {
       plan.rationale = best_candidate.rationale;
+    }
+    else if (requested_feasibility.complex_workload_uncertain)
+    {
+      plan.rationale = "Complex-feature cost is still uncertain for this request, so the planner would normally favor a non-complex first pass.";
     }
     else if (requested_feasibility.risk == feasibility_risk_t::safe)
     {

@@ -463,6 +463,40 @@ TEST_CASE("feasibility estimator keeps constrained non-complex isolation reports
   REQUIRE_FALSE(estimate.approval_recommended);
 }
 
+TEST_CASE("feasibility estimator marks constrained full-detailed reports with uncertain complex cost as non-default",
+          "[report_feasibility_t][estimate][constrained]")
+{
+  system_space_t space {};
+  space.valid = make_system_ids({ 1, 2, 3, 4, 5, 6, 7, 8,
+                                  9, 10, 11, 12, 13, 14, 15, 16 });
+
+  auto request = report_request_t::unrestricted();
+  request.include_raw_terms = false;
+  request.include_simplified_terms = true;
+  request.include_isolation = false;
+
+  const auto estimate = estimate_report_feasibility(22, space, request);
+  const auto plan = plan_report_execution(22, space, request);
+
+  REQUIRE(estimate.complex_workload_uncertain);
+  REQUIRE(estimate.risk != feasibility_risk_t::safe);
+  REQUIRE(plan.adjustment_recommended);
+  REQUIRE(plan.recommended_request.mode == report_mode_t::full);
+  REQUIRE_FALSE(plan.recommended_request.include_complex_details);
+}
+
+TEST_CASE("feasibility summaries render human-readable runtime units",
+          "[report_feasibility_t][format]")
+{
+  const auto estimate = estimate_report_feasibility(
+      2, four_system_space(), report_request_t::unrestricted());
+  const auto summary = estimate.summary();
+
+  REQUIRE(summary.find("estimated runtime≈") != std::string::npos);
+  REQUIRE(summary.find(" ms") == std::string::npos);
+  REQUIRE(summary.find(" s") != std::string::npos);
+}
+
 TEST_CASE("feasibility estimator reports derived-feature-space signals beyond raw size",
           "[report_feasibility_t][estimate]")
 {

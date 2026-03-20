@@ -1,7 +1,0 @@
-FEATURES 2
-FeatureA
-FeatureB
-
-EXPLICIT_DEPENDENCIES
-FeatureA REQUIRES_ALL NotFoundFeature END
-END

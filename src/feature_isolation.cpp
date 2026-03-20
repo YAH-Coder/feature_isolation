@@ -1782,10 +1782,10 @@ namespace
                         const execution_guardrails_t& guardrails)
   {
     std::ostringstream os {};
-    os << "runtime≈" << feasibility.estimated_total_runtime_ms << " ms"
-       << " (limit " << guardrails.max_runtime_ms << " ms), output≈"
-       << feasibility.estimated_output_bytes << " bytes"
-       << " (limit " << guardrails.max_output_bytes << " bytes)";
+    os << "runtime≈" << human_readable_duration(feasibility.estimated_total_runtime_ms)
+       << " (limit " << human_readable_duration(guardrails.max_runtime_ms) << "), output≈"
+       << human_readable_size(feasibility.estimated_output_bytes)
+       << " (limit " << human_readable_size(guardrails.max_output_bytes) << ")";
     return os.str();
   }
 
