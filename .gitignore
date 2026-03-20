@@ -39,5 +39,8 @@ Doxyfile.in
 /external_documentation/*.aux
 /external_documentation/*.log
 /external_documentation/*.gz
+/external_documentation/isolation.md
+/external_documentation/specs.md
+/external_documentation/semantics.md
 
 config.mk
