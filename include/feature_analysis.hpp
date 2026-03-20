@@ -548,6 +548,7 @@ namespace feature_isolation
       unsigned_integer simple_feature_upper_bound { 0 }; /**< Upper bound on simple features. */
       unsigned_integer complex_feature_lower_bound { 0 }; /**< Lower bound on complex features. */
       unsigned_integer included_feature_upper_bound { 0 }; /**< Upper bound on features included in the report. */
+      bool             complex_workload_uncertain { false }; /**< Whether complex-detail cost remains too uncertain for a confident default recommendation. */
       long double      estimated_analysis_runtime_ms { 0.0L }; /**< Estimated analysis runtime in milliseconds. */
       long double      estimated_isolation_runtime_ms { 0.0L }; /**< Estimated isolation runtime in milliseconds. */
       long double      estimated_total_runtime_ms { 0.0L }; /**< Combined runtime estimate in milliseconds. */
@@ -586,6 +587,11 @@ namespace feature_isolation
       /** @brief Render a compact execution-plan summary. */
       [[nodiscard]] std::string summary() const;
   };
+
+  /** @brief Format a runtime estimate in human-readable units. */
+  [[nodiscard]] std::string human_readable_duration(long double runtime_ms);
+  /** @brief Format an output-size estimate in human-readable units. */
+  [[nodiscard]] std::string human_readable_size(long double bytes);
 
   /** @brief Serialize a report mode. */
   [[nodiscard]] std::string to_string(report_mode_t mode);
