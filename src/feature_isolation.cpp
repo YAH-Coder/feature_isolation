@@ -1806,32 +1806,6 @@ namespace
     }
   }
 
-  /** @brief Prints an up-front warning when the requested report is not recommended as-is. */
-  void print_planning_warning(const report_execution_plan_t& plan,
-                              const execution_guardrails_t&  guardrails)
-  {
-    cerr << "Planning warning: " << plan.requested_feasibility.summary() << "\n"
-         << "Guardrails: requested "
-         << guardrail_summary(plan.requested_feasibility, guardrails) << "\n"
-         << "Planner recommendation: " << plan.summary() << endl;
-    print_observations(cerr,
-                       plan.requested_feasibility.observations,
-                       "Derived-feature-space signals");
-    for (const auto& option : plan.alternatives)
-    {
-      cerr << "  - " << option.label;
-      if (option.feasibility.has_value())
-      {
-        cerr << " [risk=" << to_string(option.feasibility->risk) << "]";
-      }
-      if (!option.executable_now)
-      {
-        cerr << " [not executable in this CLI step]";
-      }
-      cerr << ": " << option.rationale << endl;
-    }
-  }
-
   /** @brief Prints the full planning summary for the current request. */
   void print_plan_summary(std::ostream&                  os,
                           const report_execution_plan_t& plan,
@@ -2151,28 +2125,33 @@ namespace
        << feasibility.included_feature_upper_bound << '\n';
   }
 
-  /** @brief Asks the user to accept the planner recommendation or choose an alternative request. */
-  [[nodiscard]] std::optional<report_request_t>
+  /** @brief Captures the final execution choice after approval. */
+  struct execution_approval_t
+  {
+    report_request_t request {};
+    bool             guardrails_approved { false };
+  };
+
+  /** @brief Asks the user to keep the requested plan, switch to a lighter plan, or cancel. */
+  [[nodiscard]] std::optional<execution_approval_t>
       approve_execution_plan(const report_execution_plan_t& plan,
                              const cli_options_t&           options,
                              const execution_guardrails_t&  guardrails)
   {
     if (!plan.requested_feasibility.approval_recommended)
     {
-      return plan.requested_request;
+      return execution_approval_t { plan.requested_request, false };
     }
-
-    print_planning_warning(plan, guardrails);
 
     if (options.accept_recommended)
     {
       cerr << "Applying planner recommendation without prompting." << endl;
-      return plan.recommended_request;
+      return execution_approval_t { plan.recommended_request, false };
     }
     if (options.assume_yes)
     {
       cerr << "Proceeding with the requested plan due to --yes." << endl;
-      return plan.requested_request;
+      return execution_approval_t { plan.requested_request, false };
     }
 
     if (options.non_interactive || !stdin_is_terminal())
@@ -2195,23 +2174,20 @@ namespace
       }
     }
 
-    cerr << '\n'
-         << "I read the SPL specification and built a preliminary execution estimate.\n";
+    cerr << '\n' << "Execution choice\n";
     print_feature_theory_overview(cerr, plan.requested_feasibility);
-    cerr << '\n'
-         << "Requested report\n"
-         << "  " << request_display_name(plan.requested_request) << '\n'
-         << "  " << request_detail_summary(plan.requested_request) << '\n'
-         << "  Estimate: " << plan.requested_feasibility.summary() << '\n'
-         << '\n'
-         << "Recommended first step\n"
-         << "  " << request_display_name(plan.recommended_request) << '\n'
-         << "  " << request_detail_summary(plan.recommended_request) << '\n'
-         << "  Estimate: " << plan.recommended_feasibility.summary() << '\n'
-         << "  Why: " << plan.rationale << '\n';
-    print_observations(cerr,
-                       plan.requested_feasibility.observations,
-                       "Derived-feature-space signals");
+    cerr << "  Requested: " << request_display_name(plan.requested_request)
+         << " (" << to_string(plan.requested_feasibility.risk) << ", "
+         << plan.requested_feasibility.estimated_total_runtime_ms << " ms, "
+         << plan.requested_feasibility.estimated_output_bytes << " bytes)\n"
+         << "  Suggested: " << request_display_name(plan.recommended_request)
+         << " (" << to_string(plan.recommended_feasibility.risk) << ", "
+         << plan.recommended_feasibility.estimated_total_runtime_ms << " ms, "
+         << plan.recommended_feasibility.estimated_output_bytes << " bytes)\n";
+    if (!plan.rationale.empty())
+    {
+      cerr << "  Note: " << plan.rationale << '\n';
+    }
 
     cerr << '\n' << "Choose how to continue\n";
     for (std::size_t index = 0; index < choices.size(); ++index)
@@ -2226,16 +2202,12 @@ namespace
       {
         cerr << " [requested]";
       }
-      cerr << '\n'
-           << "     Report: " << request_display_name(choice.request) << '\n'
-           << "     Detail: " << request_detail_summary(choice.request) << '\n'
-           << "     Estimate: " << choice.feasibility.summary();
+      cerr << " — " << choice.feasibility.summary();
       if (exceeds_guardrails(choice.feasibility, guardrails))
       {
-        cerr << " [exceeds current guardrails]";
+        cerr << " [requires force]";
       }
-      cerr << '\n'
-           << "     Rationale: " << choice.rationale << '\n';
+      cerr << '\n';
     }
     cerr << "  0) Cancel\n";
 
@@ -2253,7 +2225,11 @@ namespace
       const auto trimmed = trim_copy(line);
       if (trimmed.empty())
       {
-        return choices.at(default_choice - 1).request;
+        const auto& choice = choices.at(default_choice - 1);
+        return execution_approval_t {
+          choice.request,
+          choice.requested && exceeds_guardrails(choice.feasibility, guardrails)
+        };
       }
       if (trimmed == "0" || trimmed == "c" || trimmed == "cancel")
       {
@@ -2266,7 +2242,11 @@ namespace
         const auto choice_index = static_cast<std::size_t>(std::stoul(trimmed));
         if (choice_index >= 1 && choice_index <= choices.size())
         {
-          return choices.at(choice_index - 1).request;
+          const auto& choice = choices.at(choice_index - 1);
+          return execution_approval_t {
+            choice.request,
+            choice.requested && exceeds_guardrails(choice.feasibility, guardrails)
+          };
         }
       }
       catch (const std::exception&)
@@ -2279,10 +2259,18 @@ namespace
   /** @brief Enforces hard guardrails before actually generating a report. */
   [[nodiscard]] bool enforce_guardrails(const report_feasibility_t&  feasibility,
                                         const execution_guardrails_t& guardrails,
-                                        const cli_options_t&          options)
+                                        const cli_options_t&          options,
+                                        const bool                    already_approved)
   {
     if (!exceeds_guardrails(feasibility, guardrails))
     {
+      return true;
+    }
+
+    if (already_approved)
+    {
+      cerr << "Running the requested report beyond hard guardrails by explicit approval.\n"
+           << "  " << guardrail_summary(feasibility, guardrails) << endl;
       return true;
     }
 
@@ -2334,8 +2322,7 @@ namespace
     }
   }
 
-
-  /** @brief Prints notes when legacy invocation or CLI overrides affect the current run. */
+/** @brief Prints notes when legacy invocation or CLI overrides affect the current run. */
   void print_compatibility_notes(std::ostream&              os,
                                  const std::string&        program_name,
                                  const cli_options_t&      options,
@@ -2397,37 +2384,28 @@ namespace
                                             processor.get_specification()
                                                 .system_space(),
                                             report_request);
-    const auto approved_request = approve_execution_plan(plan, options, guardrails);
-    if (!approved_request.has_value())
+    const auto approval = approve_execution_plan(plan, options, guardrails);
+    if (!approval.has_value())
     {
       return 6;
     }
-    report_request = approved_request.value();
+    report_request = approval->request;
 
     const auto approved_feasibility = estimate_report_feasibility(
         processor.get_specification().m_F,
         processor.get_specification().system_space(),
         report_request);
-    if (!enforce_guardrails(approved_feasibility, guardrails, options))
+    if (!enforce_guardrails(
+            approved_feasibility,
+            guardrails,
+            options,
+            approval->guardrails_approved))
     {
       return 8;
     }
 
     feature_isolation_t fi { processor.get_specification(), report_request };
     const auto status = write_report(result_file, fi);
-    if (status == 0
-        && (report_request.mode == report_mode_t::summary
-            || plan.requested_feasibility.approval_recommended))
-    {
-      print_drill_down_workflow(cerr,
-                                program_name.c_str(),
-                                options,
-                                processor.get_specification().m_F,
-                                processor.get_specification().system_space(),
-                                report_request,
-                                guardrails,
-                                true);
-    }
     return status;
   }
 

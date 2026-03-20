@@ -432,6 +432,37 @@ TEST_CASE("feasibility estimator marks large exhaustive reports as impractical",
 }
 
 
+
+
+TEST_CASE("feasibility estimator keeps constrained non-complex isolation reports within the safe range",
+          "[report_feasibility_t][estimate][constrained]")
+{
+  system_space_t space {};
+  space.valid = make_system_ids({ 1, 2, 3, 4, 5, 6, 7, 8,
+                                  9, 10, 11, 12, 13, 14, 15, 16 });
+
+  auto request = report_request_t::from_category_hint(
+      std::vector<theory_feature_category_t> {
+          theory_feature_category_t::impossible,
+          theory_feature_category_t::core,
+          theory_feature_category_t::fundamental,
+          theory_feature_category_t::not_feature,
+          theory_feature_category_t::and_feature,
+          theory_feature_category_t::or_feature });
+  request.include_complex_details = false;
+  request.include_raw_terms = false;
+  request.include_simplified_terms = true;
+  request.include_isolation = true;
+
+  const auto estimate = estimate_report_feasibility(22, space, request);
+
+  REQUIRE(estimate.valid_system_count == 16);
+  REQUIRE(estimate.theory_feature_count == power2(16));
+  REQUIRE(estimate.risk == feasibility_risk_t::safe);
+  REQUIRE(estimate.estimated_total_runtime_ms < 300000.0L);
+  REQUIRE_FALSE(estimate.approval_recommended);
+}
+
 TEST_CASE("feasibility estimator reports derived-feature-space signals beyond raw size",
           "[report_feasibility_t][estimate]")
 {
