@@ -5,9 +5,15 @@
  */
 #include "../include/spl.hpp"
 #include <algorithm>
+#include <cstdint>
+#include <numeric>
 #include <sstream>
 #include <type_traits>
 #include <utility>
+
+/** @file
+ *  @brief Implements the SPL tokenizer, parser, evaluator, and printer used by the repository DSL.
+ */
 
 namespace feature_isolation
 {
@@ -67,11 +73,13 @@ namespace feature_isolation
 
   namespace
   {
+    /** @brief Clones one formula node into the shared-pointer representation used by compound formulas. */
     [[nodiscard]] theory_formula_ptr_t clone_formula(const theory_formula_t& formula)
     {
       return std::make_shared<theory_formula_t>(formula);
     }
 
+    /** @brief Joins strings with a delimiter for compact DSL rendering. */
     [[nodiscard]] std::string join_strings(const std::vector<std::string>& values,
                                            const std::string& delimiter)
     {
@@ -87,6 +95,7 @@ namespace feature_isolation
       return os.str();
     }
 
+    /** @brief Converts an arbitrary streamable value into a string. */
     template<typename T>
     [[nodiscard]] std::string stringify(const T& value)
     {
@@ -95,6 +104,7 @@ namespace feature_isolation
       return os.str();
     }
 
+    /** @brief Replaces the next '{}' placeholder in a diagnostic format string. */
     void replace_next_placeholder(std::string& message, const std::string& replacement)
     {
       const auto pos = message.find("{}");
@@ -104,6 +114,7 @@ namespace feature_isolation
       }
     }
 
+    /** @brief Formats runtime diagnostics using sequential '{}' replacement. */
     template<typename... Args>
     [[nodiscard]] std::string format_message(const std::string_view& message,
                                              Args&&... args)
@@ -350,6 +361,7 @@ namespace feature_isolation
   }
 
 
+  /** @brief Throws a formatted std::runtime_error for parser, evaluator, and validation failures. */
   template<typename... Args>
   [[noreturn]] void error(const std::string_view& msg, Args&&... args)
   {
@@ -358,12 +370,14 @@ namespace feature_isolation
     throw std::runtime_error(formatted_msg);
   }
 
+  /** @brief Returns an upper-case copy used for case-insensitive keyword checks. */
   std::string toupper(std::string s)
   {
     std::transform(s.begin(), s.end(), s.begin(), ::toupper);
     return s;
   }
 
+  /** @brief Returns whether a raw system identifier contains one feature bit. */
   [[nodiscard]] bool system_holds_feature(unsigned_integer system_id,
                                           unsigned_integer feature_index)
   {
@@ -371,6 +385,7 @@ namespace feature_isolation
     return ((system >> feature_index) & one) == one;
   }
 
+  /** @brief Resolves a named feature reference to its positional feature index. */
   [[nodiscard]] unsigned_integer resolve_feature_index(
       const feature_names_t& feature_names,
       const std::string&     feature_name)
@@ -386,6 +401,7 @@ namespace feature_isolation
         std::distance(feature_names.begin(), feature_it));
   }
 
+  /** @brief Resolves and checks a possibly uncompiled formula feature reference against one system. */
   [[nodiscard]] bool system_holds_feature(const feature_names_t& feature_names,
                                           unsigned_integer       system_id,
                                           const theory_formula_t::feature_ref_t& feature_ref)
@@ -395,6 +411,7 @@ namespace feature_isolation
     return system_holds_feature(system_id, feature_index);
   }
 
+  /** @brief Counts how many referenced features are true in one concrete system. */
   [[nodiscard]] unsigned_integer count_true_features(
       const feature_names_t&               feature_names,
       const feature_names_t&               counted_features,
@@ -424,6 +441,7 @@ namespace feature_isolation
         }));
   }
 
+  /** @brief Evaluates one repository theory formula on one concrete system. */
   [[nodiscard]] bool evaluate_formula(const feature_names_t& feature_names,
                                       const theory_formula_t& formula,
                                       unsigned_integer        system_id)
@@ -517,6 +535,7 @@ namespace feature_isolation
         formula.payload());
   }
 
+  /** @brief Returns whether one system satisfies all parsed constraints. */
   [[nodiscard]] bool system_satisfies_constraints(
       const feature_names_t& feature_names,
       const theory_constraints_t& constraints,
@@ -530,6 +549,375 @@ namespace feature_isolation
         });
   }
 
+  namespace
+  {
+    enum class partial_truth_t
+    {
+      always_false,
+      undecided,
+      always_true,
+    };
+
+    constexpr std::int8_t assignment_unset { -1 };
+    constexpr std::int8_t assignment_false { 0 };
+    constexpr std::int8_t assignment_true { 1 };
+
+    [[nodiscard]] unsigned_integer resolve_feature_index(
+        const feature_names_t& feature_names,
+        const theory_formula_t::feature_ref_t& feature_ref)
+    {
+      if (feature_ref.compiled_feature_index.has_value())
+      {
+        return feature_ref.compiled_feature_index.value();
+      }
+      const auto it = std::find(feature_names.begin(), feature_names.end(), feature_ref.feature_name);
+      if (it == feature_names.end())
+      {
+        throw std::invalid_argument("Constraint references an unknown feature.");
+      }
+      return static_cast<unsigned_integer>(std::distance(feature_names.begin(), it));
+    }
+
+    [[nodiscard]] partial_truth_t invert_partial_truth(partial_truth_t value)
+    {
+      switch (value)
+      {
+        case partial_truth_t::always_false:
+          return partial_truth_t::always_true;
+        case partial_truth_t::always_true:
+          return partial_truth_t::always_false;
+        case partial_truth_t::undecided:
+          return partial_truth_t::undecided;
+      }
+      return partial_truth_t::undecided;
+    }
+
+    [[nodiscard]] std::pair<unsigned_integer, unsigned_integer>
+        count_true_bounds(const feature_names_t& feature_names,
+                          const feature_names_t& counted_features,
+                          const std::vector<unsigned_integer>& compiled_feature_indices,
+                          const std::vector<std::int8_t>& assignment)
+    {
+      unsigned_integer minimum_true { 0 };
+      unsigned_integer maximum_true { 0 };
+
+      auto apply_index = [&](const unsigned_integer feature_index) {
+        const auto value = assignment.at(feature_index);
+        if (value == assignment_true)
+        {
+          ++minimum_true;
+          ++maximum_true;
+          return;
+        }
+        if (value == assignment_unset)
+        {
+          ++maximum_true;
+        }
+      };
+
+      if (!compiled_feature_indices.empty())
+      {
+        for (const auto feature_index : compiled_feature_indices)
+        {
+          apply_index(feature_index);
+        }
+        return { minimum_true, maximum_true };
+      }
+
+      for (const auto& feature_name : counted_features)
+      {
+        const auto it = std::find(feature_names.begin(), feature_names.end(), feature_name);
+        if (it == feature_names.end())
+        {
+          throw std::invalid_argument("COUNT expression references an unknown feature.");
+        }
+        apply_index(static_cast<unsigned_integer>(std::distance(feature_names.begin(), it)));
+      }
+      return { minimum_true, maximum_true };
+    }
+
+    [[nodiscard]] partial_truth_t evaluate_formula_partial(
+        const feature_names_t& feature_names,
+        const theory_formula_t& formula,
+        const std::vector<std::int8_t>& assignment)
+    {
+      return std::visit(
+          [&](const auto& node) -> partial_truth_t
+          {
+            using node_t = std::decay_t<decltype(node)>;
+            if constexpr (std::is_same_v<node_t, theory_formula_t::feature_ref_t>)
+            {
+              const auto feature_index = resolve_feature_index(feature_names, node);
+              const auto value = assignment.at(feature_index);
+              if (value == assignment_true)
+              {
+                return partial_truth_t::always_true;
+              }
+              if (value == assignment_false)
+              {
+                return partial_truth_t::always_false;
+              }
+              return partial_truth_t::undecided;
+            }
+            else if constexpr (std::is_same_v<node_t, theory_formula_t::true_literal_t>)
+            {
+              return partial_truth_t::always_true;
+            }
+            else if constexpr (std::is_same_v<node_t, theory_formula_t::false_literal_t>)
+            {
+              return partial_truth_t::always_false;
+            }
+            else if constexpr (std::is_same_v<node_t, theory_formula_t::negation_t>)
+            {
+              return invert_partial_truth(evaluate_formula_partial(feature_names,
+                                                                  *node.operand,
+                                                                  assignment));
+            }
+            else if constexpr (std::is_same_v<node_t, theory_formula_t::conjunction_t>)
+            {
+              bool all_true = true;
+              for (const auto& operand : node.operands)
+              {
+                const auto value = evaluate_formula_partial(feature_names, *operand, assignment);
+                if (value == partial_truth_t::always_false)
+                {
+                  return partial_truth_t::always_false;
+                }
+                if (value != partial_truth_t::always_true)
+                {
+                  all_true = false;
+                }
+              }
+              return all_true ? partial_truth_t::always_true : partial_truth_t::undecided;
+            }
+            else if constexpr (std::is_same_v<node_t, theory_formula_t::disjunction_t>)
+            {
+              bool all_false = true;
+              for (const auto& operand : node.operands)
+              {
+                const auto value = evaluate_formula_partial(feature_names, *operand, assignment);
+                if (value == partial_truth_t::always_true)
+                {
+                  return partial_truth_t::always_true;
+                }
+                if (value != partial_truth_t::always_false)
+                {
+                  all_false = false;
+                }
+              }
+              return all_false ? partial_truth_t::always_false : partial_truth_t::undecided;
+            }
+            else if constexpr (std::is_same_v<node_t, theory_formula_t::implication_t>)
+            {
+              const auto lhs = evaluate_formula_partial(feature_names, *node.lhs, assignment);
+              const auto rhs = evaluate_formula_partial(feature_names, *node.rhs, assignment);
+              if (lhs == partial_truth_t::always_false || rhs == partial_truth_t::always_true)
+              {
+                return partial_truth_t::always_true;
+              }
+              if (lhs == partial_truth_t::always_true && rhs == partial_truth_t::always_false)
+              {
+                return partial_truth_t::always_false;
+              }
+              return partial_truth_t::undecided;
+            }
+            else if constexpr (std::is_same_v<node_t, theory_formula_t::equivalence_t>)
+            {
+              const auto lhs = evaluate_formula_partial(feature_names, *node.lhs, assignment);
+              const auto rhs = evaluate_formula_partial(feature_names, *node.rhs, assignment);
+              if (lhs == partial_truth_t::undecided || rhs == partial_truth_t::undecided)
+              {
+                return partial_truth_t::undecided;
+              }
+              return lhs == rhs ? partial_truth_t::always_true
+                                : partial_truth_t::always_false;
+            }
+            else if constexpr (std::is_same_v<node_t, theory_count_compare_t>)
+            {
+              const auto [minimum_true, maximum_true] = count_true_bounds(feature_names,
+                                                                          node.features,
+                                                                          node.compiled_feature_indices,
+                                                                          assignment);
+              switch (node.op)
+              {
+                case theory_count_compare_op_t::eq:
+                  if (minimum_true == node.value && maximum_true == node.value)
+                  {
+                    return partial_truth_t::always_true;
+                  }
+                  if (node.value < minimum_true || node.value > maximum_true)
+                  {
+                    return partial_truth_t::always_false;
+                  }
+                  return partial_truth_t::undecided;
+                case theory_count_compare_op_t::ne:
+                  if (node.value < minimum_true || node.value > maximum_true)
+                  {
+                    return partial_truth_t::always_true;
+                  }
+                  if (minimum_true == node.value && maximum_true == node.value)
+                  {
+                    return partial_truth_t::always_false;
+                  }
+                  return partial_truth_t::undecided;
+                case theory_count_compare_op_t::lt:
+                  if (maximum_true < node.value)
+                  {
+                    return partial_truth_t::always_true;
+                  }
+                  if (minimum_true >= node.value)
+                  {
+                    return partial_truth_t::always_false;
+                  }
+                  return partial_truth_t::undecided;
+                case theory_count_compare_op_t::le:
+                  if (maximum_true <= node.value)
+                  {
+                    return partial_truth_t::always_true;
+                  }
+                  if (minimum_true > node.value)
+                  {
+                    return partial_truth_t::always_false;
+                  }
+                  return partial_truth_t::undecided;
+                case theory_count_compare_op_t::gt:
+                  if (minimum_true > node.value)
+                  {
+                    return partial_truth_t::always_true;
+                  }
+                  if (maximum_true <= node.value)
+                  {
+                    return partial_truth_t::always_false;
+                  }
+                  return partial_truth_t::undecided;
+                case theory_count_compare_op_t::ge:
+                  if (minimum_true >= node.value)
+                  {
+                    return partial_truth_t::always_true;
+                  }
+                  if (maximum_true < node.value)
+                  {
+                    return partial_truth_t::always_false;
+                  }
+                  return partial_truth_t::undecided;
+              }
+              return partial_truth_t::undecided;
+            }
+            else
+            {
+              const auto [minimum_true, maximum_true] = count_true_bounds(feature_names,
+                                                                          node.features,
+                                                                          node.compiled_feature_indices,
+                                                                          assignment);
+              if (minimum_true >= node.lower && maximum_true <= node.upper)
+              {
+                return partial_truth_t::always_true;
+              }
+              if (maximum_true < node.lower || minimum_true > node.upper)
+              {
+                return partial_truth_t::always_false;
+              }
+              return partial_truth_t::undecided;
+            }
+          },
+          formula.payload());
+    }
+
+    void collect_constraint_feature_frequency(const theory_formula_t& formula,
+                                              std::vector<unsigned_integer>& frequencies)
+    {
+      std::visit(
+          [&](const auto& node)
+          {
+            using node_t = std::decay_t<decltype(node)>;
+            if constexpr (std::is_same_v<node_t, theory_formula_t::feature_ref_t>)
+            {
+              if (node.compiled_feature_index.has_value())
+              {
+                ++frequencies.at(node.compiled_feature_index.value());
+              }
+            }
+            else if constexpr (std::is_same_v<node_t, theory_formula_t::negation_t>)
+            {
+              collect_constraint_feature_frequency(*node.operand, frequencies);
+            }
+            else if constexpr (std::is_same_v<node_t, theory_formula_t::conjunction_t>
+                               || std::is_same_v<node_t, theory_formula_t::disjunction_t>)
+            {
+              for (const auto& operand : node.operands)
+              {
+                collect_constraint_feature_frequency(*operand, frequencies);
+              }
+            }
+            else if constexpr (std::is_same_v<node_t, theory_formula_t::implication_t>
+                               || std::is_same_v<node_t, theory_formula_t::equivalence_t>)
+            {
+              collect_constraint_feature_frequency(*node.lhs, frequencies);
+              collect_constraint_feature_frequency(*node.rhs, frequencies);
+            }
+            else if constexpr (std::is_same_v<node_t, theory_count_compare_t>
+                               || std::is_same_v<node_t, theory_count_interval_t>)
+            {
+              for (const auto feature_index : node.compiled_feature_indices)
+              {
+                ++frequencies.at(feature_index);
+              }
+            }
+          },
+          formula.payload());
+    }
+
+    void enumerate_valid_systems_pruned(
+        const feature_names_t& feature_names,
+        const theory_constraints_t& constraints,
+        std::vector<std::int8_t>& assignment,
+        const std::vector<unsigned_integer>& branching_order,
+        std::size_t depth,
+        system_ids_t& valid_systems)
+    {
+      for (const auto& constraint : constraints)
+      {
+        if (evaluate_formula_partial(feature_names, constraint, assignment)
+            == partial_truth_t::always_false)
+        {
+          return;
+        }
+      }
+
+      if (depth >= branching_order.size())
+      {
+        unsigned_integer encoded_system { 0 };
+        for (auto feature_index { zero }; feature_index < assignment.size(); ++feature_index)
+        {
+          if (assignment.at(feature_index) == assignment_true)
+          {
+            encoded_system |= (one << feature_index);
+          }
+        }
+        valid_systems.insert(encoded_system + one);
+        return;
+      }
+
+      const auto feature_index = branching_order.at(depth);
+      assignment.at(feature_index) = assignment_false;
+      enumerate_valid_systems_pruned(feature_names,
+                                     constraints,
+                                     assignment,
+                                     branching_order,
+                                     depth + one,
+                                     valid_systems);
+      assignment.at(feature_index) = assignment_true;
+      enumerate_valid_systems_pruned(feature_names,
+                                     constraints,
+                                     assignment,
+                                     branching_order,
+                                     depth + one,
+                                     valid_systems);
+      assignment.at(feature_index) = assignment_unset;
+    }
+  }
+
+  /** @brief Computes the valid, available, and missing system partition induced by the DSL input. */
   [[nodiscard]] system_space_t compute_system_space(
       unsigned_integer max_available_systems,
       const feature_names_t& feature_names,
@@ -540,12 +928,38 @@ namespace feature_isolation
       bool missing_systems_specified)
   {
     system_space_t result {};
-    for (auto system_id { one }; system_id <= max_available_systems; ++system_id)
+    if (constraints.empty())
     {
-      if (system_satisfies_constraints(feature_names, constraints, system_id))
+      for (auto system_id { one }; system_id <= max_available_systems; ++system_id)
       {
         result.valid.insert(system_id);
       }
+    }
+    else
+    {
+      std::vector<unsigned_integer> branching_order(feature_names.size(), 0);
+      std::iota(branching_order.begin(), branching_order.end(), 0);
+      std::vector<unsigned_integer> frequencies(feature_names.size(), 0);
+      for (const auto& constraint : constraints)
+      {
+        collect_constraint_feature_frequency(constraint, frequencies);
+      }
+      std::ranges::sort(branching_order,
+                        [&](const auto lhs, const auto rhs)
+                        {
+                          if (frequencies.at(lhs) != frequencies.at(rhs))
+                          {
+                            return frequencies.at(lhs) > frequencies.at(rhs);
+                          }
+                          return lhs < rhs;
+                        });
+      std::vector<std::int8_t> assignment(feature_names.size(), assignment_unset);
+      enumerate_valid_systems_pruned(feature_names,
+                                     constraints,
+                                     assignment,
+                                     branching_order,
+                                     0,
+                                     result.valid);
     }
 
     if (available_systems_specified)
@@ -586,6 +1000,7 @@ namespace feature_isolation
     return result;
   }
 
+  /** @brief Convenience overload that evaluates a system directly against a parsed specification. */
   [[nodiscard]] bool system_satisfies_constraints(
       const spl_specification_t& spec, unsigned_integer system_id)
   {
@@ -593,28 +1008,33 @@ namespace feature_isolation
         spec.m_feature_names, spec.m_constraints, system_id);
   }
 
+  /** @brief Returns the valid-system identifiers of a parsed specification. */
   [[nodiscard]] system_ids_t valid_system_ids(const spl_specification_t& spec)
   {
     return spec.system_space().valid;
   }
 
+  /** @brief Returns the valid systems marked as available. */
   [[nodiscard]] system_ids_t available_valid_system_ids(
       const spl_specification_t& spec)
   {
     return spec.system_space().available;
   }
 
+  /** @brief Returns the valid systems marked as missing. */
   [[nodiscard]] system_ids_t missing_valid_system_ids(
       const spl_specification_t& spec)
   {
     return spec.system_space().missing;
   }
 
+  /** @brief Returns the normalized system-space partition carried by a parsed specification. */
   [[nodiscard]] system_space_t theory_system_space(const spl_specification_t& spec)
   {
     return spec.system_space();
   }
 
+  /** @brief Summarizes which optional repository DSL sections are present in one specification. */
   [[nodiscard]] theory_dsl_coverage_t
       theory_dsl_coverage(const spl_specification_t& spec)
   {
@@ -637,7 +1057,7 @@ namespace feature_isolation
     if (spec.m_category_filter_specified && spec.m_category_filter.has_value())
     {
       result.supported_capabilities.push_back(
-          "CATEGORY_FILTER stores theory-native post-classification category filters.");
+          "CATEGORY_FILTER stores derived-feature-space post-classification category filters.");
     }
 
     if (spec.m_available_systems_specified && spec.m_missing_systems_specified)

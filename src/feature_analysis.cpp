@@ -4,11 +4,665 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 #include "../include/feature_analysis.hpp"
+#include <cstdint>
+#include <deque>
+#include <cmath>
 #include <limits>
 #include <map>
 
+/** @file
+ *  @brief Implements report-feasibility estimation, report planning, simplified-term derivation,
+ *  and registry construction for the derived feature space.
+ */
+
 namespace feature_isolation
 {
+  report_request_t report_request_t::unrestricted()
+  {
+    return report_request_t {};
+  }
+
+  report_request_t report_request_t::from_category_hint(
+      std::optional<std::vector<theory_feature_category_t>> categories)
+  {
+    report_request_t request {};
+    request.requested_categories = std::move(categories);
+    if (request.requested_categories.has_value())
+    {
+      request.include_complex_details
+          = std::ranges::find(request.requested_categories.value(),
+                              theory_feature_category_t::complex)
+            != request.requested_categories.value().end();
+    }
+    return request;
+  }
+
+  bool report_request_t::includes_category(
+      theory_feature_category_t category) const
+  {
+    if (!requested_categories.has_value())
+    {
+      return true;
+    }
+    return std::ranges::find(requested_categories.value(), category)
+           != requested_categories.value().end();
+  }
+
+
+  std::string to_string(report_mode_t mode)
+  {
+    switch (mode)
+    {
+      case report_mode_t::full:
+        return "full";
+      case report_mode_t::summary:
+        return "summary";
+      case report_mode_t::isolation_only:
+        return "isolation-only";
+      case report_mode_t::selected_features:
+        return "selected-features";
+    }
+    return "unknown";
+  }
+
+  std::string to_string(feasibility_risk_t risk)
+  {
+    switch (risk)
+    {
+      case feasibility_risk_t::safe:
+        return "safe";
+      case feasibility_risk_t::large:
+        return "large";
+      case feasibility_risk_t::risky:
+        return "risky";
+      case feasibility_risk_t::impractical:
+        return "impractical";
+    }
+    return "unknown";
+  }
+
+  namespace
+  {
+    /** @brief Returns 2^exponent and saturates to the unsigned_integer maximum on overflow. */
+    [[nodiscard]] unsigned_integer saturated_power2_count(
+        unsigned_integer exponent)
+    {
+      if (exponent >= std::numeric_limits<unsigned_integer>::digits)
+      {
+        return std::numeric_limits<unsigned_integer>::max();
+      }
+      return unsigned_integer { 1 } << exponent;
+    }
+
+    /** @brief Returns 3^exponent and saturates to the unsigned_integer maximum on overflow. */
+    [[nodiscard]] unsigned_integer saturated_power3_count(
+        unsigned_integer exponent)
+    {
+      unsigned_integer value { 1 };
+      for (auto index { zero }; index < exponent; ++index)
+      {
+        if (value > std::numeric_limits<unsigned_integer>::max() / 3)
+        {
+          return std::numeric_limits<unsigned_integer>::max();
+        }
+        value *= 3;
+      }
+      return value;
+    }
+
+    /** @brief Adds two counts and saturates to the unsigned_integer maximum on overflow. */
+    [[nodiscard]] unsigned_integer saturated_add(unsigned_integer lhs,
+                                                unsigned_integer rhs)
+    {
+      if (lhs > std::numeric_limits<unsigned_integer>::max() - rhs)
+      {
+        return std::numeric_limits<unsigned_integer>::max();
+      }
+      return lhs + rhs;
+    }
+
+    /** @brief Computes a conservative upper bound for one derived-feature category. */
+    [[nodiscard]] unsigned_integer category_upper_bound(
+        unsigned_integer          base_feature_count,
+        unsigned_integer          theory_feature_count,
+        theory_feature_category_t category)
+    {
+      const auto conjunction_patterns
+          = saturated_power3_count(base_feature_count);
+      const auto higher_arity_simple_count
+          = conjunction_patterns == std::numeric_limits<unsigned_integer>::max()
+                ? conjunction_patterns
+                : (conjunction_patterns > 1 + 2 * base_feature_count
+                       ? conjunction_patterns - 1 - 2 * base_feature_count
+                       : 0);
+
+      unsigned_integer bound { 0 };
+      switch (category)
+      {
+        case theory_feature_category_t::impossible:
+        case theory_feature_category_t::core:
+          bound = 1;
+          break;
+        case theory_feature_category_t::fundamental:
+        case theory_feature_category_t::not_feature:
+          bound = base_feature_count;
+          break;
+        case theory_feature_category_t::and_feature:
+        case theory_feature_category_t::or_feature:
+          bound = higher_arity_simple_count;
+          break;
+        case theory_feature_category_t::complex:
+          bound = theory_feature_count;
+          break;
+        default:
+          bound = theory_feature_count;
+          break;
+      }
+      return std::min(bound, theory_feature_count);
+    }
+
+    /** @brief Appends an observation string only once. */
+    void append_observation(std::vector<std::string>& observations,
+                            const std::string&        message)
+    {
+      if (std::ranges::find(observations, message) == observations.end())
+      {
+        observations.push_back(message);
+      }
+    }
+  } // namespace
+
+  report_feasibility_t estimate_report_feasibility(
+      unsigned_integer        base_feature_count,
+      const system_space_t&   system_space,
+      const report_request_t& report_request)
+  {
+    constexpr long double shell_runtime_ms_per_feature { 0.00045L };
+    constexpr long double simple_detail_runtime_ms_per_feature { 0.01L };
+    constexpr long double complex_detail_runtime_ms_per_feature { 0.042L };
+    constexpr long double base_output_bytes { 4096.0L };
+    constexpr long double shell_output_bytes_per_feature { 48.0L };
+    constexpr long double simplified_term_output_bytes_per_feature { 96.0L };
+    constexpr long double raw_term_output_bytes_per_feature { 96.0L };
+    constexpr long double isolation_output_bytes_per_feature { 128.0L };
+
+    report_feasibility_t estimate {};
+    estimate.base_feature_count = base_feature_count;
+    estimate.valid_system_count = system_space.valid.size();
+    estimate.theory_feature_count
+        = saturated_power2_count(estimate.valid_system_count);
+
+    unsigned_integer simple_feature_upper_bound { 0 };
+    for (const auto category : { theory_feature_category_t::impossible,
+                                 theory_feature_category_t::core,
+                                 theory_feature_category_t::fundamental,
+                                 theory_feature_category_t::not_feature,
+                                 theory_feature_category_t::and_feature,
+                                 theory_feature_category_t::or_feature })
+    {
+      simple_feature_upper_bound
+          = saturated_add(simple_feature_upper_bound,
+                          category_upper_bound(base_feature_count,
+                                               estimate.theory_feature_count,
+                                               category));
+    }
+    simple_feature_upper_bound
+        = std::min(estimate.theory_feature_count, simple_feature_upper_bound);
+    estimate.simple_feature_upper_bound = simple_feature_upper_bound;
+    estimate.complex_feature_lower_bound
+        = estimate.theory_feature_count > simple_feature_upper_bound
+              ? estimate.theory_feature_count - simple_feature_upper_bound
+              : 0;
+
+    if (report_request.mode == report_mode_t::summary)
+    {
+      estimate.included_feature_upper_bound = 0;
+    }
+    else if (!report_request.requested_categories.has_value())
+    {
+      estimate.included_feature_upper_bound = estimate.theory_feature_count;
+    }
+    else
+    {
+      unsigned_integer requested_upper_bound { 0 };
+      for (const auto category : report_request.requested_categories.value())
+      {
+        requested_upper_bound
+            = saturated_add(requested_upper_bound,
+                            category_upper_bound(base_feature_count,
+                                                 estimate.theory_feature_count,
+                                                 category));
+      }
+      estimate.included_feature_upper_bound
+          = std::min(estimate.theory_feature_count, requested_upper_bound);
+    }
+
+    const auto simple_included_upper_bound
+        = std::min(estimate.included_feature_upper_bound,
+                   estimate.simple_feature_upper_bound);
+    const auto complex_included_upper_bound
+        = estimate.included_feature_upper_bound > simple_included_upper_bound
+              ? estimate.included_feature_upper_bound - simple_included_upper_bound
+              : 0;
+
+    estimate.estimated_analysis_runtime_ms
+        = static_cast<long double>(estimate.theory_feature_count)
+          * shell_runtime_ms_per_feature;
+    if (report_request.mode != report_mode_t::summary)
+    {
+      estimate.estimated_analysis_runtime_ms
+          += static_cast<long double>(simple_included_upper_bound)
+             * simple_detail_runtime_ms_per_feature;
+      if (report_request.include_complex_details)
+      {
+        estimate.estimated_analysis_runtime_ms
+            += static_cast<long double>(complex_included_upper_bound)
+               * complex_detail_runtime_ms_per_feature;
+      }
+    }
+
+    if (report_request.include_isolation
+        && report_request.mode != report_mode_t::summary)
+    {
+      const auto isolation_per_feature_ms
+          = 0.005L * std::pow(static_cast<long double>(estimate.valid_system_count), 3.0L);
+      estimate.estimated_isolation_runtime_ms
+          = static_cast<long double>(estimate.included_feature_upper_bound)
+            * isolation_per_feature_ms;
+    }
+
+    estimate.estimated_total_runtime_ms
+        = estimate.estimated_analysis_runtime_ms
+          + estimate.estimated_isolation_runtime_ms;
+
+    estimate.estimated_output_bytes = base_output_bytes;
+    if (report_request.mode != report_mode_t::summary)
+    {
+      estimate.estimated_output_bytes
+          += static_cast<long double>(estimate.included_feature_upper_bound)
+             * shell_output_bytes_per_feature;
+      if (report_request.include_simplified_terms)
+      {
+        estimate.estimated_output_bytes
+            += static_cast<long double>(estimate.included_feature_upper_bound)
+               * simplified_term_output_bytes_per_feature;
+      }
+      if (report_request.include_raw_terms)
+      {
+        estimate.estimated_output_bytes
+            += static_cast<long double>(estimate.included_feature_upper_bound)
+               * raw_term_output_bytes_per_feature;
+      }
+      if (report_request.include_isolation)
+      {
+        estimate.estimated_output_bytes
+            += static_cast<long double>(estimate.included_feature_upper_bound)
+               * isolation_output_bytes_per_feature;
+      }
+    }
+
+    constexpr long double mib { 1024.0L * 1024.0L };
+    constexpr long double gib { 1024.0L * 1024.0L * 1024.0L };
+    if (estimate.theory_feature_count == std::numeric_limits<unsigned_integer>::max()
+        || estimate.estimated_total_runtime_ms > 300000.0L
+        || estimate.estimated_output_bytes > gib)
+    {
+      estimate.risk = feasibility_risk_t::impractical;
+    }
+    else if (estimate.estimated_total_runtime_ms > 60000.0L
+             || estimate.estimated_output_bytes > 256.0L * mib
+             || estimate.theory_feature_count > saturated_power2_count(24))
+    {
+      estimate.risk = feasibility_risk_t::risky;
+    }
+    else if (estimate.estimated_total_runtime_ms > 10000.0L
+             || estimate.estimated_output_bytes > 64.0L * mib
+             || estimate.theory_feature_count > saturated_power2_count(20))
+    {
+      estimate.risk = feasibility_risk_t::large;
+    }
+    else
+    {
+      estimate.risk = feasibility_risk_t::safe;
+    }
+
+    const auto complex_share_lower_bound
+        = estimate.theory_feature_count == 0
+              ? 0.0L
+              : static_cast<long double>(estimate.complex_feature_lower_bound)
+                    / static_cast<long double>(estimate.theory_feature_count);
+
+    if (estimate.valid_system_count >= 12)
+    {
+      append_observation(
+          estimate.observations,
+          "Many valid systems enlarge the derived feature space quickly.");
+    }
+    if (estimate.theory_feature_count > saturated_power2_count(20))
+    {
+      append_observation(
+          estimate.observations,
+          "The derived feature space is already large enough that a summary-first workflow is often easier to inspect.");
+    }
+    if (report_request.include_complex_details
+        && report_request.mode != report_mode_t::summary
+        && estimate.complex_feature_lower_bound > 0
+        && (estimate.complex_feature_lower_bound >= estimate.simple_feature_upper_bound
+            || complex_share_lower_bound >= 0.5L))
+    {
+      append_observation(
+          estimate.observations,
+          "Complex derived features are likely to dominate the requested detail work.");
+    }
+    if (!report_request.include_complex_details)
+    {
+      append_observation(
+          estimate.observations,
+          "Skipping complex-feature details keeps the same feature IDs while reducing expensive detail generation.");
+    }
+    if (report_request.include_isolation
+        && report_request.mode != report_mode_t::summary
+        && estimate.valid_system_count >= 8)
+    {
+      append_observation(
+          estimate.observations,
+          "Isolation output becomes more expensive as the number of valid systems grows.");
+    }
+    if (report_request.mode == report_mode_t::summary)
+    {
+      append_observation(
+          estimate.observations,
+          "Summary mode gives a first overview of the derived feature space without materializing per-feature detail sections.");
+    }
+    if (report_request.requested_categories.has_value()
+        && report_request.requested_categories->size() <= 2)
+    {
+      append_observation(
+          estimate.observations,
+          "Restricting the report to a small set of feature categories is a good drill-down strategy after the first overview.");
+    }
+    if (estimate.estimated_output_bytes > 64.0L * mib)
+    {
+      append_observation(
+          estimate.observations,
+          "The projected report file is large enough that inspection may be harder than generation.");
+    }
+
+    estimate.approval_recommended = estimate.risk != feasibility_risk_t::safe;
+    return estimate;
+  }
+
+  std::string report_feasibility_t::summary() const
+  {
+    std::ostringstream os {};
+    os << "fundamental features=" << base_feature_count << ", valid systems="
+       << valid_system_count << ", derived features≈" << theory_feature_count
+       << ", included features≤" << included_feature_upper_bound
+       << ", complex features≥" << complex_feature_lower_bound
+       << ", estimated runtime≈" << estimated_total_runtime_ms << " ms"
+       << ", estimated output≈" << estimated_output_bytes << " bytes"
+       << ", risk=" << to_string(risk);
+    return os.str();
+  }
+
+  namespace
+  {
+    /** @brief Maps feasibility risks to an ordering used by the planner. */
+    [[nodiscard]] int risk_rank(feasibility_risk_t risk)
+    {
+      switch (risk)
+      {
+        case feasibility_risk_t::safe:
+          return 0;
+        case feasibility_risk_t::large:
+          return 1;
+        case feasibility_risk_t::risky:
+          return 2;
+        case feasibility_risk_t::impractical:
+          return 3;
+      }
+      return 4;
+    }
+
+    /** @brief Returns the report categories that exclude the complex remainder of the derived feature space. */
+    [[nodiscard]] std::vector<theory_feature_category_t>
+        all_non_complex_categories()
+    {
+      return {
+        theory_feature_category_t::impossible,
+        theory_feature_category_t::core,
+        theory_feature_category_t::fundamental,
+        theory_feature_category_t::not_feature,
+        theory_feature_category_t::and_feature,
+        theory_feature_category_t::or_feature
+      };
+    }
+
+    /** @brief Derives a lighter request by dropping the complex category and its detailed materialization. */
+    [[nodiscard]] report_request_t
+        make_non_complex_request(const report_request_t& base)
+    {
+      auto request { base };
+      request.include_complex_details = false;
+      if (!request.requested_categories.has_value())
+      {
+        request.requested_categories = all_non_complex_categories();
+      }
+      else
+      {
+        auto categories { request.requested_categories.value() };
+        categories.erase(std::remove(categories.begin(),
+                                     categories.end(),
+                                     theory_feature_category_t::complex),
+                         categories.end());
+        request.requested_categories = std::move(categories);
+      }
+      return request;
+    }
+
+    /** @brief Derives a request that keeps the same feature selection but omits isolation computation. */
+    [[nodiscard]] report_request_t
+        make_no_isolation_request(const report_request_t& base)
+    {
+      auto request { base };
+      request.include_isolation = false;
+      return request;
+    }
+
+    /** @brief Derives a summary-only request from an existing report request. */
+    [[nodiscard]] report_request_t make_summary_request(const report_request_t& base)
+    {
+      auto request { base };
+      request.mode                     = report_mode_t::summary;
+      request.include_complex_details  = false;
+      request.include_raw_terms        = false;
+      request.include_simplified_terms = false;
+      request.include_isolation        = false;
+      return request;
+    }
+
+    /** @brief Packages one planner alternative for CLI presentation. */
+    [[nodiscard]] report_plan_option_t make_option(
+        std::string                       label,
+        std::string                       rationale,
+        std::optional<report_request_t>   request,
+        std::optional<report_feasibility_t> feasibility,
+        bool executable_now = true)
+    {
+      return report_plan_option_t {
+        .label = std::move(label),
+        .rationale = std::move(rationale),
+        .request = std::move(request),
+        .feasibility = std::move(feasibility),
+        .executable_now = executable_now
+      };
+    }
+
+    /** @brief Returns whether two report requests are semantically identical for planning purposes. */
+    [[nodiscard]] bool same_request(const report_request_t& lhs,
+                                    const report_request_t& rhs)
+    {
+      return lhs.mode == rhs.mode
+             && lhs.requested_categories == rhs.requested_categories
+             && lhs.include_complex_details == rhs.include_complex_details
+             && lhs.include_raw_terms == rhs.include_raw_terms
+             && lhs.include_simplified_terms == rhs.include_simplified_terms
+             && lhs.include_isolation == rhs.include_isolation
+             && lhs.minimal_differences_only == rhs.minimal_differences_only
+             && lhs.include_feature_names == rhs.include_feature_names;
+    }
+  }
+
+  report_execution_plan_t plan_report_execution(
+      unsigned_integer        base_feature_count,
+      const system_space_t&   system_space,
+      const report_request_t& report_request)
+  {
+    const auto requested_feasibility = estimate_report_feasibility(
+        base_feature_count, system_space, report_request);
+
+    /** @brief Holds one executable planner fallback candidate together with its measured feasibility. */
+    struct executable_candidate_t
+    {
+        std::string         label {};
+        std::string         rationale {};
+        report_request_t    request {};
+        report_feasibility_t feasibility {};
+    };
+
+    std::vector<executable_candidate_t> executable_candidates {};
+    executable_candidates.push_back({
+        "requested plan",
+        "Preserve the report exactly as requested.",
+        report_request,
+        requested_feasibility });
+
+    if (report_request.mode != report_mode_t::summary)
+    {
+      const auto non_complex_request = make_non_complex_request(report_request);
+      if (!same_request(non_complex_request, report_request))
+      {
+        executable_candidates.push_back({
+            "filtered report without complex details",
+            "Keep exact feature IDs, but focus the first report on the non-complex part of the derived feature space.",
+            non_complex_request,
+            estimate_report_feasibility(
+                base_feature_count, system_space, non_complex_request) });
+      }
+
+      if (report_request.include_isolation)
+      {
+        const auto lighter_request = make_no_isolation_request(non_complex_request);
+        if (!same_request(lighter_request, report_request)
+            && (executable_candidates.empty()
+                || !same_request(lighter_request,
+                                 executable_candidates.back().request)))
+        {
+          executable_candidates.push_back({
+              "filtered report without complex or isolation details",
+              "Start with the lighter theory categories and defer isolation until after the first report review.",
+              lighter_request,
+              estimate_report_feasibility(
+                  base_feature_count, system_space, lighter_request) });
+        }
+      }
+    }
+
+    const auto summary_request = make_summary_request(report_request);
+    if (!same_request(summary_request, report_request))
+    {
+      executable_candidates.push_back({
+          "summary report",
+          "Start with a compact overview of the derived feature space before drilling into category-specific details.",
+          summary_request,
+          estimate_report_feasibility(
+              base_feature_count, system_space, summary_request) });
+    }
+
+    auto best_candidate = executable_candidates.front();
+    if (requested_feasibility.risk == feasibility_risk_t::risky
+        || requested_feasibility.risk == feasibility_risk_t::impractical)
+    {
+      for (const auto& candidate : executable_candidates)
+      {
+        const auto candidate_rank { risk_rank(candidate.feasibility.risk) };
+        const auto best_rank { risk_rank(best_candidate.feasibility.risk) };
+        if (candidate_rank < best_rank)
+        {
+          best_candidate = candidate;
+          continue;
+        }
+        if (candidate_rank == best_rank
+            && candidate.feasibility.estimated_total_runtime_ms
+                   < best_candidate.feasibility.estimated_total_runtime_ms)
+        {
+          best_candidate = candidate;
+        }
+      }
+    }
+
+    report_execution_plan_t plan {};
+    plan.requested_request      = report_request;
+    plan.requested_feasibility  = requested_feasibility;
+    plan.recommended_request    = best_candidate.request;
+    plan.recommended_feasibility = best_candidate.feasibility;
+    plan.adjustment_recommended = !same_request(plan.recommended_request,
+                                                plan.requested_request);
+    if (plan.adjustment_recommended)
+    {
+      plan.rationale = best_candidate.rationale;
+    }
+    else if (requested_feasibility.risk == feasibility_risk_t::safe)
+    {
+      plan.rationale = "The requested report fits within the current conservative feasibility limits for this derived feature space.";
+    }
+    else if (!requested_feasibility.observations.empty())
+    {
+      plan.rationale = requested_feasibility.observations.front();
+    }
+    else
+    {
+      plan.rationale = "The request is still executable, but the planner will surface lighter alternatives in the next CLI step.";
+    }
+
+    for (const auto& candidate : executable_candidates)
+    {
+      plan.alternatives.push_back(make_option(
+          candidate.label,
+          candidate.rationale,
+          candidate.request,
+          candidate.feasibility,
+          true));
+    }
+    plan.alternatives.push_back(make_option(
+        "selected feature IDs only",
+        "For very large derived feature spaces, restrict generation to an explicit list or range of feature IDs.",
+        std::nullopt,
+        std::nullopt,
+        false));
+    plan.alternatives.push_back(make_option(
+        "tighten SPL constraints first",
+        "Reduce the valid-system space before generating a report; this shrinks the full derived feature space exactly.",
+        std::nullopt,
+        std::nullopt,
+        false));
+    return plan;
+  }
+
+  std::string report_execution_plan_t::summary() const
+  {
+    std::ostringstream os {};
+    os << "requested mode=" << to_string(requested_request.mode)
+       << ", requested risk=" << to_string(requested_feasibility.risk)
+       << ", recommended mode=" << to_string(recommended_request.mode)
+       << ", recommended risk=" << to_string(recommended_feasibility.risk);
+    if (!rationale.empty())
+    {
+      os << ", rationale=" << rationale;
+    }
+    return os.str();
+  }
+
   namespace
   {
     constexpr const char* logical_false_symbol = "⊥";
@@ -17,6 +671,7 @@ namespace feature_isolation
     constexpr const char* logical_and_symbol   = " ∧ ";
     constexpr const char* logical_or_symbol    = " ∨ ";
 
+    /** @brief Returns the stable category order used by report tables and registry materialization. */
     [[nodiscard]] const std::array<theory_feature_category_t, 7>&
         ordered_theory_categories()
     {
@@ -33,6 +688,7 @@ namespace feature_isolation
     }
 
 
+    /** @brief Stores the shortest currently known simple descriptor for one derived feature extent. */
     struct simple_term_descriptor_t
     {
         theory_feature_category_t category {
@@ -44,6 +700,7 @@ namespace feature_isolation
 
     using simple_term_index_t = std::map<feature_t, simple_term_descriptor_t>;
 
+    /** @brief Renders a conjunction or disjunction from signed feature literals. */
     [[nodiscard]] std::string render_simple_literals(
         const std::vector<std::pair<std::string, bool>>& literals,
         const char* join_symbol)
@@ -92,6 +749,7 @@ namespace feature_isolation
       return os.str();
     }
 
+    /** @brief Compares two simplified descriptors and prefers shorter, less negated forms. */
     [[nodiscard]] bool is_better_simple_descriptor(
         const simple_term_descriptor_t& candidate,
         const simple_term_descriptor_t& current)
@@ -111,6 +769,7 @@ namespace feature_isolation
       return candidate.expression < current.expression;
     }
 
+    /** @brief Updates the per-extent descriptor index when a better simple term is found. */
     void record_simple_descriptor(simple_term_index_t&            index,
                                   const feature_t&                extent,
                                   simple_term_descriptor_t        descriptor)
@@ -127,103 +786,212 @@ namespace feature_isolation
       }
     }
 
+    struct simple_term_state_t
+    {
+        feature_t                  extent {};
+        std::vector<std::int8_t>   literal_states {};
+        simple_term_descriptor_t   descriptor {};
+    };
+
+    [[nodiscard]] feature_t literal_extent(unsigned_integer feature_index,
+                                           bool negated,
+                                           const std::vector<unsigned_integer>& ordered_valid_system_ids)
+    {
+      feature_t extent(ordered_valid_system_ids.size(), false);
+      for (auto system_index { zero }; system_index < ordered_valid_system_ids.size(); ++system_index)
+      {
+        const auto minterm = ordered_valid_system_ids.at(system_index) - one;
+        const bool bit_value = ((minterm >> feature_index) & one) == one;
+        extent.at(system_index) = negated ? !bit_value : bit_value;
+      }
+      return extent;
+    }
+
+    [[nodiscard]] feature_t intersect_extents(const feature_t& lhs,
+                                              const feature_t& rhs)
+    {
+      feature_t result(lhs.size(), false);
+      for (auto index { zero }; index < lhs.size(); ++index)
+      {
+        result.at(index) = lhs.at(index) && rhs.at(index);
+      }
+      return result;
+    }
+
+    [[nodiscard]] feature_t union_extents(const feature_t& lhs,
+                                          const feature_t& rhs)
+    {
+      feature_t result(lhs.size(), false);
+      for (auto index { zero }; index < lhs.size(); ++index)
+      {
+        result.at(index) = lhs.at(index) || rhs.at(index);
+      }
+      return result;
+    }
+
+    [[nodiscard]] bool is_all_false_extent(const feature_t& extent)
+    {
+      return std::ranges::none_of(extent, [](bool value) { return value; });
+    }
+
+    [[nodiscard]] bool is_all_true_extent(const feature_t& extent)
+    {
+      return !extent.empty()
+             && std::ranges::all_of(extent, [](bool value) { return value; });
+    }
+
+    [[nodiscard]] std::vector<std::pair<std::string, bool>>
+        literal_pairs_from_states(const std::vector<std::int8_t>& states,
+                                  const std::vector<std::string>& feature_names)
+    {
+      std::vector<std::pair<std::string, bool>> literals {};
+      for (auto feature_index { zero }; feature_index < states.size(); ++feature_index)
+      {
+        if (states.at(feature_index) == 0)
+        {
+          continue;
+        }
+        literals.emplace_back(feature_names.at(feature_index), states.at(feature_index) < 0);
+      }
+      return literals;
+    }
+
+    void enumerate_simple_closure(simple_term_index_t& result,
+                                  unsigned_integer base_feature_count,
+                                  const std::vector<unsigned_integer>& ordered_valid_system_ids,
+                                  const std::vector<std::string>& feature_names,
+                                  bool conjunction_mode)
+    {
+      std::map<feature_t, simple_term_state_t> best_states {};
+      std::deque<simple_term_state_t> worklist {};
+      std::vector<feature_t> positive_literal_extents {};
+      std::vector<feature_t> negative_literal_extents {};
+      positive_literal_extents.reserve(base_feature_count);
+      negative_literal_extents.reserve(base_feature_count);
+      for (auto feature_index { zero }; feature_index < base_feature_count; ++feature_index)
+      {
+        positive_literal_extents.push_back(literal_extent(feature_index,
+                                                          false,
+                                                          ordered_valid_system_ids));
+        negative_literal_extents.push_back(literal_extent(feature_index,
+                                                          true,
+                                                          ordered_valid_system_ids));
+      }
+
+      auto try_record_state = [&](simple_term_state_t state) {
+        const auto best_it = best_states.find(state.extent);
+        if (best_it != best_states.end()
+            && !is_better_simple_descriptor(state.descriptor, best_it->second.descriptor))
+        {
+          return;
+        }
+        best_states[state.extent] = state;
+        record_simple_descriptor(result, state.extent, state.descriptor);
+        worklist.push_back(std::move(state));
+      };
+
+      for (auto feature_index { zero }; feature_index < base_feature_count; ++feature_index)
+      {
+        for (const auto negated : { false, true })
+        {
+          std::vector<std::int8_t> states(base_feature_count, 0);
+          states.at(feature_index) = negated ? static_cast<std::int8_t>(-1)
+                                             : static_cast<std::int8_t>(1);
+          const auto extent = negated ? negative_literal_extents.at(feature_index)
+                                      : positive_literal_extents.at(feature_index);
+          simple_term_state_t state {
+            extent,
+            states,
+            { negated ? theory_feature_category_t::not_feature
+                      : theory_feature_category_t::fundamental,
+              render_simple_literals(literal_pairs_from_states(states, feature_names),
+                                     conjunction_mode ? logical_and_symbol
+                                                      : logical_or_symbol),
+              1 } };
+          try_record_state(std::move(state));
+        }
+      }
+
+      while (!worklist.empty())
+      {
+        const auto current = worklist.front();
+        worklist.pop_front();
+        for (auto feature_index { zero }; feature_index < base_feature_count; ++feature_index)
+        {
+          for (const auto negated : { false, true })
+          {
+            const auto desired_state = negated ? static_cast<std::int8_t>(-1)
+                                               : static_cast<std::int8_t>(1);
+            const auto current_state = current.literal_states.at(feature_index);
+            if (current_state == desired_state)
+            {
+              continue;
+            }
+            if (current_state != 0)
+            {
+              if (conjunction_mode)
+              {
+                continue;
+              }
+              if (current_state == -desired_state)
+              {
+                continue;
+              }
+            }
+
+            auto next_states = current.literal_states;
+            next_states.at(feature_index) = desired_state;
+            const auto& literal = negated ? negative_literal_extents.at(feature_index)
+                                          : positive_literal_extents.at(feature_index);
+            auto next_extent = conjunction_mode
+                                   ? intersect_extents(current.extent, literal)
+                                   : union_extents(current.extent, literal);
+            if (is_all_false_extent(next_extent) || is_all_true_extent(next_extent))
+            {
+              continue;
+            }
+            const auto next_literals = literal_pairs_from_states(next_states, feature_names);
+            const auto literal_count = next_literals.size();
+            if (!conjunction_mode && literal_count < 2)
+            {
+              continue;
+            }
+            simple_term_state_t next_state {
+              std::move(next_extent),
+              std::move(next_states),
+              { conjunction_mode ? theory_feature_category_t::and_feature
+                                 : theory_feature_category_t::or_feature,
+                render_simple_literals(next_literals,
+                                       conjunction_mode ? logical_and_symbol
+                                                        : logical_or_symbol),
+                literal_count } };
+            try_record_state(std::move(next_state));
+          }
+        }
+      }
+    }
+
+    /** @brief Enumerates simple conjunction/disjunction extents lazily over valid-system memberships. */
     [[nodiscard]] simple_term_index_t build_simple_term_index(
         unsigned_integer               base_feature_count,
         const std::vector<unsigned_integer>& ordered_valid_system_ids,
         const std::vector<std::string>&      feature_names)
     {
       simple_term_index_t result {};
-      const auto pattern_count = power(3, base_feature_count);
-      for (auto encoded_pattern { zero }; encoded_pattern < pattern_count;
-           ++encoded_pattern)
-      {
-        auto pattern = encoded_pattern;
-        std::vector<int> trits(base_feature_count, 0);
-        size_t literal_count {};
-        for (auto feature_index { zero }; feature_index < base_feature_count;
-             ++feature_index)
-        {
-          trits.at(feature_index) = static_cast<int>(pattern % 3);
-          pattern /= 3;
-          if (trits.at(feature_index) != 0)
-          {
-            ++literal_count;
-          }
-        }
-        if (literal_count == zero)
-        {
-          continue;
-        }
-
-        feature_t conjunction_extent(ordered_valid_system_ids.size(), true);
-        feature_t disjunction_extent(ordered_valid_system_ids.size(), false);
-        std::vector<std::pair<std::string, bool>> conjunction_literals {};
-        std::vector<std::pair<std::string, bool>> disjunction_literals {};
-        conjunction_literals.reserve(literal_count);
-        disjunction_literals.reserve(literal_count);
-        for (auto feature_index { zero }; feature_index < base_feature_count;
-             ++feature_index)
-        {
-          const auto trit = trits.at(feature_index);
-          if (trit == 0)
-          {
-            continue;
-          }
-          const bool negated = trit == 2;
-          conjunction_literals.emplace_back(feature_names.at(feature_index), negated);
-          disjunction_literals.emplace_back(feature_names.at(feature_index), negated);
-        }
-
-        for (auto system_index { zero }; system_index < ordered_valid_system_ids.size();
-             ++system_index)
-        {
-          const auto minterm = ordered_valid_system_ids.at(system_index) - one;
-          bool conjunction_matches = true;
-          bool disjunction_matches = false;
-          for (auto feature_index { zero }; feature_index < base_feature_count;
-               ++feature_index)
-          {
-            const auto trit = trits.at(feature_index);
-            if (trit == 0)
-            {
-              continue;
-            }
-            const bool bit_value = ((minterm >> feature_index) & one) == one;
-            const bool literal_matches
-                = trit == 1 ? bit_value : !bit_value;
-            conjunction_matches = conjunction_matches && literal_matches;
-            disjunction_matches = disjunction_matches || literal_matches;
-          }
-          conjunction_extent.at(system_index) = conjunction_matches;
-          disjunction_extent.at(system_index) = disjunction_matches;
-        }
-
-        const auto conjunction_category
-            = literal_count == one
-                  ? (conjunction_literals.front().second
-                         ? theory_feature_category_t::not_feature
-                         : theory_feature_category_t::fundamental)
-                  : theory_feature_category_t::and_feature;
-        record_simple_descriptor(result,
-                                 conjunction_extent,
-                                 { conjunction_category,
-                                   render_simple_literals(conjunction_literals,
-                                                          logical_and_symbol),
-                                   literal_count });
-
-        if (literal_count >= 2)
-        {
-          record_simple_descriptor(result,
-                                   disjunction_extent,
-                                   { theory_feature_category_t::or_feature,
-                                     render_simple_literals(disjunction_literals,
-                                                            logical_or_symbol),
-                                     literal_count });
-        }
-      }
+      enumerate_simple_closure(result,
+                               base_feature_count,
+                               ordered_valid_system_ids,
+                               feature_names,
+                               true);
+      enumerate_simple_closure(result,
+                               base_feature_count,
+                               ordered_valid_system_ids,
+                               feature_names,
+                               false);
       return result;
     }
 
+    /** @brief Formats the valid-system subset represented by a feature extent. */
     [[nodiscard]] std::string system_membership_set(
         const feature_t& systems_present,
         const system_space_t& system_space)
@@ -251,6 +1019,7 @@ namespace feature_isolation
       return first ? std::string{"∅"} : os.str();
     }
 
+    /** @brief Labels one system as available, missing, valid-only, or outside the constrained space. */
     [[nodiscard]] std::string system_status(
         unsigned_integer system_id,
         const system_space_t& system_space)
@@ -270,6 +1039,7 @@ namespace feature_isolation
       return "invalid";
     }
 
+    /** @brief Formats a set of feature identifiers using the paper-style t_i labels. */
     [[nodiscard]] std::string feature_id_set_string(const feature_ids_t& ids)
     {
       std::ostringstream os;
@@ -288,6 +1058,7 @@ namespace feature_isolation
       return first ? std::string{"∅"} : os.str();
     }
 
+    /** @brief Normalizes the input system partition so valid, available, and missing sets are internally consistent. */
     [[nodiscard]] system_space_t normalize_theory_system_space(
         unsigned_integer   max_system_id,
         const system_space_t& input)
@@ -334,6 +1105,7 @@ namespace feature_isolation
       return input;
     }
 
+    /** @brief Represents one implicant used by the minimization-based raw and simplified term derivation. */
     struct implicant_t
     {
         std::vector<int> bits {};
@@ -342,6 +1114,7 @@ namespace feature_isolation
         size_t           specified_ones { 0 };
     };
 
+    /** @brief Builds an implicant that matches exactly one minterm before combination. */
     [[nodiscard]] implicant_t make_implicant(unsigned_integer minterm,
                                              unsigned_integer variable_count,
                                              bool             is_care_minterm)
@@ -361,6 +1134,7 @@ namespace feature_isolation
       return implicant;
     }
 
+    /** @brief Recomputes covered minterms and bit statistics after an implicant changes. */
     void refresh_implicant_metadata(implicant_t& implicant)
     {
       implicant.literal_count_cache = 0;
@@ -379,6 +1153,7 @@ namespace feature_isolation
       }
     }
 
+    /** @brief Returns whether an implicant covers a concrete minterm. */
     [[nodiscard]] bool covers(const implicant_t& implicant,
                               unsigned_integer   minterm,
                               unsigned_integer   variable_count)
@@ -394,11 +1169,13 @@ namespace feature_isolation
       return true;
     }
 
+    /** @brief Counts the non-don't-care literals in an implicant. */
     [[nodiscard]] size_t literal_count(const implicant_t& implicant)
     {
       return implicant.literal_count_cache;
     }
 
+    /** @brief Returns whether two implicants differ in exactly one literal and can be merged. */
     [[nodiscard]] bool can_combine(const implicant_t& lhs,
                                    const implicant_t& rhs)
     {
@@ -424,6 +1201,7 @@ namespace feature_isolation
       return differing_positions == one;
     }
 
+    /** @brief Merges two compatible implicants into the next more general implicant. */
     [[nodiscard]] implicant_t combine_implicants(const implicant_t& lhs,
                                                  const implicant_t& rhs)
     {
@@ -443,11 +1221,13 @@ namespace feature_isolation
       return result;
     }
 
+    /** @brief Returns whether two implicants encode the same literal pattern. */
     [[nodiscard]] bool same_bits(const implicant_t& lhs, const implicant_t& rhs)
     {
       return lhs.bits == rhs.bits;
     }
 
+    /** @brief Removes duplicate implicants after a combination round. */
     [[nodiscard]] std::vector<implicant_t>
         deduplicate_implicants(const std::vector<implicant_t>& implicants)
     {
@@ -470,6 +1250,7 @@ namespace feature_isolation
       return result;
     }
 
+    /** @brief Computes the prime implicants for the given minterm set. */
     [[nodiscard]] std::vector<implicant_t>
         prime_implicants(unsigned_integer                    variable_count,
                          const std::vector<unsigned_integer>& minterms,
@@ -538,6 +1319,7 @@ namespace feature_isolation
       return deduplicate_implicants(primes);
     }
 
+    /** @brief Builds the minterm cover set of each prime implicant. */
     [[nodiscard]] std::vector<feature_ids_t>
         implicant_cover_sets(unsigned_integer                    variable_count,
                              const std::vector<unsigned_integer>& minterms,
@@ -559,6 +1341,7 @@ namespace feature_isolation
       return cover_sets;
     }
 
+    /** @brief Computes a fast initial cover used to seed the exact cover search. */
     [[nodiscard]] std::vector<size_t>
         greedy_cover_subset(const std::vector<size_t>&      candidate_indices,
                             const std::vector<implicant_t>& prime_implicants,
@@ -600,6 +1383,7 @@ namespace feature_isolation
       return subset;
     }
 
+    /** @brief Performs branch-and-bound search for a small implicant cover after essentials are fixed. */
     struct exact_cover_search_t
     {
         const std::vector<implicant_t>&  prime_implicants;
@@ -610,6 +1394,7 @@ namespace feature_isolation
         };
         size_t best_implicant_count { std::numeric_limits<size_t>::max() };
 
+        /** @brief Records a new best subset when it improves the current incumbent. */
         void consider_current(const std::vector<size_t>& subset, size_t literal_total)
         {
           if (literal_total < best_literal_count
@@ -622,6 +1407,7 @@ namespace feature_isolation
           }
         }
 
+        /** @brief Returns a lower bound on the literal cost of the remaining candidates. */
         [[nodiscard]] size_t min_literal_cost(const std::vector<size_t>& candidates) const
         {
           size_t result { std::numeric_limits<size_t>::max() };
@@ -632,6 +1418,7 @@ namespace feature_isolation
           return result == std::numeric_limits<size_t>::max() ? zero : result;
         }
 
+        /** @brief Orders candidate implicants by how much uncovered mass they remove next. */
         [[nodiscard]] std::vector<std::pair<size_t, size_t>> pivot_coverers(
             const std::vector<size_t>& candidates,
             const feature_ids_t&       uncovered) const
@@ -667,6 +1454,7 @@ namespace feature_isolation
           return best_coverers;
         }
 
+        /** @brief Explores candidate subsets until the best exact or near-exact cover is found. */
         void search(const std::vector<size_t>& candidates,
                     const feature_ids_t&       uncovered,
                     std::vector<size_t>&       current_subset,
@@ -745,6 +1533,7 @@ namespace feature_isolation
         }
     };
 
+    /** @brief Selects a compact implicant cover from the prime implicants of one feature extent. */
     [[nodiscard]] std::vector<implicant_t>
         select_cover(unsigned_integer                    variable_count,
                      const std::vector<unsigned_integer>& minterms,
@@ -836,12 +1625,14 @@ namespace feature_isolation
       return selected;
     }
 
+    /** @brief Selects whether minimized implicants are rendered as DNF or CNF. */
     enum class normal_form_t
     {
       dnf,
       cnf
     };
 
+    /** @brief Renders one implicant as a single clause in the requested normal form. */
     [[nodiscard]] std::string clause_to_string(const implicant_t&             implicant,
                                                const std::vector<std::string>& feature_names,
                                                normal_form_t                  normal_form)
@@ -895,6 +1686,7 @@ namespace feature_isolation
       return oss.str();
     }
 
+    /** @brief Renders a minimized implicant cover as a whole DNF or CNF expression. */
     [[nodiscard]] std::string
         normal_form_to_string(const std::vector<implicant_t>& implicants,
                               const std::vector<std::string>& feature_names,
@@ -912,6 +1704,7 @@ namespace feature_isolation
                                                  : logical_false_symbol;
       }
 
+      /** @brief Stores one rendered clause together with sort keys used for stable output ordering. */
       struct rendered_clause_t
       {
           std::string text {};
@@ -1021,7 +1814,7 @@ namespace feature_isolation
       unsigned_integer                                  f,
       const system_space_t&                             system_space,
       std::vector<std::string>                          feature_names,
-      std::optional<std::vector<theory_feature_category_t>> category_filter)
+      report_request_t                                  report_request)
       : m_base_feature_count { f }
       , m_valid_system_count {
           static_cast<unsigned_integer>(system_space.valid.size())
@@ -1032,7 +1825,7 @@ namespace feature_isolation
         }
       , m_feature_names { feature_names.empty() ? std::vector<std::string> {}
                                                 : std::move(feature_names) }
-      , m_category_filter { std::move(category_filter) }
+      , m_report_request { std::move(report_request) }
       , m_resolved_feature_names {
           [this]()
           {
@@ -1059,31 +1852,41 @@ namespace feature_isolation
                                                 m_system_space.valid.end());
           }()
         }
-      , m_invalid_system_minterms {
+      , m_valid_system_positions {
           [this]()
           {
-            std::vector<unsigned_integer> invalid_minterms {};
-            invalid_minterms.reserve(
-                static_cast<size_t>(m_max_system_id - m_ordered_valid_system_ids.size()));
-            for (auto system_id { one }; system_id <= m_max_system_id; ++system_id)
+            std::unordered_map<unsigned_integer, std::size_t> positions {};
+            positions.reserve(m_ordered_valid_system_ids.size());
+            for (std::size_t index { 0 }; index < m_ordered_valid_system_ids.size(); ++index)
             {
-              if (!m_system_space.valid.contains(system_id))
-              {
-                invalid_minterms.push_back(system_id - one);
-              }
+              positions.emplace(m_ordered_valid_system_ids.at(index), index);
             }
-            return invalid_minterms;
+            return positions;
           }()
         }
       , m_feature_registry { initialize_feature_registry() }
-      , m_systems { initialize_registry_backed_systems() }
+      , m_systems { m_report_request.mode == report_mode_t::summary
+                        ? systems_t {}
+                        : initialize_registry_backed_systems() }
+  { }
+
+  feature_analysis_t::feature_analysis_t(
+      unsigned_integer                                  f,
+      const system_space_t&                             system_space,
+      std::vector<std::string>                          feature_names,
+      std::optional<std::vector<theory_feature_category_t>> category_filter)
+      : feature_analysis_t(f,
+                           system_space,
+                           std::move(feature_names),
+                           report_request_t::from_category_hint(
+                               std::move(category_filter)))
   { }
 
   [[nodiscard]] feature_t feature_analysis_t::at(unsigned_integer feature_id) const
   {
     if (feature_id == zero || feature_id > m_feature_registry.size())
     {
-      throw std::out_of_range("Illegal theory feature id.");
+      throw std::out_of_range("Illegal derived feature id.");
     }
     return m_feature_registry.at(feature_id - one).systems_present;
   }
@@ -1092,7 +1895,7 @@ namespace feature_isolation
   {
     if (feature_id == zero || feature_id > m_feature_registry.size())
     {
-      throw std::out_of_range("Illegal theory feature id.");
+      throw std::out_of_range("Illegal derived feature id.");
     }
     return static_cast<unsigned_integer>(m_feature_registry.at(feature_id - one).category);
   }
@@ -1110,19 +1913,14 @@ namespace feature_isolation
   bool feature_analysis_t::includes_category(
       theory_feature_category_t category) const
   {
-    if (!m_category_filter.has_value())
-    {
-      return true;
-    }
-    return std::ranges::find(m_category_filter.value(), category)
-           != m_category_filter.value().end();
+    return m_report_request.includes_category(category);
   }
 
   bool feature_analysis_t::includes_feature(unsigned_integer feature_id) const
   {
     if (feature_id == zero || feature_id > m_feature_registry.size())
     {
-      throw std::out_of_range("Illegal theory feature id.");
+      throw std::out_of_range("Illegal derived feature id.");
     }
     return includes_category(m_feature_registry.at(feature_id - one).category);
   }
@@ -1130,6 +1928,11 @@ namespace feature_isolation
   const system_space_t& feature_analysis_t::system_space() const
   {
     return m_system_space;
+  }
+
+  const report_request_t& feature_analysis_t::report_request() const
+  {
+    return m_report_request;
   }
 
   const std::vector<feature_record_t>& feature_analysis_t::feature_registry() const
@@ -1155,6 +1958,16 @@ namespace feature_isolation
   unsigned_integer feature_analysis_t::valid_system_count() const
   {
     return m_valid_system_count;
+  }
+
+  const system_t& feature_analysis_t::system_by_id(unsigned_integer system_id) const
+  {
+    const auto position = m_valid_system_positions.find(system_id);
+    if (position == m_valid_system_positions.end())
+    {
+      throw std::out_of_range("System id is not part of the valid system registry.");
+    }
+    return m_systems.at(position->second);
   }
 
   void feature_analysis_t::print_feature(std::ostream&    os,
@@ -1260,9 +2073,11 @@ namespace feature_isolation
        << separator() << "Fundamental" << separator() << "Not" << separator()
        << "And" << separator() << "Or" << separator() << "Complex"
        << separator() << "T" << std::endl;
-    for (auto id { zero }; const auto& system : m_systems)
+    for (auto system_index { zero }; system_index < m_ordered_valid_system_ids.size(); ++system_index)
     {
-      print_system_statistics(os, system, ++id);
+      print_system_statistics(os,
+                              m_systems.at(system_index),
+                              m_ordered_valid_system_ids.at(system_index));
     }
   }
 
@@ -1320,9 +2135,11 @@ namespace feature_isolation
        << separator() << "Fundamental" << separator() << "Not" << separator()
        << "And" << separator() << "Or" << separator() << "Complex"
        << std::endl;
-    for (auto id { zero }; const auto& system : m_systems)
+    for (auto system_index { zero }; system_index < m_ordered_valid_system_ids.size(); ++system_index)
     {
-      print_system_features(os, system, ++id);
+      print_system_features(os,
+                            m_systems.at(system_index),
+                            m_ordered_valid_system_ids.at(system_index));
     }
   }
 
@@ -1378,7 +2195,8 @@ namespace feature_isolation
   }
 
   std::string feature_analysis_t::simplified_term_for(
-      const feature_t& systems_present) const
+      const feature_t& systems_present,
+      const std::vector<unsigned_integer>& dont_cares) const
   {
     if (systems_present.empty()
         || std::ranges::none_of(systems_present, [](bool value) { return value; }))
@@ -1406,7 +2224,7 @@ namespace feature_isolation
     }
 
     const auto dnf_primes
-        = prime_implicants(m_base_feature_count, minterms, m_invalid_system_minterms);
+        = prime_implicants(m_base_feature_count, minterms, dont_cares);
     const auto dnf_cover = select_cover(m_base_feature_count, minterms, dnf_primes);
     const auto dnf_expression = normal_form_to_string(dnf_cover,
                                                       m_resolved_feature_names,
@@ -1414,7 +2232,7 @@ namespace feature_isolation
 
     const auto cnf_primes = prime_implicants(m_base_feature_count,
                                              complement_minterms,
-                                             m_invalid_system_minterms);
+                                             dont_cares);
     const auto cnf_cover
         = select_cover(m_base_feature_count, complement_minterms, cnf_primes);
     const auto cnf_expression = normal_form_to_string(cnf_cover,
@@ -1463,7 +2281,47 @@ namespace feature_isolation
   bool feature_analysis_t::should_materialize_details(
       theory_feature_category_t category) const
   {
-    return includes_category(category);
+    if (!includes_category(category))
+    {
+      return false;
+    }
+    if (category == theory_feature_category_t::complex
+        && !m_report_request.include_complex_details)
+    {
+      return false;
+    }
+    return should_materialize_simplified_term(category)
+           || should_materialize_raw_term(category);
+  }
+
+  bool feature_analysis_t::should_materialize_simplified_term(
+      theory_feature_category_t category) const
+  {
+    if (!m_report_request.include_simplified_terms)
+    {
+      return false;
+    }
+    if (!includes_category(category))
+    {
+      return false;
+    }
+    return category != theory_feature_category_t::complex
+           || m_report_request.include_complex_details;
+  }
+
+  bool feature_analysis_t::should_materialize_raw_term(
+      theory_feature_category_t category) const
+  {
+    if (!m_report_request.include_raw_terms)
+    {
+      return false;
+    }
+    if (!includes_category(category))
+    {
+      return false;
+    }
+    return category != theory_feature_category_t::complex
+           || m_report_request.include_complex_details;
   }
 
   [[nodiscard]] std::vector<feature_record_t>
@@ -1475,6 +2333,26 @@ namespace feature_isolation
                                                            m_ordered_valid_system_ids,
                                                            m_resolved_feature_names);
     result.reserve(static_cast<size_t>(registry_size));
+    std::vector<std::size_t> pending_complex_simplifications {};
+
+    auto build_invalid_system_minterms = [this]() {
+      std::vector<unsigned_integer> invalid_minterms {};
+      if (m_valid_system_count == m_max_system_id)
+      {
+        return invalid_minterms;
+      }
+      invalid_minterms.reserve(
+          static_cast<size_t>(m_max_system_id - m_ordered_valid_system_ids.size()));
+      for (auto system_id { one }; system_id <= m_max_system_id; ++system_id)
+      {
+        if (!m_system_space.valid.contains(system_id))
+        {
+          invalid_minterms.push_back(system_id - one);
+        }
+      }
+      return invalid_minterms;
+    };
+
     for (auto encoded_subset { zero }; encoded_subset < registry_size; ++encoded_subset)
     {
       feature_record_t record {};
@@ -1496,11 +2374,18 @@ namespace feature_isolation
       if (!any_present)
       {
         record.category = theory_feature_category_t::impossible;
-        if (should_materialize_details(record.category))
+        if (should_materialize_simplified_term(record.category))
         {
           record.simplified_term = logical_false_symbol;
-          record.raw_term        = logical_false_symbol;
           record.display_name    = record.simplified_term;
+        }
+        if (should_materialize_raw_term(record.category))
+        {
+          record.raw_term = logical_false_symbol;
+          if (record.display_name.empty())
+          {
+            record.display_name = record.raw_term;
+          }
         }
         result.push_back(record);
         continue;
@@ -1508,11 +2393,18 @@ namespace feature_isolation
       if (all_present)
       {
         record.category = theory_feature_category_t::core;
-        if (should_materialize_details(record.category))
+        if (should_materialize_simplified_term(record.category))
         {
           record.simplified_term = logical_true_symbol;
-          record.raw_term        = raw_term_for(record.systems_present);
           record.display_name    = record.simplified_term;
+        }
+        if (should_materialize_raw_term(record.category))
+        {
+          record.raw_term = raw_term_for(record.systems_present);
+          if (record.display_name.empty())
+          {
+            record.display_name = record.raw_term;
+          }
         }
         result.push_back(record);
         continue;
@@ -1522,31 +2414,57 @@ namespace feature_isolation
       if (simple_match != simple_term_index.end())
       {
         record.category = simple_match->second.category;
-        if (should_materialize_details(record.category))
+        if (should_materialize_simplified_term(record.category))
         {
           record.simplified_term = simple_match->second.expression;
-          record.raw_term        = raw_term_for(record.systems_present);
           record.display_name    = record.simplified_term;
+        }
+        if (should_materialize_raw_term(record.category))
+        {
+          record.raw_term = raw_term_for(record.systems_present);
+          if (record.display_name.empty())
+          {
+            record.display_name = record.raw_term;
+          }
         }
         result.push_back(record);
         continue;
       }
 
       record.category = theory_feature_category_t::complex;
-      if (should_materialize_details(record.category))
+      if (should_materialize_raw_term(record.category))
       {
         record.raw_term = raw_term_for(record.systems_present);
-        record.simplified_term = simplified_term_for(record.systems_present);
+        if (record.display_name.empty())
+        {
+          record.display_name = record.raw_term;
+        }
+      }
+      if (should_materialize_simplified_term(record.category))
+      {
+        pending_complex_simplifications.push_back(result.size());
+      }
+      result.push_back(std::move(record));
+    }
+
+    if (!pending_complex_simplifications.empty())
+    {
+      const auto invalid_minterms = build_invalid_system_minterms();
+      for (const auto index : pending_complex_simplifications)
+      {
+        auto& record = result.at(index);
+        record.simplified_term = simplified_term_for(record.systems_present,
+                                                     invalid_minterms);
         record.display_name = record.simplified_term;
       }
-      result.push_back(record);
     }
+
     return result;
   }
 
   systems_t feature_analysis_t::initialize_registry_backed_systems() const
   {
-    systems_t result(m_max_system_id, system_t {});
+    systems_t result(m_ordered_valid_system_ids.size(), system_t {});
     for (const auto& record : m_feature_registry)
     {
       for (auto system_index { zero }; system_index < m_ordered_valid_system_ids.size();
@@ -1556,17 +2474,13 @@ namespace feature_isolation
         {
           continue;
         }
-        const auto system_id = m_ordered_valid_system_ids.at(system_index);
-        if (system_id == zero || system_id > result.size())
-        {
-          continue;
-        }
-        result.at(system_id - one).feature_ids.insert(record.id);
+        result.at(system_index).feature_ids.insert(record.id);
       }
     }
     return result;
   }
 
+  /** @brief Returns or updates the current tabular output separator used by print helpers. */
   [[nodiscard]] char separator(const char s)
   {
     static char sep = '\t';
@@ -1577,6 +2491,7 @@ namespace feature_isolation
     return sep;
   }
 
+  /** @brief Renders a bit-vector feature extent in the repository's binary order. */
   std::string to_string(const feature_t& fd)
   {
     std::string result {};
@@ -1594,6 +2509,7 @@ namespace feature_isolation
     return result;
   }
 
+  /** @brief Prints a generic container for debugging and ad hoc inspection. */
   template<typename T> void print(std::string m, const T& c)
   {
     auto s { c.size() };
