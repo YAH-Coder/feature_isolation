@@ -473,7 +473,12 @@ namespace
       throw std::runtime_error(message.str());
     }
     assert_contains(refused.output, "Execution guardrail warning", "guardrail refusal output");
-    assert_contains(refused.output, "recommended mode=summary", "guardrail refusal output");
+    assert_contains(refused.output,
+                    "Use --force to bypass the hard guardrails",
+                    "guardrail refusal output");
+    assert_not_contains(refused.output,
+                        "Suggested drill-down workflow",
+                        "guardrail refusal output");
 
     const fs::path accepted_report = generated_dir() / "cli_risky_accepted.txt";
     const auto accepted = run_process({ cli_path().string(),
@@ -488,6 +493,9 @@ namespace
     {
       throw std::runtime_error(accepted.output);
     }
+    assert_not_contains(accepted.output,
+                        "Suggested drill-down workflow",
+                        "accepted recommended output");
 
     std::ifstream report_stream { accepted_report };
     std::stringstream buffer {};
@@ -496,6 +504,7 @@ namespace
     assert_contains(report, "=== THEORY SUMMARY ===", "accepted recommended report");
     assert_not_contains(report, "=== SYSTEMS ===", "accepted recommended report");
   }
+
 
   void test_compatibility_notes()
   {

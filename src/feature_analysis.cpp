@@ -177,14 +177,22 @@ namespace feature_isolation
       const system_space_t&   system_space,
       const report_request_t& report_request)
   {
-    constexpr long double shell_runtime_ms_per_feature { 0.00045L };
-    constexpr long double simple_detail_runtime_ms_per_feature { 0.01L };
-    constexpr long double complex_detail_runtime_ms_per_feature { 0.042L };
-    constexpr long double base_output_bytes { 4096.0L };
-    constexpr long double shell_output_bytes_per_feature { 48.0L };
-    constexpr long double simplified_term_output_bytes_per_feature { 96.0L };
-    constexpr long double raw_term_output_bytes_per_feature { 96.0L };
-    constexpr long double isolation_output_bytes_per_feature { 128.0L };
+    constexpr long double setup_runtime_ms_constant { 5.5L };
+    constexpr long double setup_runtime_ms_per_feature_squared { 1.15L };
+    constexpr long double non_summary_runtime_ms_constant { 2.0L };
+    constexpr long double simple_detail_runtime_ms_per_feature { 0.009L };
+    constexpr long double complex_detail_runtime_ms_per_feature_and_valid_system_square
+        { 0.018L };
+    constexpr long double isolation_runtime_ms_constant { 2.5L };
+    constexpr long double isolation_runtime_ms_per_feature_and_valid_system
+        { 0.000274L };
+
+    constexpr long double base_output_bytes { 2048.0L };
+    constexpr long double shell_output_bytes_per_feature { 18.0L };
+    constexpr long double simplified_term_output_bytes_per_feature { 44.0L };
+    constexpr long double raw_term_output_bytes_per_feature { 48.0L };
+    constexpr long double complex_detail_output_bytes_per_feature { 250.0L };
+    constexpr long double isolation_output_bytes_per_feature { 12.0L };
 
     report_feasibility_t estimate {};
     estimate.base_feature_count = base_feature_count;
@@ -246,29 +254,36 @@ namespace feature_isolation
               : 0;
 
     estimate.estimated_analysis_runtime_ms
-        = static_cast<long double>(estimate.theory_feature_count)
-          * shell_runtime_ms_per_feature;
+        = setup_runtime_ms_constant
+          + setup_runtime_ms_per_feature_squared
+                * static_cast<long double>(base_feature_count)
+                * static_cast<long double>(base_feature_count);
     if (report_request.mode != report_mode_t::summary)
     {
+      estimate.estimated_analysis_runtime_ms += non_summary_runtime_ms_constant;
       estimate.estimated_analysis_runtime_ms
           += static_cast<long double>(simple_included_upper_bound)
              * simple_detail_runtime_ms_per_feature;
       if (report_request.include_complex_details)
       {
+        const auto valid_system_square
+            = static_cast<long double>(estimate.valid_system_count)
+              * static_cast<long double>(estimate.valid_system_count);
         estimate.estimated_analysis_runtime_ms
             += static_cast<long double>(complex_included_upper_bound)
-               * complex_detail_runtime_ms_per_feature;
+               * valid_system_square
+               * complex_detail_runtime_ms_per_feature_and_valid_system_square;
       }
     }
 
     if (report_request.include_isolation
         && report_request.mode != report_mode_t::summary)
     {
-      const auto isolation_per_feature_ms
-          = 0.005L * std::pow(static_cast<long double>(estimate.valid_system_count), 3.0L);
       estimate.estimated_isolation_runtime_ms
-          = static_cast<long double>(estimate.included_feature_upper_bound)
-            * isolation_per_feature_ms;
+          = isolation_runtime_ms_constant
+            + static_cast<long double>(estimate.included_feature_upper_bound)
+                  * static_cast<long double>(estimate.valid_system_count)
+                  * isolation_runtime_ms_per_feature_and_valid_system;
     }
 
     estimate.estimated_total_runtime_ms
@@ -293,6 +308,12 @@ namespace feature_isolation
             += static_cast<long double>(estimate.included_feature_upper_bound)
                * raw_term_output_bytes_per_feature;
       }
+      if (report_request.include_complex_details)
+      {
+        estimate.estimated_output_bytes
+            += static_cast<long double>(complex_included_upper_bound)
+               * complex_detail_output_bytes_per_feature;
+      }
       if (report_request.include_isolation)
       {
         estimate.estimated_output_bytes
@@ -309,13 +330,13 @@ namespace feature_isolation
     {
       estimate.risk = feasibility_risk_t::impractical;
     }
-    else if (estimate.estimated_total_runtime_ms > 60000.0L
+    else if (estimate.estimated_total_runtime_ms > 120000.0L
              || estimate.estimated_output_bytes > 256.0L * mib
              || estimate.theory_feature_count > saturated_power2_count(24))
     {
       estimate.risk = feasibility_risk_t::risky;
     }
-    else if (estimate.estimated_total_runtime_ms > 10000.0L
+    else if (estimate.estimated_total_runtime_ms > 15000.0L
              || estimate.estimated_output_bytes > 64.0L * mib
              || estimate.theory_feature_count > saturated_power2_count(20))
     {
@@ -580,8 +601,7 @@ namespace feature_isolation
     }
 
     auto best_candidate = executable_candidates.front();
-    if (requested_feasibility.risk == feasibility_risk_t::risky
-        || requested_feasibility.risk == feasibility_risk_t::impractical)
+    if (requested_feasibility.risk != feasibility_risk_t::safe)
     {
       for (const auto& candidate : executable_candidates)
       {

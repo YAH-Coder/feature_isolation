@@ -5,6 +5,7 @@ pkgs.mkShell {
     gcc
     gnumake
     doxygen
+    graphviz
     bash
   ];
 }
