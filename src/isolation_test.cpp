@@ -243,7 +243,7 @@ TEST_CASE("Theory-native naming and print functions")
   }
 }
 
-TEST_CASE("Theory-native report exposes new categories, DSL coverage, and ambiguity columns")
+TEST_CASE("Theory-native report exposes new categories and ambiguity columns")
 {
   feature_isolation_t fi("spl_specs/new_dsl/valid/unconstrained_2f.spl");
 
@@ -252,8 +252,6 @@ TEST_CASE("Theory-native report exposes new categories, DSL coverage, and ambigu
   ss << "=== SPL SPECIFICATION ===" << std::endl;
   printer_t printer { ss };
   printer.print_specification(fi.m_spl);
-  ss << "\n=== THEORY DSL COVERAGE ===" << std::endl;
-  printer.print_theory_dsl_coverage(fi.m_spl);
   ss << "\n=== SYSTEMS ===" << std::endl;
   fi.m_features.print(ss);
   ss << "=== FEATURES BY CATEGORY ===" << std::endl;
@@ -282,12 +280,39 @@ TEST_CASE("Theory-native report exposes new categories, DSL coverage, and ambigu
   REQUIRE(report.find("Complex") != std::string::npos);
   REQUIRE(report.find("RESULT TYPE") != std::string::npos);
   REQUIRE(report.find("β(t_i)") != std::string::npos);
-  REQUIRE(report.find("THEORY DSL COVERAGE") != std::string::npos);
-  REQUIRE(report.find("SUPPORTED") != std::string::npos);
-  REQUIRE(report.find("NOT DIRECTLY COVERED") != std::string::npos);
+  REQUIRE(report.find("THEORY DSL COVERAGE") == std::string::npos);
+  REQUIRE(report.find("NOT DIRECTLY COVERED") == std::string::npos);
 }
 
-TEST_CASE("Theory-mode summary is fully theory-native",
+TEST_CASE("Explicit report requests override DSL category hints in the CLI layer",
+          "[feature_isolation_t][report_request]")
+{
+  spl_processor_t processor(
+      "spl_specs/new_dsl/valid/constraints_boolean_and_count.spl");
+  const auto& spec = processor.get_specification();
+
+  feature_isolation_t default_isolation(
+      "spl_specs/new_dsl/valid/constraints_boolean_and_count.spl");
+  REQUIRE(default_isolation.m_features.includes_category(
+      theory_feature_category_t::complex));
+
+  auto request = report_request_t::unrestricted();
+  request.requested_categories = std::vector<theory_feature_category_t> {
+    theory_feature_category_t::core,
+    theory_feature_category_t::fundamental,
+    theory_feature_category_t::not_feature,
+    theory_feature_category_t::and_feature,
+    theory_feature_category_t::or_feature
+  };
+  request.include_complex_details = false;
+
+  feature_isolation_t overridden_isolation(spec, request);
+  REQUIRE_FALSE(overridden_isolation.m_features.includes_category(
+      theory_feature_category_t::complex));
+  REQUIRE_FALSE(overridden_isolation.m_report_request.include_complex_details);
+}
+
+TEST_CASE("Theory-mode summary is fully derived-feature-space-native",
           "[feature_analysis_t][theory][summary]")
 {
   feature_isolation_t fi("spl_specs/new_dsl/valid/unconstrained_2f.spl");

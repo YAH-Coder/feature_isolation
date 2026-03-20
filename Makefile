@@ -53,7 +53,8 @@ TEST_SPL_BIN := $(SPL_DIR)/test_spl
 TEST_ANALYSIS_BIN := $(ANALYSIS_DIR)/test_analysis
 TEST_ISOLATION_BIN := $(ISOLATION_DIR)/test_isolation
 CLI_BIN := $(GENERATED_DIR)/cli
-CLI_TEST_SCRIPT := testing/cli_regression.py
+CLI_TEST_SRC := src/cli_regression_test.cpp
+CLI_TEST_BIN := $(GENERATED_DIR)/test_cli
 
 # Object files
 SPL_OBJS := $(SPL_DIR)/spl.o $(SPL_DIR)/feature_analysis.o $(SPL_DIR)/spl_test.o
@@ -91,8 +92,8 @@ test_analysis: $(TEST_ANALYSIS_BIN) | $(GENERATED_DIR)
 test_isolation: $(TEST_ISOLATION_BIN) | $(GENERATED_DIR)
 	$(EXE_PREFIX)$(TEST_ISOLATION_BIN)
 
-test_cli: $(CLI_BIN) | $(GENERATED_DIR)
-	python3 $(CLI_TEST_SCRIPT)
+test_cli: $(CLI_TEST_BIN)
+	$(EXE_PREFIX)$(CLI_TEST_BIN)
 
 bench: $(MATH_BENCHMARK_BIN) $(THEORY_BENCHMARK_BIN)
 benchmark: bench
@@ -101,6 +102,13 @@ benchmark_theory: $(THEORY_BENCHMARK_BIN)
 docs: Doxyfile
 	$(DOXYGEN) $<
 
+deps:
+ifeq ($(OS),Windows_NT)
+	powershell -ExecutionPolicy Bypass -File scripts/install-deps-windows.ps1
+else
+	bash scripts/install-deps.sh
+endif
+
 help:
 	@echo "Usage: make [target]"
 	@echo
@@ -108,6 +116,7 @@ help:
 	@echo "  cli             Build the CLI executable ($(CLI_BIN))"
 	@echo "  test            Build and run the full test suite"
 	@echo "  bench           Build benchmark executables"
+	@echo "  deps            Install build and documentation dependencies for the current platform"
 	@echo "  clean           Remove all build artifacts and generated dependency files"
 	@echo "  help            Show this help message"
 	@echo
@@ -123,7 +132,7 @@ help:
 	@echo
 	@echo "Individual targets:"
 	@echo "  test_math, test_spl, test_analysis, test_isolation, test_cli"
-	@echo "  benchmark_theory, docs"
+	@echo "  benchmark_theory, docs, deps"
 	@echo
 	@echo "Variables:"
 	@echo "  SANITIZE=1      Enable AddressSanitizer for builds"
@@ -160,6 +169,9 @@ $(TEST_ISOLATION_BIN): $(ISOLATION_OBJS)
 $(CLI_BIN): $(CLI_OBJS)
 	$(LINK.cxx) $^ -o $@ $(LDFLAGS) $(LDLIBS)
 
+$(CLI_TEST_BIN): $(CLI_TEST_SRC) $(CLI_BIN) | $(GENERATED_DIR)
+	$(LINK.cxx) $< -o $@ $(LDFLAGS) $(LDLIBS) -lutil
+
 # Object rules with automatic dependency generation
 $(SPL_DIR)/%.o: src/%.cpp | $(SPL_DIR)
 	$(COMPILE.cxx) $< -o $@
@@ -173,4 +185,4 @@ $(ISOLATION_DIR)/%.o: src/%.cpp | $(ISOLATION_DIR)
 $(GENERATED_DIR)/%.o: src/%.cpp | $(GENERATED_DIR)
 	$(COMPILE.cxx) $< -o $@
 
-.PHONY: all cli feature_isolation_cli test test_math test_spl test_analysis test_isolation test_cli bench benchmark benchmark_theory docs clean help
+.PHONY: all cli feature_isolation_cli test test_math test_spl test_analysis test_isolation test_cli bench benchmark benchmark_theory docs deps clean help
