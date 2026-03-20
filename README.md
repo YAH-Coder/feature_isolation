@@ -10,24 +10,6 @@ The CLI supports two usage styles:
 - **guided mode** for users who want the tool to ask for the required inputs
   and recommend an appropriate report plan
 
-## Terminology
-
-The documentation follows the terminology of `main.pdf` wherever practical.
-The CLI still exposes a few serialized labels for compatibility.
-
-- **fundamental features**: the Boolean features declared in the SPL
-  specification
-- **valid systems**: the systems that satisfy the asserted constraints of the
-  SPL specification
-- **derived feature space**: the feature space induced from the valid system
-  space
-- **derived features**: the elements of that derived feature space
-- **feature categories**: impossible, core, fundamental, not, and, or,
-  complex; these are the CLI/report serialization labels corresponding to the
-  paper's category names
-- **complex-feature details**: expensive per-feature detail generation that is
-  often unnecessary for a first report
-
 ## Build
 
 Build the CLI:
@@ -89,13 +71,6 @@ Start the wizard explicitly:
 ./testing/generated/cli guided
 ```
 
-Or simply run the tool without enough positional arguments and let it enter
-guided mode automatically:
-
-```bash
-./testing/generated/cli
-```
-
 ### Planning mode
 
 Inspect the derived feature-space estimate and the recommended first step
@@ -119,33 +94,6 @@ Write a focused full report for selected categories:
 ./testing/generated/cli analyze spl_specs/new_dsl/valid/factorial_paper.spl report.txt -min-diffs=true -feature-names=true --categories=fundamental,not
 ```
 
-## Recommended workflow
-
-For a new SPL specification, the recommended workflow is usually:
-
-1. run `plan` or guided mode
-2. inspect the number of fundamental features, valid systems, and derived
-   features
-3. start with a **summary** or **non-complex** report if the derived feature
-   space is large
-4. drill down into selected categories or isolation output only when needed
-
-The CLI planner and guided mode already help with this decision and can
-recommend lighter first steps when a full report would be expensive.
-
-## Safety and approval model
-
-The CLI distinguishes between:
-
-- the **requested** report plan
-- the **recommended** report plan
-
-For expensive runs, the CLI can:
-
-- recommend a lighter first report
-- ask for confirmation before continuing
-- refuse oversized non-interactive runs unless explicitly overridden
-
 The relevant flags are documented in:
 
 ```bash
@@ -154,19 +102,6 @@ The relevant flags are documented in:
 ./testing/generated/cli plan --help
 ./testing/generated/cli guided --help
 ```
-
-## Notes on DSL hints and CLI overrides
-
-The SPL specification may contain a `CATEGORY_FILTER` hint. The CLI treats that
-as a compatibility input, not as the final execution policy.
-
-If the current command line requests a different report mode or category scope,
-the CLI settings take precedence for the current run and the tool explains that
-override explicitly.
-
-The repository DSL also supports `COUNT(...)` as a surface syntax for
-cardinality-style constraints. That syntax is a repository encoding of the
-paper's cardinality-constraint idea; it is not the notation used in `main.pdf`.
 
 ## Testing
 
