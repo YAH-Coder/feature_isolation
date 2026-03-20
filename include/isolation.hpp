@@ -155,11 +155,25 @@ namespace feature_isolation
     public:
       explicit feature_isolation_t(const std::string& filename)
           : m_spl { spl_processor_t { filename }.get_specification() }
+          , m_report_request {
+              report_request_t::from_category_hint(m_spl.m_category_filter)
+            }
           , m_features { m_spl.m_F,
                          theory_system_space(m_spl),
                          std::vector<std::string>(m_spl.m_feature_names.begin(),
                                                   m_spl.m_feature_names.end()),
-                         m_spl.m_category_filter }
+                         m_report_request }
+      { }
+
+      feature_isolation_t(const spl_specification_t& spec,
+                          report_request_t           report_request)
+          : m_spl { spec }
+          , m_report_request { std::move(report_request) }
+          , m_features { m_spl.m_F,
+                         theory_system_space(m_spl),
+                         std::vector<std::string>(m_spl.m_feature_names.begin(),
+                                                  m_spl.m_feature_names.end()),
+                         m_report_request }
       { }
 
       [[nodiscard]] difference_t partition(unsigned_integer feature_id) const;
@@ -205,6 +219,7 @@ namespace feature_isolation
       static void print(std::ostream& os, const difference_t& d);
 
       const spl_specification_t m_spl;
+      const report_request_t    m_report_request;
       const feature_analysis_t  m_features;
     private:
       struct witness_candidate_t

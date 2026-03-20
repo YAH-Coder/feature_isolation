@@ -1,0 +1,9 @@
+SPL TwoFeatureFxImpliesFyMissingS0
+
+FEATURES 2 fx fy
+
+CONSTRAINTS
+  ASSERT fx -> fy
+END
+
+MISSING_SYSTEMS 1 END

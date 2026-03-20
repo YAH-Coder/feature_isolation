@@ -1,0 +1,7 @@
+SPL CountInInterval
+
+FEATURES 3 fa fb fc
+
+CONSTRAINTS
+  ASSERT COUNT(fa, fb, fc) IN [1,2]
+END

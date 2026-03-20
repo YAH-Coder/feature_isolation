@@ -1,0 +1,7 @@
+SPL CountLessThanTwo
+
+FEATURES 3 fa fb fc
+
+CONSTRAINTS
+  ASSERT COUNT(fa, fb, fc) < 2
+END

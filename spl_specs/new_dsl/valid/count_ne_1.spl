@@ -1,0 +1,7 @@
+SPL CountNotEqOne
+
+FEATURES 3 fa fb fc
+
+CONSTRAINTS
+  ASSERT COUNT(fa, fb, fc) != 1
+END

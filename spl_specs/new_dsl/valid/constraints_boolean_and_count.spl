@@ -1,0 +1,13 @@
+SPL TheoryConstraints
+
+FEATURES 4 fx fy fz fw
+
+CONSTRAINTS
+  ASSERT fx -> fy
+  ASSERT !(fz && fw)
+  ASSERT (fx || fz) -> fw
+  ASSERT COUNT(fx, fy, fz) <= 2
+  ASSERT COUNT(fy, fz, fw) IN [1,2]
+END
+
+CATEGORY_FILTER Core Fundamental Not And Or Complex

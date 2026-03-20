@@ -1,0 +1,9 @@
+SPL InvalidAvailableSystems
+
+FEATURES 2 fx fy
+
+CONSTRAINTS
+  ASSERT fx -> fy
+END
+
+AVAILABLE_SYSTEMS 2 END

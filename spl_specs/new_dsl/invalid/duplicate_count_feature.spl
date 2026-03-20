@@ -1,0 +1,7 @@
+SPL DuplicateCountFeature
+
+FEATURES 3 fa fb fc
+
+CONSTRAINTS
+  ASSERT COUNT(fa, fa, fb) <= 2
+END
