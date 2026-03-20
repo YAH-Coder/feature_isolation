@@ -180,7 +180,7 @@ TEST_CASE("Explicit system sections remain parsed-only while derived spaces are 
   REQUIRE(missing_valid_system_ids(spec) == make_system_ids({1}));
 }
 
-TEST_CASE("CATEGORY_FILTER stores theory-native categories only", "[spl_processor_t][new_dsl]")
+TEST_CASE("CATEGORY_FILTER stores derived-feature-space categories only", "[spl_processor_t][new_dsl]")
 {
   spl_processor_t processor("spl_specs/new_dsl/valid/constraints_boolean_and_count.spl");
   const auto& spec = processor.get_specification();

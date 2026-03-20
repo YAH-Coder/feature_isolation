@@ -20,15 +20,21 @@ namespace
     return ids;
   }
 
-  [[nodiscard]] system_space_t four_system_space()
+  [[nodiscard]] system_space_t unconstrained_system_space(unsigned_integer feature_count)
   {
     system_space_t space {};
-    space.valid.insert(1);
-    space.valid.insert(2);
-    space.valid.insert(3);
-    space.valid.insert(4);
+    const auto system_count = power2(feature_count);
+    for (auto system_id { one }; system_id <= system_count; ++system_id)
+    {
+      space.valid.insert(system_id);
+    }
     space.available = space.valid;
     return space;
+  }
+
+  [[nodiscard]] system_space_t four_system_space()
+  {
+    return unconstrained_system_space(2);
   }
 
   [[nodiscard]] feature_analysis_t two_feature_theory_analysis()
@@ -88,9 +94,9 @@ TEST_CASE("theory registry initialization exposes system space and registry",
   REQUIRE(analysis.system_space().available == available_systems);
   REQUIRE(analysis.system_space().missing == missing_systems);
   REQUIRE(analysis.feature_registry().size() == 8);
-  REQUIRE(analysis.m_systems.size() == 4);
-  REQUIRE(analysis.m_systems.at(2).all_features().size() == 4);
-  REQUIRE(analysis.m_systems.at(3).all_features().size() == 4);
+  REQUIRE(analysis.m_systems.size() == 3);
+  REQUIRE(analysis.system_by_id(3).all_features().size() == 4);
+  REQUIRE(analysis.system_by_id(4).all_features().size() == 4);
 }
 
 TEST_CASE("theory registry classifies the unconstrained two-feature example",
@@ -193,6 +199,26 @@ TEST_CASE("theory-native reporting uses new category headers",
   REQUIRE(summary_os.str().find("IN PRINCIPLE") == std::string::npos);
 }
 
+
+TEST_CASE("system reports only materialize valid systems",
+          "[feature_analysis_t][theory][valid-systems-only]")
+{
+  system_space_t constrained_space {};
+  constrained_space.valid = make_system_ids({ 1, 3, 4 });
+  constrained_space.available = make_system_ids({ 3, 4 });
+  constrained_space.missing = make_system_ids({ 1 });
+
+  feature_analysis_t analysis(2, constrained_space, { "fx", "fy" });
+
+  std::ostringstream systems_os;
+  analysis.print_systems_statistics(systems_os);
+  const auto systems_text = systems_os.str();
+  REQUIRE(systems_text.find("\n2\ts1\t") == std::string::npos);
+  REQUIRE(systems_text.find("\n1\ts0\tmissing") != std::string::npos);
+  REQUIRE(systems_text.find("\n3\ts2\tavailable") != std::string::npos);
+  REQUIRE(systems_text.find("\n4\ts3\tavailable") != std::string::npos);
+}
+
 TEST_CASE("theory registry prefers CNF over equally concise DNF for complex terms",
           "[feature_analysis_t][theory][simplification]")
 {
@@ -281,7 +307,49 @@ TEST_CASE("category-filtered theory analysis preserves ids while pruning complex
   REQUIRE(features_os.str().find("Complex") == std::string::npos);
 }
 
-TEST_CASE("theory-native constructor derives the candidate system space from the base feature count",
+TEST_CASE("report requests separate CLI output policy from DSL-level hints",
+          "[feature_analysis_t][theory][report_request]")
+{
+  const auto space = four_system_space();
+  auto request = report_request_t::from_category_hint(
+      std::vector<theory_feature_category_t> {
+          theory_feature_category_t::core,
+          theory_feature_category_t::fundamental,
+          theory_feature_category_t::not_feature,
+          theory_feature_category_t::and_feature,
+          theory_feature_category_t::or_feature });
+
+  REQUIRE(request.includes_category(theory_feature_category_t::core));
+  REQUIRE_FALSE(request.includes_category(theory_feature_category_t::complex));
+  REQUIRE_FALSE(request.include_complex_details);
+
+  feature_analysis_t analysis(2, space, { "fx", "fy" }, request);
+  REQUIRE_FALSE(analysis.report_request().include_complex_details);
+  REQUIRE_FALSE(analysis.includes_category(theory_feature_category_t::complex));
+}
+
+TEST_CASE("summary report requests skip raw and simplified term materialization",
+          "[feature_analysis_t][theory][report_request]")
+{
+  const auto space = unconstrained_system_space(4);
+  auto request = report_request_t::unrestricted();
+  request.mode = report_mode_t::summary;
+  request.include_raw_terms = false;
+  request.include_simplified_terms = false;
+  request.include_isolation = false;
+  request.include_complex_details = false;
+
+  feature_analysis_t analysis(4, space, {}, request);
+
+  for (const auto& record : analysis.feature_registry())
+  {
+    REQUIRE(record.simplified_term.empty());
+    REQUIRE(record.raw_term.empty());
+    REQUIRE(record.display_name.empty());
+  }
+}
+
+TEST_CASE("theory-native constructor derives the candidate system space from the fundamental feature count",
           "[feature_analysis_t][theory][constructor]")
 {
   const auto space = four_system_space();
@@ -307,3 +375,155 @@ TEST_CASE("theory-native constructor rejects incomplete system-space partitions"
                     std::invalid_argument);
 }
 
+
+
+TEST_CASE("feasibility estimator classifies small theory-native reports as safe",
+          "[report_feasibility_t][estimate]")
+{
+  const auto estimate = estimate_report_feasibility(
+      2, four_system_space(), report_request_t::unrestricted());
+
+  REQUIRE(estimate.base_feature_count == 2);
+  REQUIRE(estimate.valid_system_count == 4);
+  REQUIRE(estimate.theory_feature_count == 16);
+  REQUIRE(estimate.risk == feasibility_risk_t::safe);
+  REQUIRE_FALSE(estimate.approval_recommended);
+  REQUIRE(estimate.summary().find("risk=safe") != std::string::npos);
+}
+
+TEST_CASE("feasibility estimator detects the pruning benefit of skipping complex details",
+          "[report_feasibility_t][estimate]")
+{
+  const auto space = unconstrained_system_space(4);
+  const auto full_estimate
+      = estimate_report_feasibility(4, space, report_request_t::unrestricted());
+
+  auto filtered_request = report_request_t::from_category_hint(
+      std::vector<theory_feature_category_t> {
+          theory_feature_category_t::core,
+          theory_feature_category_t::fundamental,
+          theory_feature_category_t::not_feature,
+          theory_feature_category_t::and_feature,
+          theory_feature_category_t::or_feature });
+  filtered_request.include_isolation = false;
+  const auto filtered_estimate
+      = estimate_report_feasibility(4, space, filtered_request);
+
+  REQUIRE(filtered_estimate.complex_feature_lower_bound > 0);
+  REQUIRE(filtered_estimate.included_feature_upper_bound
+          < full_estimate.included_feature_upper_bound);
+  REQUIRE(filtered_estimate.estimated_total_runtime_ms
+          < full_estimate.estimated_total_runtime_ms);
+  REQUIRE(filtered_estimate.estimated_output_bytes
+          < full_estimate.estimated_output_bytes);
+}
+
+TEST_CASE("feasibility estimator marks large exhaustive reports as impractical",
+          "[report_feasibility_t][estimate]")
+{
+  const auto space = unconstrained_system_space(5);
+  const auto estimate = estimate_report_feasibility(
+      5, space, report_request_t::unrestricted());
+
+  REQUIRE(estimate.valid_system_count == 32);
+  REQUIRE(estimate.theory_feature_count == power2(32));
+  REQUIRE(estimate.risk == feasibility_risk_t::impractical);
+  REQUIRE(estimate.approval_recommended);
+}
+
+
+TEST_CASE("feasibility estimator reports derived-feature-space signals beyond raw size",
+          "[report_feasibility_t][estimate]")
+{
+  const auto space = unconstrained_system_space(4);
+  const auto estimate = estimate_report_feasibility(
+      4, space, report_request_t::unrestricted());
+
+  REQUIRE(std::ranges::any_of(
+      estimate.observations,
+      [](const std::string& observation) {
+        return observation.find("valid systems") != std::string::npos;
+      }));
+  REQUIRE(std::ranges::any_of(
+      estimate.observations,
+      [](const std::string& observation) {
+        return observation.find("Complex derived features") != std::string::npos;
+      }));
+  REQUIRE(std::ranges::any_of(
+      estimate.observations,
+      [](const std::string& observation) {
+        return observation.find("Isolation output") != std::string::npos;
+      }));
+}
+
+TEST_CASE("feasibility estimator explains why category-focused drill-downs are attractive",
+          "[report_feasibility_t][estimate]")
+{
+  const auto space = unconstrained_system_space(4);
+  auto request = report_request_t::from_category_hint(
+      std::vector<theory_feature_category_t> {
+          theory_feature_category_t::fundamental,
+          theory_feature_category_t::not_feature });
+  request.include_isolation = false;
+  const auto estimate = estimate_report_feasibility(4, space, request);
+
+  REQUIRE(std::ranges::any_of(
+      estimate.observations,
+      [](const std::string& observation) {
+        return observation.find("small set of feature categories")
+               != std::string::npos;
+      }));
+}
+
+TEST_CASE("report planner keeps safe theory-native requests unchanged",
+          "[report_execution_plan_t][plan]")
+{
+  const auto request = report_request_t::unrestricted();
+  const auto plan = plan_report_execution(2, four_system_space(), request);
+
+  REQUIRE_FALSE(plan.adjustment_recommended);
+  REQUIRE(plan.requested_feasibility.risk == feasibility_risk_t::safe);
+  REQUIRE(plan.recommended_feasibility.risk == feasibility_risk_t::safe);
+  REQUIRE(plan.summary().find("requested mode=full") != std::string::npos);
+}
+
+TEST_CASE("report planner recommends a lighter executable plan for risky requests",
+          "[report_execution_plan_t][plan]")
+{
+  const auto space = unconstrained_system_space(4);
+  const auto request = report_request_t::unrestricted();
+  const auto plan = plan_report_execution(4, space, request);
+
+  REQUIRE(plan.adjustment_recommended);
+  REQUIRE(plan.requested_feasibility.risk != feasibility_risk_t::safe);
+  REQUIRE(plan.recommended_feasibility.estimated_total_runtime_ms
+          < plan.requested_feasibility.estimated_total_runtime_ms);
+  REQUIRE((!plan.recommended_request.include_complex_details
+           || !plan.recommended_request.include_isolation
+           || plan.recommended_request.mode == report_mode_t::summary));
+  REQUIRE_FALSE(plan.rationale.empty());
+  REQUIRE(std::ranges::any_of(
+      plan.requested_feasibility.observations,
+      [](const std::string& observation) {
+        return observation.find("derived feature space") != std::string::npos
+               || observation.find("valid systems") != std::string::npos
+               || observation.find("Complex derived features")
+                      != std::string::npos;
+      }));
+}
+
+TEST_CASE("report planner surfaces selected-feature suggestions for impractical requests",
+          "[report_execution_plan_t][plan]")
+{
+  const auto space = unconstrained_system_space(5);
+  const auto request = report_request_t::unrestricted();
+  const auto plan = plan_report_execution(5, space, request);
+
+  REQUIRE(plan.requested_feasibility.risk == feasibility_risk_t::impractical);
+  REQUIRE(std::ranges::any_of(
+      plan.alternatives,
+      [](const report_plan_option_t& option) {
+        return option.label == "selected feature IDs only"
+               && !option.executable_now;
+      }));
+}
