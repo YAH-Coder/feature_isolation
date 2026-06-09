@@ -34,6 +34,7 @@ namespace
   {
       analyze,
       plan,
+      expression_from_systems,
   };
 
   /** @brief Holds parsed command-line options and guided-mode selections. */
@@ -57,6 +58,7 @@ namespace
       std::optional<bool>        include_raw_terms_override {};
       std::optional<bool>        include_simplified_terms_override {};
       std::optional<bool>        include_isolation_override {};
+      std::vector<string> found_systems_in_alignment {};
   };
 
   /** @brief Captures hard runtime and output-size limits used before report generation. */
@@ -783,7 +785,11 @@ namespace
       {
         return cli_command_t::plan;
       }
-      cerr << "Please enter 'analyze' or 'plan'." << endl;
+      if (trimmed == "expr" || trimmed == "e")
+      {
+        return cli_command_t::expression_from_systems;
+      }
+      cerr << "Please enter 'analyze', 'plan' or 'expr'." << endl;
     }
   }
 
@@ -1179,8 +1185,13 @@ namespace
     options.command = command.value();
     options.requires_result_path = options.command == cli_command_t::analyze;
 
+    /*
+    TODO decomment this one and delete other 
     const auto specification_path = prompt_text_value("Enter SPL specification path",
                                                       seed.specification_path);
+    */
+    const auto specification_path = prompt_text_value("Enter SPL specification path",
+                                                      "/home/nico/Documents/feature_isolation/spl_specs/new_dsl/valid/factorial_paper.spl");
     if (!specification_path.has_value())
     {
       return std::nullopt;
@@ -1202,6 +1213,10 @@ namespace
     try
     {
       spl_processor_t processor { options.specification_path };
+      if (options.command == cli_command_t::expression_from_systems)
+      {
+        return options;
+      }
       const auto selected_request = prompt_guided_report_request(processor, options);
       if (!selected_request.has_value())
       {
@@ -1248,6 +1263,17 @@ namespace
       options.command              = cli_command_t::plan;
       options.requires_result_path = false;
       ++cursor;
+    }
+    else if (first_argument == "expr" || first_argument == "expression")
+    {
+      options.command              = cli_command_t::expression_from_systems;
+      options.specification_path   = argv[++cursor];
+      ++cursor;
+      for (; cursor < argc; ++cursor)
+      {
+        options.found_systems_in_alignment.push_back(argv[cursor]);
+      }
+      return options;
     }
     else
     {
@@ -2451,6 +2477,84 @@ namespace
   }
 } // namespace
 
+/** @brief Executes the expression command to return only the minimized expression based on the found systems. */
+  [[nodiscard]] int run_expression_from_systems(const std::string& program_name,
+                               const cli_options_t& options)
+  {
+    cout << "Running expression-from-systems with the following options:\n";
+    cout << "  Specification path: " << options.specification_path << "\n";
+    cout << "  Found systems in alignment:\n";
+    for (const auto& system : options.found_systems_in_alignment)
+    {
+      cout << "    - " << system << "\n";
+    }
+    
+    ifstream spl_file { options.specification_path };
+    if (spl_file)
+    {
+      spl_file.close();
+    }
+    else
+    {
+      cerr << "Cannot open spl-specification-file named \""
+           << options.specification_path << "\".\nProgram terminated."
+           << endl;
+      return 2;
+    }
+
+    spl_processor_t processor { options.specification_path };
+
+
+    // processor.get_specification().m_system_space.valid is a std::set<unsigned_integer>
+    // i want to output its content to the console, one system per line
+    cout << "Valid systems in the specification:\n";
+    for (const auto& system : processor.get_specification().m_system_space.valid)
+    {
+      cout << "  - " << system << "\n";
+    }
+    
+    
+
+    /*
+
+    
+    report_request_t report_request = requested_report_request(processor, options);
+    print_compatibility_notes(cerr,
+                              program_name,
+                              options,
+                              processor.get_specification());
+
+    const auto guardrails = guardrails_for(options);
+    const auto plan = plan_report_execution(processor.get_specification().m_F,
+                                            processor.get_specification()
+                                                .system_space(),
+                                            report_request);
+    const auto approval = approve_execution_plan(plan, options, guardrails);
+    if (!approval.has_value())
+    {
+      return 6;
+    }
+    report_request = approval->request;
+
+    const auto approved_feasibility = estimate_report_feasibility(
+        processor.get_specification().m_F,
+        processor.get_specification().system_space(),
+        report_request);
+    if (!enforce_guardrails(
+            approved_feasibility,
+            guardrails,
+            options,
+            approval->guardrails_approved))
+    {
+      return 8;
+    }
+
+    feature_isolation_t fi { processor.get_specification(), report_request };
+    const auto status = write_report(result_file, fi);
+    return status;
+    */
+  }
+
 /** @brief Entry point that routes between help, guided mode, analyze, and plan. */
 int main(int argc, char* argv[])
 {
@@ -2528,6 +2632,8 @@ int main(int argc, char* argv[])
     return run_analyze(program_name, *options);
   case cli_command_t::plan:
     return run_plan(program_name, *options);
+  case cli_command_t::expression_from_systems:
+    return run_expression_from_systems(program_name, *options);
   }
 
   cerr << "Unknown command.\nProgram terminated." << endl;
