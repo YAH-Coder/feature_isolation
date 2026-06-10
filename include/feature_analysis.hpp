@@ -618,6 +618,19 @@ namespace feature_isolation
   class feature_analysis_t
   {
     public:
+      //TODO
+      std::string isolation_string{"TODO"};
+
+      [[nodiscard]] std::vector<feature_record_t> initialize_feature_registry(std::vector<std::string> systems_from_alignment);
+
+      explicit feature_analysis_t(
+          unsigned_integer                                  f,
+          const system_space_t&                             system_space,
+          std::vector<std::string> systems_found_in_alignment,
+          std::vector<std::string>                          feature_names = {},
+          report_request_t                                  report_request
+              = report_request_t::unrestricted());
+
       /**
        * @brief Construct the analysis from a feature count, system space, optional feature names, and request.
        * @param f Number of fundamental features.
