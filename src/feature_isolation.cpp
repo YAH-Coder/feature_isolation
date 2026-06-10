@@ -1268,6 +1268,7 @@ namespace
     {
       options.command              = cli_command_t::expression_from_systems;
       options.specification_path   = argv[++cursor];
+      //options.mode_override           = report_mode_t::isolation_only;
       ++cursor;
       for (; cursor < argc; ++cursor)
       {
@@ -2481,13 +2482,6 @@ namespace
   [[nodiscard]] int run_expression_from_systems(const std::string& program_name,
                                const cli_options_t& options)
   {
-    cout << "Running expression-from-systems with the following options:\n";
-    cout << "  Specification path: " << options.specification_path << "\n";
-    cout << "  Found systems in alignment:\n";
-    for (const auto& system : options.found_systems_in_alignment)
-    {
-      cout << "    - " << system << "\n";
-    }
     
     ifstream spl_file { options.specification_path };
     if (spl_file)
@@ -2504,31 +2498,15 @@ namespace
 
     spl_processor_t processor { options.specification_path };
 
-
-    // processor.get_specification().m_system_space.valid is a std::set<unsigned_integer>
-    // i want to output its content to the console, one system per line
-    cout << "Valid systems in the specification:\n";
-    for (const auto& system : processor.get_specification().m_system_space.valid)
-    {
-      cout << "  - " << system << "\n";
-    }
-    
-    
-
-    /*
-
-    
     report_request_t report_request = requested_report_request(processor, options);
-    print_compatibility_notes(cerr,
-                              program_name,
-                              options,
-                              processor.get_specification());
-
+    
     const auto guardrails = guardrails_for(options);
+
     const auto plan = plan_report_execution(processor.get_specification().m_F,
                                             processor.get_specification()
                                                 .system_space(),
                                             report_request);
+    
     const auto approval = approve_execution_plan(plan, options, guardrails);
     if (!approval.has_value())
     {
@@ -2549,10 +2527,15 @@ namespace
       return 8;
     }
 
-    feature_isolation_t fi { processor.get_specification(), report_request };
-    const auto status = write_report(result_file, fi);
-    return status;
-    */
+    feature_isolation_t fi { processor.get_specification(), report_request, options.found_systems_in_alignment };
+
+    //std::vector<string> options.found_systems_in_alignment
+
+    
+    //std::cout << "\n" <<fi.m_features.isolation_string << std::endl;
+
+    return 0;
+    
   }
 
 /** @brief Entry point that routes between help, guided mode, analyze, and plan. */

@@ -208,6 +208,19 @@ namespace feature_isolation
                          m_report_request }
       { }
 
+      feature_isolation_t(const spl_specification_t& spec,
+                          report_request_t           report_request,
+                          std::vector<std::string> found_systems_in_alignment)
+          : m_spl { spec }
+          , m_report_request { std::move(report_request) }
+          , m_features { m_spl.m_F,
+                         theory_system_space(m_spl),
+                        found_systems_in_alignment,
+                         std::vector<std::string>(m_spl.m_feature_names.begin(),
+                                                  m_spl.m_feature_names.end()),
+                         m_report_request}
+      { }
+
       /** @brief Partition available valid systems into those that contain and do not contain a feature. */
       [[nodiscard]] difference_t partition(unsigned_integer feature_id) const;
       /** @brief Intersect the derived features present in the supplied systems. */
