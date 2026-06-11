@@ -2088,19 +2088,7 @@ namespace feature_isolation
           }()
         }
       , m_feature_registry { initialize_feature_registry(systems_found_in_alignment) }
-      , m_systems { m_report_request.mode == report_mode_t::summary
-                        ? systems_t {}
-                        : initialize_registry_backed_systems() }
-  {
-    /*
-    std::cout << "Systems found in alignment: " << std::endl;
-    for (const auto& system_name : systems_found_in_alignment)
-    {
-      std::cout << "  " << system_name << std::endl;
-    }
-    */
-
-  }
+  { }
 
 
   feature_analysis_t::feature_analysis_t(
@@ -2699,15 +2687,6 @@ namespace feature_isolation
   [[nodiscard]] std::vector<feature_record_t>
       feature_analysis_t::initialize_feature_registry(std::vector<std::string> systems_from_alignment) 
   {
-
-    std::vector<feature_record_t> result {};
-    const auto registry_size = power2(m_valid_system_count);
-    const auto simple_term_index = build_simple_term_index(m_base_feature_count,
-                                                           m_ordered_valid_system_ids,
-                                                           m_resolved_feature_names);
-    result.reserve(static_cast<size_t>(registry_size));
-    std::vector<std::size_t> pending_complex_simplifications {};
-
     auto build_invalid_system_minterms = [this]() {
       std::vector<unsigned_integer> invalid_minterms {};
       if (m_valid_system_count == m_max_system_id)
@@ -2726,166 +2705,20 @@ namespace feature_isolation
       return invalid_minterms;
     };
 
-    for (auto encoded_subset { zero }; encoded_subset < registry_size; ++encoded_subset)
-    {
-      feature_record_t record {};
-      record.id = encoded_subset + one;
-      record.systems_present = feature_t(m_valid_system_count, false);
-      for (auto system_index { zero }; system_index < m_valid_system_count; ++system_index)
-      {
-        const auto shift
-            = static_cast<unsigned_integer>(m_valid_system_count - system_index - one);
-        record.systems_present.at(system_index) = ((encoded_subset >> shift) & one) == one;
-      }
-
-      const auto any_present = std::ranges::any_of(
-          record.systems_present, [](bool value) { return value; });
-      const auto all_present = !record.systems_present.empty()
-                               && std::ranges::all_of(
-                                   record.systems_present,
-                                   [](bool value) { return value; });
-      if (!any_present)
-      {
-        record.category = theory_feature_category_t::impossible;
-        if (should_materialize_simplified_term(record.category))
-        {
-          record.simplified_term = logical_false_symbol;
-          record.display_name    = record.simplified_term;
-        }
-        if (should_materialize_raw_term(record.category))
-        {
-          record.raw_term = logical_false_symbol;
-          if (record.display_name.empty())
-          {
-            record.display_name = record.raw_term;
-          }
-        }
-        result.push_back(record);
-        continue;
-      }
-      if (all_present)
-      {
-        record.category = theory_feature_category_t::core;
-        if (should_materialize_simplified_term(record.category))
-        {
-          record.simplified_term = logical_true_symbol;
-          record.display_name    = record.simplified_term;
-        }
-        if (should_materialize_raw_term(record.category))
-        {
-          record.raw_term = raw_term_for(record.systems_present);
-          if (record.display_name.empty())
-          {
-            record.display_name = record.raw_term;
-          }
-        }
-        result.push_back(record);
-        continue;
-      }
-
-      const auto simple_match = simple_term_index.find(record.systems_present);
-      if (simple_match != simple_term_index.end())
-      {
-        record.category = simple_match->second.category;
-        if (should_materialize_simplified_term(record.category))
-        {
-          record.simplified_term = simple_match->second.expression;
-          record.display_name    = record.simplified_term;
-        }
-        if (should_materialize_raw_term(record.category))
-        {
-          record.raw_term = raw_term_for(record.systems_present);
-          if (record.display_name.empty())
-          {
-            record.display_name = record.raw_term;
-          }
-        }
-        result.push_back(record);
-        continue;
-      }
-
-      record.category = theory_feature_category_t::complex;
-      if (should_materialize_raw_term(record.category))
-      {
-        record.raw_term = raw_term_for(record.systems_present);
-        if (record.display_name.empty())
-        {
-          record.display_name = record.raw_term;
-        }
-      }
-      if (should_materialize_simplified_term(record.category))
-      {
-        pending_complex_simplifications.push_back(result.size());
-      }
-      result.push_back(std::move(record));
-    }
-  /*
-    if (!pending_complex_simplifications.empty())
-    {
-      const auto invalid_minterms = build_invalid_system_minterms();
-      for (const auto index : pending_complex_simplifications)
-      {
-        auto& record = result.at(index);
-        record.simplified_term = simplified_term_for(record.systems_present,
-                                                     invalid_minterms);
-        record.display_name = record.simplified_term;
-      }
-    }
-    */
-
-    //systems_from_alignment -> vector<string>
-    //using feature_t  = std::vector<bool>;
-    //std::cout << "\n\n" << m_ordered_valid_system_ids.size() << "\n\n";
-    //Make the systems_from_alignment which contain numbers as strings as a bool vector of the size m_ordered_valid_system_ids.size() where the numbers from systems_from_alignment are 1 but the rest is 0
     std::vector<bool> systems_from_alignment_bool(m_ordered_valid_system_ids.size(), false);
+
     for (const auto& system_name : systems_from_alignment)
     {
-      //std::cout << "System name from alignment: " << system_name << "\n";
-      //Find the index of the system name in m_ordered_valid_system_ids and set the corresponding index in systems_from_alignment_bool to true
-      for (size_t i = 0; i < m_ordered_valid_system_ids.size(); ++i)
-      {
-        if (std::to_string(i) == system_name)
-        {
-          systems_from_alignment_bool.at(i) = true;
-          break;
-        }
-      }
+      const auto system_id {std::stoul(system_name)};
+      if (system_id >= 0 && system_id < m_ordered_valid_system_ids.size())
+        systems_from_alignment_bool.at(system_id) = true;
     }
-
-    //output this vector of bools
-    for (const auto& value : systems_from_alignment_bool)
-    {
-      std::cout << value;
-    }
-    std::cout << "\n";
 
     const auto invalid_minterms = build_invalid_system_minterms();
-    std::cout << simplified_term_for(systems_from_alignment_bool, invalid_minterms);
-    isolation_string = simplified_term_for(systems_from_alignment_bool, invalid_minterms);
-    //Output record.systems_present which is std::vector<bool>
-    /*
-    for (const auto& record : result.at(0).systems_present)
-    {
-      std::cout << record << "\n";
-    }
-    */
-
-/*
-    if (!pending_complex_simplifications.empty())
-    {
-      
-      for (const auto index : pending_complex_simplifications)
-      {
-        auto& record = result.at(index);
-        record.simplified_term = simplified_term_for(record.systems_present,
-                                                     invalid_minterms);
-        //std::cout << record.simplified_term << "\n";                                       
-        record.display_name = record.simplified_term;
-      }
-    }
-    */
+    std::cout << simplified_term_for(systems_from_alignment_bool, invalid_minterms) << "\n";
 
 
+    std::vector<feature_record_t> result {};
     return result;
   }
 
