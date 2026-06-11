@@ -2033,9 +2033,9 @@ namespace feature_isolation
   { }
 
   feature_analysis_t::feature_analysis_t(
+      std::vector<std::string>                          systems_found_in_alignment,
       unsigned_integer                                  f,
       const system_space_t&                             system_space,
-      std::vector<std::string>                          systems_found_in_alignment,
       std::vector<std::string>                          feature_names,
       report_request_t                                  report_request)
       : m_base_feature_count { f }
