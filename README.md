@@ -80,6 +80,14 @@ without writing a report:
 ./testing/generated/cli plan spl_specs/new_dsl/valid/unconstrained_2f.spl
 ```
 
+### Expression mode
+
+Directly output the simplified expression into the cli for the spl spec and given systems:
+
+```bash
+./testing/generated/cli expr spl_specs/new_dsl/valid/factorial_paper.spl [Numbers of occuring systems separated by whitespace e.g. 0 1 2]
+```
+
 ### Direct report generation
 
 Write a summary report:
