@@ -2705,13 +2705,33 @@ namespace feature_isolation
       return invalid_minterms;
     };
 
+
+    std::vector<unsigned long> ordered_valid_system_ids{};
+    for (const auto& id : m_system_space.valid)
+    {
+        ordered_valid_system_ids.push_back(id-1);
+    }
+    std::sort(ordered_valid_system_ids.begin(), ordered_valid_system_ids.end());
+
+    std::unordered_map<unsigned long, size_t> valid_system_positions{};
+    for (size_t i = 0; i < ordered_valid_system_ids.size(); ++i)
+    {
+        valid_system_positions[ordered_valid_system_ids[i]] = i;
+    }
+
     std::vector<bool> systems_from_alignment_bool(m_ordered_valid_system_ids.size(), false);
 
     for (const auto& system_name : systems_from_alignment)
     {
-      const auto system_id {std::stoul(system_name)};
-      if (system_id >= 0 && system_id < m_ordered_valid_system_ids.size())
+      if (valid_system_positions.find(std::stoul(system_name)) != valid_system_positions.end())
+      {
+        const auto system_id {valid_system_positions[std::stoul(system_name)]};
         systems_from_alignment_bool.at(system_id) = true;
+      }
+      else
+      {
+        std::cerr << "Warning: System ID " << std::stoul(system_name) << " from alignment is out of range and will be ignored." << std::endl;
+      }
     }
 
     const auto invalid_minterms = build_invalid_system_minterms();
