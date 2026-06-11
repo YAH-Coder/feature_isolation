@@ -213,9 +213,9 @@ namespace feature_isolation
                           std::vector<std::string> found_systems_in_alignment)
           : m_spl { spec }
           , m_report_request { std::move(report_request) }
-          , m_features { m_spl.m_F,
+          , m_features { found_systems_in_alignment,
+                          m_spl.m_F,
                          theory_system_space(m_spl),
-                        found_systems_in_alignment,
                          std::vector<std::string>(m_spl.m_feature_names.begin(),
                                                   m_spl.m_feature_names.end()),
                          m_report_request}
