@@ -618,8 +618,6 @@ namespace feature_isolation
   class feature_analysis_t
   {
     public:
-      //TODO
-      std::string isolation_string{"TODO"};
 
       [[nodiscard]] std::vector<feature_record_t> initialize_feature_registry(std::vector<std::string> systems_from_alignment);
 

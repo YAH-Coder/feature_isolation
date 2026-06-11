@@ -1185,13 +1185,9 @@ namespace
     options.command = command.value();
     options.requires_result_path = options.command == cli_command_t::analyze;
 
-    /*
-    TODO decomment this one and delete other 
     const auto specification_path = prompt_text_value("Enter SPL specification path",
                                                       seed.specification_path);
-    */
-    const auto specification_path = prompt_text_value("Enter SPL specification path",
-                                                      "/home/nico/Documents/feature_isolation/spl_specs/new_dsl/valid/factorial_paper.spl");
+
     if (!specification_path.has_value())
     {
       return std::nullopt;
@@ -2499,40 +2495,8 @@ namespace
     spl_processor_t processor { options.specification_path };
 
     report_request_t report_request = requested_report_request(processor, options);
-    
-    const auto guardrails = guardrails_for(options);
-
-    const auto plan = plan_report_execution(processor.get_specification().m_F,
-                                            processor.get_specification()
-                                                .system_space(),
-                                            report_request);
-    
-    const auto approval = approve_execution_plan(plan, options, guardrails);
-    if (!approval.has_value())
-    {
-      return 6;
-    }
-    report_request = approval->request;
-
-    const auto approved_feasibility = estimate_report_feasibility(
-        processor.get_specification().m_F,
-        processor.get_specification().system_space(),
-        report_request);
-    if (!enforce_guardrails(
-            approved_feasibility,
-            guardrails,
-            options,
-            approval->guardrails_approved))
-    {
-      return 8;
-    }
 
     feature_isolation_t fi { processor.get_specification(), report_request, options.found_systems_in_alignment };
-
-    //std::vector<string> options.found_systems_in_alignment
-
-    
-    //std::cout << "\n" <<fi.m_features.isolation_string << std::endl;
 
     return 0;
     
