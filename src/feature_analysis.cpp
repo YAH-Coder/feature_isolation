@@ -4,16 +4,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 #include "../include/feature_analysis.hpp"
+#include <cmath>
 #include <cstdint>
 #include <deque>
-#include <cmath>
 #include <iomanip>
 #include <limits>
 #include <map>
 
 /** @file
- *  @brief Implements report-feasibility estimation, report planning, simplified-term derivation,
- *  and registry construction for the derived feature space.
+ *  @brief Implements report-feasibility estimation, report planning,
+ * simplified-term derivation, and registry construction for the derived feature
+ * space.
  */
 
 namespace feature_isolation
@@ -35,7 +36,7 @@ namespace feature_isolation
       }
       return rendered;
     }
-  }
+  } // namespace
 
   std::string human_readable_duration(long double runtime_ms)
   {
@@ -45,8 +46,9 @@ namespace feature_isolation
       return format_decimal(seconds, seconds < 10.0L ? 1 : 0) + " s";
     }
 
-    const auto total_seconds = static_cast<unsigned long long>(std::llround(seconds));
-    const auto minutes = total_seconds / 60ULL;
+    const auto total_seconds
+        = static_cast<unsigned long long>(std::llround(seconds));
+    const auto minutes           = total_seconds / 60ULL;
     const auto remaining_seconds = total_seconds % 60ULL;
     if (minutes < 60ULL)
     {
@@ -59,8 +61,8 @@ namespace feature_isolation
       return os.str();
     }
 
-    const auto hours = minutes / 60ULL;
-    const auto remaining_minutes = minutes % 60ULL;
+    const auto         hours             = minutes / 60ULL;
+    const auto         remaining_minutes = minutes % 60ULL;
     std::ostringstream os {};
     os << hours << " h";
     if (remaining_minutes != 0ULL)
@@ -122,18 +124,17 @@ namespace feature_isolation
            != requested_categories.value().end();
   }
 
-
   std::string to_string(report_mode_t mode)
   {
     switch (mode)
     {
-      case report_mode_t::full:
+      case report_mode_t::full :
         return "full";
-      case report_mode_t::summary:
+      case report_mode_t::summary :
         return "summary";
-      case report_mode_t::isolation_only:
+      case report_mode_t::isolation_only :
         return "isolation-only";
-      case report_mode_t::selected_features:
+      case report_mode_t::selected_features :
         return "selected-features";
     }
     return "unknown";
@@ -143,13 +144,13 @@ namespace feature_isolation
   {
     switch (risk)
     {
-      case feasibility_risk_t::safe:
+      case feasibility_risk_t::safe :
         return "safe";
-      case feasibility_risk_t::large:
+      case feasibility_risk_t::large :
         return "large";
-      case feasibility_risk_t::risky:
+      case feasibility_risk_t::risky :
         return "risky";
-      case feasibility_risk_t::impractical:
+      case feasibility_risk_t::impractical :
         return "impractical";
     }
     return "unknown";
@@ -157,9 +158,10 @@ namespace feature_isolation
 
   namespace
   {
-    /** @brief Returns 2^exponent and saturates to the unsigned_integer maximum on overflow. */
-    [[nodiscard]] unsigned_integer saturated_power2_count(
-        unsigned_integer exponent)
+    /** @brief Returns 2^exponent and saturates to the unsigned_integer maximum
+     * on overflow. */
+    [[nodiscard]] unsigned_integer
+        saturated_power2_count(unsigned_integer exponent)
     {
       if (exponent >= std::numeric_limits<unsigned_integer>::digits)
       {
@@ -168,9 +170,10 @@ namespace feature_isolation
       return unsigned_integer { 1 } << exponent;
     }
 
-    /** @brief Returns 3^exponent and saturates to the unsigned_integer maximum on overflow. */
-    [[nodiscard]] unsigned_integer saturated_power3_count(
-        unsigned_integer exponent)
+    /** @brief Returns 3^exponent and saturates to the unsigned_integer maximum
+     * on overflow. */
+    [[nodiscard]] unsigned_integer
+        saturated_power3_count(unsigned_integer exponent)
     {
       unsigned_integer value { 1 };
       for (auto index { zero }; index < exponent; ++index)
@@ -184,9 +187,10 @@ namespace feature_isolation
       return value;
     }
 
-    /** @brief Adds two counts and saturates to the unsigned_integer maximum on overflow. */
+    /** @brief Adds two counts and saturates to the unsigned_integer maximum on
+     * overflow. */
     [[nodiscard]] unsigned_integer saturated_add(unsigned_integer lhs,
-                                                unsigned_integer rhs)
+                                                 unsigned_integer rhs)
     {
       if (lhs > std::numeric_limits<unsigned_integer>::max() - rhs)
       {
@@ -195,11 +199,12 @@ namespace feature_isolation
       return lhs + rhs;
     }
 
-    /** @brief Computes a conservative upper bound for one derived-feature category. */
-    [[nodiscard]] unsigned_integer category_upper_bound(
-        unsigned_integer          base_feature_count,
-        unsigned_integer          theory_feature_count,
-        theory_feature_category_t category)
+    /** @brief Computes a conservative upper bound for one derived-feature
+     * category. */
+    [[nodiscard]] unsigned_integer
+        category_upper_bound(unsigned_integer          base_feature_count,
+                             unsigned_integer          theory_feature_count,
+                             theory_feature_category_t category)
     {
       const auto conjunction_patterns
           = saturated_power3_count(base_feature_count);
@@ -213,22 +218,22 @@ namespace feature_isolation
       unsigned_integer bound { 0 };
       switch (category)
       {
-        case theory_feature_category_t::impossible:
-        case theory_feature_category_t::core:
+        case theory_feature_category_t::impossible :
+        case theory_feature_category_t::core :
           bound = 1;
           break;
-        case theory_feature_category_t::fundamental:
-        case theory_feature_category_t::not_feature:
+        case theory_feature_category_t::fundamental :
+        case theory_feature_category_t::not_feature :
           bound = base_feature_count;
           break;
-        case theory_feature_category_t::and_feature:
-        case theory_feature_category_t::or_feature:
+        case theory_feature_category_t::and_feature :
+        case theory_feature_category_t::or_feature :
           bound = higher_arity_simple_count;
           break;
-        case theory_feature_category_t::complex:
+        case theory_feature_category_t::complex :
           bound = theory_feature_count;
           break;
-        default:
+        default :
           bound = theory_feature_count;
           break;
       }
@@ -246,20 +251,23 @@ namespace feature_isolation
     }
   } // namespace
 
-  report_feasibility_t estimate_report_feasibility(
-      unsigned_integer        base_feature_count,
-      const system_space_t&   system_space,
-      const report_request_t& report_request)
+  report_feasibility_t
+      estimate_report_feasibility(unsigned_integer        base_feature_count,
+                                  const system_space_t&   system_space,
+                                  const report_request_t& report_request)
   {
     constexpr long double setup_runtime_ms_constant { 5.5L };
     constexpr long double setup_runtime_ms_per_feature_squared { 1.15L };
     constexpr long double non_summary_runtime_ms_constant { 2.0L };
     constexpr long double simple_detail_runtime_ms_per_feature { 0.009L };
-    constexpr long double complex_detail_runtime_ms_per_feature_and_valid_system_square
-        { 0.018L };
+    constexpr long double
+        complex_detail_runtime_ms_per_feature_and_valid_system_square {
+          0.018L
+        };
     constexpr long double isolation_runtime_ms_constant { 2.5L };
-    constexpr long double isolation_runtime_ms_per_feature_and_valid_system
-        { 0.000274L };
+    constexpr long double isolation_runtime_ms_per_feature_and_valid_system {
+      0.000274L
+    };
 
     constexpr long double base_output_bytes { 2048.0L };
     constexpr long double shell_output_bytes_per_feature { 18.0L };
@@ -282,11 +290,10 @@ namespace feature_isolation
                                  theory_feature_category_t::and_feature,
                                  theory_feature_category_t::or_feature })
     {
-      simple_feature_upper_bound
-          = saturated_add(simple_feature_upper_bound,
-                          category_upper_bound(base_feature_count,
-                                               estimate.theory_feature_count,
-                                               category));
+      simple_feature_upper_bound = saturated_add(
+          simple_feature_upper_bound,
+          category_upper_bound(
+              base_feature_count, estimate.theory_feature_count, category));
     }
     simple_feature_upper_bound
         = std::min(estimate.theory_feature_count, simple_feature_upper_bound);
@@ -309,11 +316,10 @@ namespace feature_isolation
       unsigned_integer requested_upper_bound { 0 };
       for (const auto category : report_request.requested_categories.value())
       {
-        requested_upper_bound
-            = saturated_add(requested_upper_bound,
-                            category_upper_bound(base_feature_count,
-                                                 estimate.theory_feature_count,
-                                                 category));
+        requested_upper_bound = saturated_add(
+            requested_upper_bound,
+            category_upper_bound(
+                base_feature_count, estimate.theory_feature_count, category));
       }
       estimate.included_feature_upper_bound
           = std::min(estimate.theory_feature_count, requested_upper_bound);
@@ -324,7 +330,8 @@ namespace feature_isolation
                    estimate.simple_feature_upper_bound);
     auto complex_included_upper_bound
         = estimate.included_feature_upper_bound > simple_included_upper_bound
-              ? estimate.included_feature_upper_bound - simple_included_upper_bound
+              ? estimate.included_feature_upper_bound
+                    - simple_included_upper_bound
               : 0;
 
     const bool complex_category_requested
@@ -421,7 +428,8 @@ namespace feature_isolation
 
     constexpr long double mib { 1024.0L * 1024.0L };
     constexpr long double gib { 1024.0L * 1024.0L * 1024.0L };
-    if (estimate.theory_feature_count == std::numeric_limits<unsigned_integer>::max()
+    if (estimate.theory_feature_count
+            == std::numeric_limits<unsigned_integer>::max()
         || estimate.estimated_total_runtime_ms > 300000.0L
         || estimate.estimated_output_bytes > gib)
     {
@@ -460,56 +468,61 @@ namespace feature_isolation
     {
       append_observation(
           estimate.observations,
-          "The derived feature space is already large enough that a summary-first workflow is often easier to inspect.");
+          "The derived feature space is already large enough that a "
+          "summary-first workflow is often easier to inspect.");
     }
     if (report_request.include_complex_details
         && report_request.mode != report_mode_t::summary
         && estimate.complex_feature_lower_bound > 0
-        && (estimate.complex_feature_lower_bound >= estimate.simple_feature_upper_bound
+        && (estimate.complex_feature_lower_bound
+                >= estimate.simple_feature_upper_bound
             || complex_share_lower_bound >= 0.5L))
     {
-      append_observation(
-          estimate.observations,
-          "Complex derived features are likely to dominate the requested detail work.");
+      append_observation(estimate.observations,
+                         "Complex derived features are likely to dominate the "
+                         "requested detail work.");
     }
     if (estimate.complex_workload_uncertain)
     {
-      append_observation(
-          estimate.observations,
-          "Complex-feature cost is still uncertain here, so a non-complex first pass is the safer default.");
+      append_observation(estimate.observations,
+                         "Complex-feature cost is still uncertain here, so a "
+                         "non-complex first pass is the safer default.");
     }
     if (!report_request.include_complex_details)
     {
       append_observation(
           estimate.observations,
-          "Skipping complex-feature details keeps the same feature IDs while reducing expensive detail generation.");
+          "Skipping complex-feature details keeps the same feature IDs while "
+          "reducing expensive detail generation.");
     }
     if (report_request.include_isolation
         && report_request.mode != report_mode_t::summary
         && estimate.valid_system_count >= 8)
     {
-      append_observation(
-          estimate.observations,
-          "Isolation output becomes more expensive as the number of valid systems grows.");
+      append_observation(estimate.observations,
+                         "Isolation output becomes more expensive as the "
+                         "number of valid systems grows.");
     }
     if (report_request.mode == report_mode_t::summary)
     {
       append_observation(
           estimate.observations,
-          "Summary mode gives a first overview of the derived feature space without materializing per-feature detail sections.");
+          "Summary mode gives a first overview of the derived feature space "
+          "without materializing per-feature detail sections.");
     }
     if (report_request.requested_categories.has_value()
         && report_request.requested_categories->size() <= 2)
     {
       append_observation(
           estimate.observations,
-          "Restricting the report to a small set of feature categories is a good drill-down strategy after the first overview.");
+          "Restricting the report to a small set of feature categories is a "
+          "good drill-down strategy after the first overview.");
     }
     if (estimate.estimated_output_bytes > 64.0L * mib)
     {
-      append_observation(
-          estimate.observations,
-          "The projected report file is large enough that inspection may be harder than generation.");
+      append_observation(estimate.observations,
+                         "The projected report file is large enough that "
+                         "inspection may be harder than generation.");
     }
 
     estimate.approval_recommended = estimate.risk != feasibility_risk_t::safe;
@@ -519,11 +532,12 @@ namespace feature_isolation
   std::string report_feasibility_t::summary() const
   {
     std::ostringstream os {};
-    os << "fundamental features=" << base_feature_count << ", valid systems="
-       << valid_system_count << ", derived features≈" << theory_feature_count
-       << ", included features≤" << included_feature_upper_bound
-       << ", complex features≥" << complex_feature_lower_bound
-       << ", estimated runtime≈" << human_readable_duration(estimated_total_runtime_ms)
+    os << "fundamental features=" << base_feature_count
+       << ", valid systems=" << valid_system_count << ", derived features≈"
+       << theory_feature_count << ", included features≤"
+       << included_feature_upper_bound << ", complex features≥"
+       << complex_feature_lower_bound << ", estimated runtime≈"
+       << human_readable_duration(estimated_total_runtime_ms)
        << ", estimated output≈" << human_readable_size(estimated_output_bytes)
        << ", risk=" << to_string(risk);
     return os.str();
@@ -536,33 +550,33 @@ namespace feature_isolation
     {
       switch (risk)
       {
-        case feasibility_risk_t::safe:
+        case feasibility_risk_t::safe :
           return 0;
-        case feasibility_risk_t::large:
+        case feasibility_risk_t::large :
           return 1;
-        case feasibility_risk_t::risky:
+        case feasibility_risk_t::risky :
           return 2;
-        case feasibility_risk_t::impractical:
+        case feasibility_risk_t::impractical :
           return 3;
       }
       return 4;
     }
 
-    /** @brief Returns the report categories that exclude the complex remainder of the derived feature space. */
+    /** @brief Returns the report categories that exclude the complex remainder
+     * of the derived feature space. */
     [[nodiscard]] std::vector<theory_feature_category_t>
         all_non_complex_categories()
     {
-      return {
-        theory_feature_category_t::impossible,
-        theory_feature_category_t::core,
-        theory_feature_category_t::fundamental,
-        theory_feature_category_t::not_feature,
-        theory_feature_category_t::and_feature,
-        theory_feature_category_t::or_feature
-      };
+      return { theory_feature_category_t::impossible,
+               theory_feature_category_t::core,
+               theory_feature_category_t::fundamental,
+               theory_feature_category_t::not_feature,
+               theory_feature_category_t::and_feature,
+               theory_feature_category_t::or_feature };
     }
 
-    /** @brief Derives a lighter request by dropping the complex category and its detailed materialization. */
+    /** @brief Derives a lighter request by dropping the complex category and
+     * its detailed materialization. */
     [[nodiscard]] report_request_t
         make_non_complex_request(const report_request_t& base)
     {
@@ -584,7 +598,8 @@ namespace feature_isolation
       return request;
     }
 
-    /** @brief Derives a request that keeps the same feature selection but omits isolation computation. */
+    /** @brief Derives a request that keeps the same feature selection but omits
+     * isolation computation. */
     [[nodiscard]] report_request_t
         make_no_isolation_request(const report_request_t& base)
     {
@@ -593,8 +608,10 @@ namespace feature_isolation
       return request;
     }
 
-    /** @brief Derives a summary-only request from an existing report request. */
-    [[nodiscard]] report_request_t make_summary_request(const report_request_t& base)
+    /** @brief Derives a summary-only request from an existing report request.
+     */
+    [[nodiscard]] report_request_t
+        make_summary_request(const report_request_t& base)
     {
       auto request { base };
       request.mode                     = report_mode_t::summary;
@@ -606,23 +623,22 @@ namespace feature_isolation
     }
 
     /** @brief Packages one planner alternative for CLI presentation. */
-    [[nodiscard]] report_plan_option_t make_option(
-        std::string                       label,
-        std::string                       rationale,
-        std::optional<report_request_t>   request,
-        std::optional<report_feasibility_t> feasibility,
-        bool executable_now = true)
+    [[nodiscard]] report_plan_option_t
+        make_option(std::string                         label,
+                    std::string                         rationale,
+                    std::optional<report_request_t>     request,
+                    std::optional<report_feasibility_t> feasibility,
+                    bool                                executable_now = true)
     {
-      return report_plan_option_t {
-        .label = std::move(label),
-        .rationale = std::move(rationale),
-        .request = std::move(request),
-        .feasibility = std::move(feasibility),
-        .executable_now = executable_now
-      };
+      return report_plan_option_t { .label          = std::move(label),
+                                    .rationale      = std::move(rationale),
+                                    .request        = std::move(request),
+                                    .feasibility    = std::move(feasibility),
+                                    .executable_now = executable_now };
     }
 
-    /** @brief Returns whether two report requests are semantically identical for planning purposes. */
+    /** @brief Returns whether two report requests are semantically identical
+     * for planning purposes. */
     [[nodiscard]] bool same_request(const report_request_t& lhs,
                                     const report_request_t& rhs)
     {
@@ -635,59 +651,63 @@ namespace feature_isolation
              && lhs.minimal_differences_only == rhs.minimal_differences_only
              && lhs.include_feature_names == rhs.include_feature_names;
     }
-  }
+  } // namespace
 
-  report_execution_plan_t plan_report_execution(
-      unsigned_integer        base_feature_count,
-      const system_space_t&   system_space,
-      const report_request_t& report_request)
+  report_execution_plan_t
+      plan_report_execution(unsigned_integer        base_feature_count,
+                            const system_space_t&   system_space,
+                            const report_request_t& report_request)
   {
     const auto requested_feasibility = estimate_report_feasibility(
         base_feature_count, system_space, report_request);
 
-    /** @brief Holds one executable planner fallback candidate together with its measured feasibility. */
+    /** @brief Holds one executable planner fallback candidate together with its
+     * measured feasibility. */
     struct executable_candidate_t
     {
-        std::string         label {};
-        std::string         rationale {};
-        report_request_t    request {};
+        std::string          label {};
+        std::string          rationale {};
+        report_request_t     request {};
         report_feasibility_t feasibility {};
     };
 
     std::vector<executable_candidate_t> executable_candidates {};
-    executable_candidates.push_back({
-        "requested plan",
-        "Preserve the report exactly as requested.",
-        report_request,
-        requested_feasibility });
+    executable_candidates.push_back(
+        { "requested plan",
+          "Preserve the report exactly as requested.",
+          report_request,
+          requested_feasibility });
 
     if (report_request.mode != report_mode_t::summary)
     {
       const auto non_complex_request = make_non_complex_request(report_request);
       if (!same_request(non_complex_request, report_request))
       {
-        executable_candidates.push_back({
-            "filtered report without complex details",
-            "Keep exact feature IDs, but focus the first report on the non-complex part of the derived feature space.",
-            non_complex_request,
-            estimate_report_feasibility(
-                base_feature_count, system_space, non_complex_request) });
+        executable_candidates.push_back(
+            { "filtered report without complex details",
+              "Keep exact feature IDs, but focus the first report on the "
+              "non-complex part of the derived feature space.",
+              non_complex_request,
+              estimate_report_feasibility(
+                  base_feature_count, system_space, non_complex_request) });
       }
 
       if (report_request.include_isolation)
       {
-        const auto lighter_request = make_no_isolation_request(non_complex_request);
+        const auto lighter_request
+            = make_no_isolation_request(non_complex_request);
         if (!same_request(lighter_request, report_request)
             && (executable_candidates.empty()
                 || !same_request(lighter_request,
                                  executable_candidates.back().request)))
         {
-          executable_candidates.push_back({
-              "filtered report without complex or isolation details",
-              "Start with the lighter theory categories and defer isolation until after the first report review.",
-              lighter_request,
-              estimate_report_feasibility(
-                  base_feature_count, system_space, lighter_request) });
+          executable_candidates.push_back(
+              { "filtered report without complex or isolation details",
+                "Start with the lighter theory categories and defer isolation "
+                "until after the first report review.",
+                lighter_request,
+                estimate_report_feasibility(
+                    base_feature_count, system_space, lighter_request) });
         }
       }
     }
@@ -695,12 +715,13 @@ namespace feature_isolation
     const auto summary_request = make_summary_request(report_request);
     if (!same_request(summary_request, report_request))
     {
-      executable_candidates.push_back({
-          "summary report",
-          "Start with a compact overview of the derived feature space before drilling into category-specific details.",
-          summary_request,
-          estimate_report_feasibility(
-              base_feature_count, system_space, summary_request) });
+      executable_candidates.push_back(
+          { "summary report",
+            "Start with a compact overview of the derived feature space before "
+            "drilling into category-specific details.",
+            summary_request,
+            estimate_report_feasibility(
+                base_feature_count, system_space, summary_request) });
     }
 
     auto best_candidate = executable_candidates.front();
@@ -760,23 +781,27 @@ namespace feature_isolation
     }
 
     report_execution_plan_t plan {};
-    plan.requested_request      = report_request;
-    plan.requested_feasibility  = requested_feasibility;
-    plan.recommended_request    = best_candidate.request;
+    plan.requested_request       = report_request;
+    plan.requested_feasibility   = requested_feasibility;
+    plan.recommended_request     = best_candidate.request;
     plan.recommended_feasibility = best_candidate.feasibility;
-    plan.adjustment_recommended = !same_request(plan.recommended_request,
-                                                plan.requested_request);
+    plan.adjustment_recommended
+        = !same_request(plan.recommended_request, plan.requested_request);
     if (plan.adjustment_recommended)
     {
       plan.rationale = best_candidate.rationale;
     }
     else if (requested_feasibility.complex_workload_uncertain)
     {
-      plan.rationale = "Complex-feature cost is still uncertain for this request, so the planner would normally favor a non-complex first pass.";
+      plan.rationale
+          = "Complex-feature cost is still uncertain for this request, so the "
+            "planner would normally favor a non-complex first pass.";
     }
     else if (requested_feasibility.risk == feasibility_risk_t::safe)
     {
-      plan.rationale = "The requested report fits within the current conservative feasibility limits for this derived feature space.";
+      plan.rationale
+          = "The requested report fits within the current conservative "
+            "feasibility limits for this derived feature space.";
     }
     else if (!requested_feasibility.observations.empty())
     {
@@ -784,30 +809,32 @@ namespace feature_isolation
     }
     else
     {
-      plan.rationale = "The request is still executable, but the planner will surface lighter alternatives in the next CLI step.";
+      plan.rationale = "The request is still executable, but the planner will "
+                       "surface lighter alternatives in the next CLI step.";
     }
 
     for (const auto& candidate : executable_candidates)
     {
-      plan.alternatives.push_back(make_option(
-          candidate.label,
-          candidate.rationale,
-          candidate.request,
-          candidate.feasibility,
-          true));
+      plan.alternatives.push_back(make_option(candidate.label,
+                                              candidate.rationale,
+                                              candidate.request,
+                                              candidate.feasibility,
+                                              true));
     }
-    plan.alternatives.push_back(make_option(
-        "selected feature IDs only",
-        "For very large derived feature spaces, restrict generation to an explicit list or range of feature IDs.",
-        std::nullopt,
-        std::nullopt,
-        false));
-    plan.alternatives.push_back(make_option(
-        "tighten SPL constraints first",
-        "Reduce the valid-system space before generating a report; this shrinks the full derived feature space exactly.",
-        std::nullopt,
-        std::nullopt,
-        false));
+    plan.alternatives.push_back(
+        make_option("selected feature IDs only",
+                    "For very large derived feature spaces, restrict "
+                    "generation to an explicit list or range of feature IDs.",
+                    std::nullopt,
+                    std::nullopt,
+                    false));
+    plan.alternatives.push_back(
+        make_option("tighten SPL constraints first",
+                    "Reduce the valid-system space before generating a report; "
+                    "this shrinks the full derived feature space exactly.",
+                    std::nullopt,
+                    std::nullopt,
+                    false));
     return plan;
   }
 
@@ -833,7 +860,8 @@ namespace feature_isolation
     constexpr const char* logical_and_symbol   = " ∧ ";
     constexpr const char* logical_or_symbol    = " ∨ ";
 
-    /** @brief Returns the stable category order used by report tables and registry materialization. */
+    /** @brief Returns the stable category order used by report tables and
+     * registry materialization. */
     [[nodiscard]] const std::array<theory_feature_category_t, 7>&
         ordered_theory_categories()
     {
@@ -849,8 +877,8 @@ namespace feature_isolation
       return categories;
     }
 
-
-    /** @brief Stores the shortest currently known simple descriptor for one derived feature extent. */
+    /** @brief Stores the shortest currently known simple descriptor for one
+     * derived feature extent. */
     struct simple_term_descriptor_t
     {
         theory_feature_category_t category {
@@ -862,10 +890,11 @@ namespace feature_isolation
 
     using simple_term_index_t = std::map<feature_t, simple_term_descriptor_t>;
 
-    /** @brief Renders a conjunction or disjunction from signed feature literals. */
+    /** @brief Renders a conjunction or disjunction from signed feature
+     * literals. */
     [[nodiscard]] std::string render_simple_literals(
         const std::vector<std::pair<std::string, bool>>& literals,
-        const char* join_symbol)
+        const char*                                      join_symbol)
     {
       if (literals.empty())
       {
@@ -891,7 +920,8 @@ namespace feature_isolation
       std::ranges::sort(negative_literals);
 
       std::vector<std::string> ordered_literals {};
-      ordered_literals.reserve(positive_literals.size() + negative_literals.size());
+      ordered_literals.reserve(positive_literals.size()
+                               + negative_literals.size());
       ordered_literals.insert(ordered_literals.end(),
                               positive_literals.begin(),
                               positive_literals.end());
@@ -911,10 +941,11 @@ namespace feature_isolation
       return os.str();
     }
 
-    /** @brief Compares two simplified descriptors and prefers shorter, less negated forms. */
-    [[nodiscard]] bool is_better_simple_descriptor(
-        const simple_term_descriptor_t& candidate,
-        const simple_term_descriptor_t& current)
+    /** @brief Compares two simplified descriptors and prefers shorter, less
+     * negated forms. */
+    [[nodiscard]] bool
+        is_better_simple_descriptor(const simple_term_descriptor_t& candidate,
+                                    const simple_term_descriptor_t& current)
     {
       if (current.category == theory_feature_category_t::unclassified)
       {
@@ -931,10 +962,11 @@ namespace feature_isolation
       return candidate.expression < current.expression;
     }
 
-    /** @brief Updates the per-extent descriptor index when a better simple term is found. */
-    void record_simple_descriptor(simple_term_index_t&            index,
-                                  const feature_t&                extent,
-                                  simple_term_descriptor_t        descriptor)
+    /** @brief Updates the per-extent descriptor index when a better simple term
+     * is found. */
+    void record_simple_descriptor(simple_term_index_t&     index,
+                                  const feature_t&         extent,
+                                  simple_term_descriptor_t descriptor)
     {
       const auto existing = index.find(extent);
       if (existing == index.end())
@@ -950,19 +982,22 @@ namespace feature_isolation
 
     struct simple_term_state_t
     {
-        feature_t                  extent {};
-        std::vector<std::int8_t>   literal_states {};
-        simple_term_descriptor_t   descriptor {};
+        feature_t                extent {};
+        std::vector<std::int8_t> literal_states {};
+        simple_term_descriptor_t descriptor {};
     };
 
-    [[nodiscard]] feature_t literal_extent(unsigned_integer feature_index,
-                                           bool negated,
-                                           const std::vector<unsigned_integer>& ordered_valid_system_ids)
+    [[nodiscard]] feature_t literal_extent(
+        unsigned_integer                     feature_index,
+        bool                                 negated,
+        const std::vector<unsigned_integer>& ordered_valid_system_ids)
     {
       feature_t extent(ordered_valid_system_ids.size(), false);
-      for (auto system_index { zero }; system_index < ordered_valid_system_ids.size(); ++system_index)
+      for (auto system_index { zero };
+           system_index < ordered_valid_system_ids.size();
+           ++system_index)
       {
-        const auto minterm = ordered_valid_system_ids.at(system_index) - one;
+        const auto minterm   = ordered_valid_system_ids.at(system_index) - one;
         const bool bit_value = ((minterm >> feature_index) & one) == one;
         extent.at(system_index) = negated ? !bit_value : bit_value;
       }
@@ -1007,43 +1042,47 @@ namespace feature_isolation
                                   const std::vector<std::string>& feature_names)
     {
       std::vector<std::pair<std::string, bool>> literals {};
-      for (auto feature_index { zero }; feature_index < states.size(); ++feature_index)
+      for (auto feature_index { zero }; feature_index < states.size();
+           ++feature_index)
       {
         if (states.at(feature_index) == 0)
         {
           continue;
         }
-        literals.emplace_back(feature_names.at(feature_index), states.at(feature_index) < 0);
+        literals.emplace_back(feature_names.at(feature_index),
+                              states.at(feature_index) < 0);
       }
       return literals;
     }
 
-    void enumerate_simple_closure(simple_term_index_t& result,
-                                  unsigned_integer base_feature_count,
-                                  const std::vector<unsigned_integer>& ordered_valid_system_ids,
-                                  const std::vector<std::string>& feature_names,
-                                  bool conjunction_mode)
+    void enumerate_simple_closure(
+        simple_term_index_t&                 result,
+        unsigned_integer                     base_feature_count,
+        const std::vector<unsigned_integer>& ordered_valid_system_ids,
+        const std::vector<std::string>&      feature_names,
+        bool                                 conjunction_mode)
     {
       std::map<feature_t, simple_term_state_t> best_states {};
-      std::deque<simple_term_state_t> worklist {};
-      std::vector<feature_t> positive_literal_extents {};
-      std::vector<feature_t> negative_literal_extents {};
+      std::deque<simple_term_state_t>          worklist {};
+      std::vector<feature_t>                   positive_literal_extents {};
+      std::vector<feature_t>                   negative_literal_extents {};
       positive_literal_extents.reserve(base_feature_count);
       negative_literal_extents.reserve(base_feature_count);
-      for (auto feature_index { zero }; feature_index < base_feature_count; ++feature_index)
+      for (auto feature_index { zero }; feature_index < base_feature_count;
+           ++feature_index)
       {
-        positive_literal_extents.push_back(literal_extent(feature_index,
-                                                          false,
-                                                          ordered_valid_system_ids));
-        negative_literal_extents.push_back(literal_extent(feature_index,
-                                                          true,
-                                                          ordered_valid_system_ids));
+        positive_literal_extents.push_back(
+            literal_extent(feature_index, false, ordered_valid_system_ids));
+        negative_literal_extents.push_back(
+            literal_extent(feature_index, true, ordered_valid_system_ids));
       }
 
-      auto try_record_state = [&](simple_term_state_t state) {
+      auto try_record_state = [&](simple_term_state_t state)
+      {
         const auto best_it = best_states.find(state.extent);
         if (best_it != best_states.end()
-            && !is_better_simple_descriptor(state.descriptor, best_it->second.descriptor))
+            && !is_better_simple_descriptor(state.descriptor,
+                                            best_it->second.descriptor))
         {
           return;
         }
@@ -1052,24 +1091,27 @@ namespace feature_isolation
         worklist.push_back(std::move(state));
       };
 
-      for (auto feature_index { zero }; feature_index < base_feature_count; ++feature_index)
+      for (auto feature_index { zero }; feature_index < base_feature_count;
+           ++feature_index)
       {
         for (const auto negated : { false, true })
         {
           std::vector<std::int8_t> states(base_feature_count, 0);
-          states.at(feature_index) = negated ? static_cast<std::int8_t>(-1)
-                                             : static_cast<std::int8_t>(1);
-          const auto extent = negated ? negative_literal_extents.at(feature_index)
-                                      : positive_literal_extents.at(feature_index);
+          states.at(feature_index)   = negated ? static_cast<std::int8_t>(-1)
+                                               : static_cast<std::int8_t>(1);
+          const auto          extent = negated
+                                           ? negative_literal_extents.at(feature_index)
+                                           : positive_literal_extents.at(feature_index);
           simple_term_state_t state {
             extent,
             states,
             { negated ? theory_feature_category_t::not_feature
                       : theory_feature_category_t::fundamental,
-              render_simple_literals(literal_pairs_from_states(states, feature_names),
-                                     conjunction_mode ? logical_and_symbol
-                                                      : logical_or_symbol),
-              1 } };
+              render_simple_literals(
+                  literal_pairs_from_states(states, feature_names),
+              conjunction_mode ? logical_and_symbol : logical_or_symbol),
+              1 }
+          };
           try_record_state(std::move(state));
         }
       }
@@ -1078,7 +1120,8 @@ namespace feature_isolation
       {
         const auto current = worklist.front();
         worklist.pop_front();
-        for (auto feature_index { zero }; feature_index < base_feature_count; ++feature_index)
+        for (auto feature_index { zero }; feature_index < base_feature_count;
+             ++feature_index)
         {
           for (const auto negated : { false, true })
           {
@@ -1101,18 +1144,21 @@ namespace feature_isolation
               }
             }
 
-            auto next_states = current.literal_states;
+            auto next_states              = current.literal_states;
             next_states.at(feature_index) = desired_state;
-            const auto& literal = negated ? negative_literal_extents.at(feature_index)
-                                          : positive_literal_extents.at(feature_index);
+            const auto& literal
+                = negated ? negative_literal_extents.at(feature_index)
+                          : positive_literal_extents.at(feature_index);
             auto next_extent = conjunction_mode
                                    ? intersect_extents(current.extent, literal)
                                    : union_extents(current.extent, literal);
-            if (is_all_false_extent(next_extent) || is_all_true_extent(next_extent))
+            if (is_all_false_extent(next_extent)
+                || is_all_true_extent(next_extent))
             {
               continue;
             }
-            const auto next_literals = literal_pairs_from_states(next_states, feature_names);
+            const auto next_literals
+                = literal_pairs_from_states(next_states, feature_names);
             const auto literal_count = next_literals.size();
             if (!conjunction_mode && literal_count < 2)
             {
@@ -1123,19 +1169,21 @@ namespace feature_isolation
               std::move(next_states),
               { conjunction_mode ? theory_feature_category_t::and_feature
                                  : theory_feature_category_t::or_feature,
-                render_simple_literals(next_literals,
-                                       conjunction_mode ? logical_and_symbol
+                                   render_simple_literals(next_literals,
+                                   conjunction_mode ? logical_and_symbol
                                                         : logical_or_symbol),
-                literal_count } };
+                                   literal_count }
+            };
             try_record_state(std::move(next_state));
           }
         }
       }
     }
 
-    /** @brief Enumerates simple conjunction/disjunction extents lazily over valid-system memberships. */
+    /** @brief Enumerates simple conjunction/disjunction extents lazily over
+     * valid-system memberships. */
     [[nodiscard]] simple_term_index_t build_simple_term_index(
-        unsigned_integer               base_feature_count,
+        unsigned_integer                     base_feature_count,
         const std::vector<unsigned_integer>& ordered_valid_system_ids,
         const std::vector<std::string>&      feature_names)
     {
@@ -1153,17 +1201,19 @@ namespace feature_isolation
       return result;
     }
 
-    /** @brief Formats the valid-system subset represented by a feature extent. */
-    [[nodiscard]] std::string system_membership_set(
-        const feature_t& systems_present,
-        const system_space_t& system_space)
+    /** @brief Formats the valid-system subset represented by a feature extent.
+     */
+    [[nodiscard]] std::string
+        system_membership_set(const feature_t&      systems_present,
+                              const system_space_t& system_space)
     {
       std::vector<unsigned_integer> ordered_valid_system_ids(
           system_space.valid.begin(), system_space.valid.end());
       std::ostringstream os;
-      bool first = true;
+      bool               first = true;
       os << "{";
-      for (auto system_index { zero }; system_index < ordered_valid_system_ids.size();
+      for (auto system_index { zero };
+           system_index < ordered_valid_system_ids.size();
            ++system_index)
       {
         if (!systems_present.at(system_index))
@@ -1178,13 +1228,13 @@ namespace feature_isolation
         first = false;
       }
       os << "}";
-      return first ? std::string{"∅"} : os.str();
+      return first ? std::string { "∅" } : os.str();
     }
 
-    /** @brief Labels one system as available, missing, valid-only, or outside the constrained space. */
-    [[nodiscard]] std::string system_status(
-        unsigned_integer system_id,
-        const system_space_t& system_space)
+    /** @brief Labels one system as available, missing, valid-only, or outside
+     * the constrained space. */
+    [[nodiscard]] std::string system_status(unsigned_integer      system_id,
+                                            const system_space_t& system_space)
     {
       if (system_space.available.contains(system_id))
       {
@@ -1201,11 +1251,12 @@ namespace feature_isolation
       return "invalid";
     }
 
-    /** @brief Formats a set of feature identifiers using the paper-style t_i labels. */
+    /** @brief Formats a set of feature identifiers using the paper-style t_i
+     * labels. */
     [[nodiscard]] std::string feature_id_set_string(const feature_ids_t& ids)
     {
       std::ostringstream os;
-      bool first = true;
+      bool               first = true;
       os << "{";
       for (const auto feature_id : ids)
       {
@@ -1217,13 +1268,14 @@ namespace feature_isolation
         first = false;
       }
       os << "}";
-      return first ? std::string{"∅"} : os.str();
+      return first ? std::string { "∅" } : os.str();
     }
 
-    /** @brief Normalizes the input system partition so valid, available, and missing sets are internally consistent. */
-    [[nodiscard]] system_space_t normalize_theory_system_space(
-        unsigned_integer   max_system_id,
-        const system_space_t& input)
+    /** @brief Normalizes the input system partition so valid, available, and
+     * missing sets are internally consistent. */
+    [[nodiscard]] system_space_t
+        normalize_theory_system_space(unsigned_integer      max_system_id,
+                                      const system_space_t& input)
     {
       for (const auto system_id : input.valid)
       {
@@ -1249,25 +1301,27 @@ namespace feature_isolation
               "Missing systems must be a subset of the valid system space.");
         }
       }
-      if (std::ranges::any_of(
-              input.available,
-              [&](const auto system_id) { return input.missing.contains(system_id); }))
+      if (std::ranges::any_of(input.available,
+                              [&](const auto system_id)
+                              { return input.missing.contains(system_id); }))
       {
         throw std::invalid_argument(
-            "Available and missing systems must be disjoint subsets of the valid system space.");
+            "Available and missing systems must be disjoint subsets of the "
+            "valid system space.");
       }
 
       auto partition = input.available;
       partition.insert(input.missing.begin(), input.missing.end());
       if (partition != input.valid)
       {
-        throw std::invalid_argument(
-            "Available and missing systems must form a partition of the valid system space.");
+        throw std::invalid_argument("Available and missing systems must form a "
+                                    "partition of the valid system space.");
       }
       return input;
     }
 
-    /** @brief Represents one implicant used by the minimization-based raw and simplified term derivation. */
+    /** @brief Represents one implicant used by the minimization-based raw and
+     * simplified term derivation. */
     struct implicant_t
     {
         std::vector<int> bits {};
@@ -1276,7 +1330,8 @@ namespace feature_isolation
         size_t           specified_ones { 0 };
     };
 
-    /** @brief Builds an implicant that matches exactly one minterm before combination. */
+    /** @brief Builds an implicant that matches exactly one minterm before
+     * combination. */
     [[nodiscard]] implicant_t make_implicant(unsigned_integer minterm,
                                              unsigned_integer variable_count,
                                              bool             is_care_minterm)
@@ -1296,7 +1351,8 @@ namespace feature_isolation
       return implicant;
     }
 
-    /** @brief Recomputes covered minterms and bit statistics after an implicant changes. */
+    /** @brief Recomputes covered minterms and bit statistics after an implicant
+     * changes. */
     void refresh_implicant_metadata(implicant_t& implicant)
     {
       implicant.literal_count_cache = 0;
@@ -1323,7 +1379,8 @@ namespace feature_isolation
       for (auto index { zero }; index < variable_count; ++index)
       {
         const auto bit_value = static_cast<int>((minterm >> index) & one);
-        if (implicant.bits.at(index) != -1 && implicant.bits.at(index) != bit_value)
+        if (implicant.bits.at(index) != -1
+            && implicant.bits.at(index) != bit_value)
         {
           return false;
         }
@@ -1337,7 +1394,8 @@ namespace feature_isolation
       return implicant.literal_count_cache;
     }
 
-    /** @brief Returns whether two implicants differ in exactly one literal and can be merged. */
+    /** @brief Returns whether two implicants differ in exactly one literal and
+     * can be merged. */
     [[nodiscard]] bool can_combine(const implicant_t& lhs,
                                    const implicant_t& rhs)
     {
@@ -1363,7 +1421,8 @@ namespace feature_isolation
       return differing_positions == one;
     }
 
-    /** @brief Merges two compatible implicants into the next more general implicant. */
+    /** @brief Merges two compatible implicants into the next more general
+     * implicant. */
     [[nodiscard]] implicant_t combine_implicants(const implicant_t& lhs,
                                                  const implicant_t& rhs)
     {
@@ -1383,7 +1442,8 @@ namespace feature_isolation
       return result;
     }
 
-    /** @brief Returns whether two implicants encode the same literal pattern. */
+    /** @brief Returns whether two implicants encode the same literal pattern.
+     */
     [[nodiscard]] bool same_bits(const implicant_t& lhs, const implicant_t& rhs)
     {
       return lhs.bits == rhs.bits;
@@ -1396,9 +1456,10 @@ namespace feature_isolation
       std::vector<implicant_t> result {};
       for (const auto& implicant : implicants)
       {
-        const auto duplicate = std::ranges::find_if(
-            result,
-            [&](const auto& existing) { return same_bits(existing, implicant); });
+        const auto duplicate
+            = std::ranges::find_if(result,
+                                   [&](const auto& existing)
+                                   { return same_bits(existing, implicant); });
         if (duplicate == result.end())
         {
           result.push_back(implicant);
@@ -1414,7 +1475,7 @@ namespace feature_isolation
 
     /** @brief Computes the prime implicants for the given minterm set. */
     [[nodiscard]] std::vector<implicant_t>
-        prime_implicants(unsigned_integer                    variable_count,
+        prime_implicants(unsigned_integer                     variable_count,
                          const std::vector<unsigned_integer>& minterms,
                          const std::vector<unsigned_integer>& dont_cares)
     {
@@ -1441,8 +1502,9 @@ namespace feature_isolation
         }
 
         std::vector<implicant_t> next {};
-        std::vector<bool> combined(current.size(), false);
-        for (auto group_index { zero }; group_index < variable_count; ++group_index)
+        std::vector<bool>        combined(current.size(), false);
+        for (auto group_index { zero }; group_index < variable_count;
+             ++group_index)
         {
           const auto& left_group  = groups.at(group_index);
           const auto& right_group = groups.at(group_index + one);
@@ -1456,8 +1518,8 @@ namespace feature_isolation
               }
               combined.at(left_index)  = true;
               combined.at(right_index) = true;
-              next.push_back(
-                  combine_implicants(current.at(left_index), current.at(right_index)));
+              next.push_back(combine_implicants(current.at(left_index),
+                                                current.at(right_index)));
             }
           }
         }
@@ -1483,14 +1545,16 @@ namespace feature_isolation
 
     /** @brief Builds the minterm cover set of each prime implicant. */
     [[nodiscard]] std::vector<feature_ids_t>
-        implicant_cover_sets(unsigned_integer                    variable_count,
+        implicant_cover_sets(unsigned_integer variable_count,
                              const std::vector<unsigned_integer>& minterms,
-                             const std::vector<implicant_t>&      prime_implicants)
+                             const std::vector<implicant_t>& prime_implicants)
     {
       std::vector<feature_ids_t> cover_sets(prime_implicants.size());
-      for (auto prime_index { zero }; prime_index < prime_implicants.size(); ++prime_index)
+      for (auto prime_index { zero }; prime_index < prime_implicants.size();
+           ++prime_index)
       {
-        for (auto minterm_index { zero }; minterm_index < minterms.size(); ++minterm_index)
+        for (auto minterm_index { zero }; minterm_index < minterms.size();
+             ++minterm_index)
         {
           if (covers(prime_implicants.at(prime_index),
                      minterms.at(minterm_index),
@@ -1503,12 +1567,13 @@ namespace feature_isolation
       return cover_sets;
     }
 
-    /** @brief Computes a fast initial cover used to seed the exact cover search. */
+    /** @brief Computes a fast initial cover used to seed the exact cover
+     * search. */
     [[nodiscard]] std::vector<size_t>
-        greedy_cover_subset(const std::vector<size_t>&      candidate_indices,
-                            const std::vector<implicant_t>& prime_implicants,
+        greedy_cover_subset(const std::vector<size_t>&        candidate_indices,
+                            const std::vector<implicant_t>&   prime_implicants,
                             const std::vector<feature_ids_t>& cover_sets,
-                            feature_ids_t                   uncovered)
+                            feature_ids_t                     uncovered)
     {
       std::vector<size_t> subset {};
       std::vector<size_t> remaining_indices { candidate_indices.begin(),
@@ -1536,7 +1601,8 @@ namespace feature_isolation
           break;
         }
         subset.push_back(best_index);
-        uncovered = feature_ids_t::difference_of(uncovered, cover_sets.at(best_index));
+        uncovered = feature_ids_t::difference_of(uncovered,
+                                                 cover_sets.at(best_index));
         remaining_indices.erase(std::remove(remaining_indices.begin(),
                                             remaining_indices.end(),
                                             best_index),
@@ -1545,45 +1611,50 @@ namespace feature_isolation
       return subset;
     }
 
-    /** @brief Performs branch-and-bound search for a small implicant cover after essentials are fixed. */
+    /** @brief Performs branch-and-bound search for a small implicant cover
+     * after essentials are fixed. */
     struct exact_cover_search_t
     {
-        const std::vector<implicant_t>&  prime_implicants;
+        const std::vector<implicant_t>&   prime_implicants;
         const std::vector<feature_ids_t>& cover_sets;
-        std::vector<size_t>              best_subset {};
-        size_t                           best_literal_count {
-          std::numeric_limits<size_t>::max()
-        };
+        std::vector<size_t>               best_subset {};
+        size_t best_literal_count { std::numeric_limits<size_t>::max() };
         size_t best_implicant_count { std::numeric_limits<size_t>::max() };
 
-        /** @brief Records a new best subset when it improves the current incumbent. */
-        void consider_current(const std::vector<size_t>& subset, size_t literal_total)
+        /** @brief Records a new best subset when it improves the current
+         * incumbent. */
+        void consider_current(const std::vector<size_t>& subset,
+                              size_t                     literal_total)
         {
           if (literal_total < best_literal_count
               || (literal_total == best_literal_count
                   && subset.size() < best_implicant_count))
           {
-            best_subset = subset;
-            best_literal_count = literal_total;
+            best_subset          = subset;
+            best_literal_count   = literal_total;
             best_implicant_count = subset.size();
           }
         }
 
-        /** @brief Returns a lower bound on the literal cost of the remaining candidates. */
-        [[nodiscard]] size_t min_literal_cost(const std::vector<size_t>& candidates) const
+        /** @brief Returns a lower bound on the literal cost of the remaining
+         * candidates. */
+        [[nodiscard]] size_t
+            min_literal_cost(const std::vector<size_t>& candidates) const
         {
           size_t result { std::numeric_limits<size_t>::max() };
           for (const auto index : candidates)
           {
-            result = std::min(result, literal_count(prime_implicants.at(index)));
+            result
+                = std::min(result, literal_count(prime_implicants.at(index)));
           }
           return result == std::numeric_limits<size_t>::max() ? zero : result;
         }
 
-        /** @brief Orders candidate implicants by how much uncovered mass they remove next. */
-        [[nodiscard]] std::vector<std::pair<size_t, size_t>> pivot_coverers(
-            const std::vector<size_t>& candidates,
-            const feature_ids_t&       uncovered) const
+        /** @brief Orders candidate implicants by how much uncovered mass they
+         * remove next. */
+        [[nodiscard]] std::vector<std::pair<size_t, size_t>>
+            pivot_coverers(const std::vector<size_t>& candidates,
+                           const feature_ids_t&       uncovered) const
         {
           std::vector<std::pair<size_t, size_t>> best_coverers {};
           size_t best_count = std::numeric_limits<size_t>::max();
@@ -1591,7 +1662,8 @@ namespace feature_isolation
           for (const auto uncovered_id : uncovered)
           {
             std::vector<std::pair<size_t, size_t>> coverers {};
-            for (auto position { zero }; position < candidates.size(); ++position)
+            for (auto position { zero }; position < candidates.size();
+                 ++position)
             {
               const auto index = candidates.at(position);
               if (cover_sets.at(index).contains(uncovered_id))
@@ -1605,7 +1677,7 @@ namespace feature_isolation
             }
             if (coverers.size() < best_count)
             {
-              best_count = coverers.size();
+              best_count    = coverers.size();
               best_coverers = std::move(coverers);
               if (best_count == one)
               {
@@ -1616,7 +1688,8 @@ namespace feature_isolation
           return best_coverers;
         }
 
-        /** @brief Explores candidate subsets until the best exact or near-exact cover is found. */
+        /** @brief Explores candidate subsets until the best exact or near-exact
+         * cover is found. */
         void search(const std::vector<size_t>& candidates,
                     const feature_ids_t&       uncovered,
                     std::vector<size_t>&       current_subset,
@@ -1641,8 +1714,8 @@ namespace feature_isolation
           size_t max_gain {};
           for (const auto index : candidates)
           {
-            const auto overlap
-                = feature_ids_t::intersection_of(cover_sets.at(index), uncovered);
+            const auto overlap = feature_ids_t::intersection_of(
+                cover_sets.at(index), uncovered);
             max_gain = std::max(max_gain, overlap.size());
           }
           if (max_gain == zero)
@@ -1650,14 +1723,15 @@ namespace feature_isolation
             return;
           }
 
-          const auto lower_bound_count
-              = static_cast<size_t>((uncovered.size() + max_gain - one) / max_gain);
+          const auto lower_bound_count = static_cast<size_t>(
+              (uncovered.size() + max_gain - one) / max_gain);
           if (current_subset.size() + lower_bound_count > best_implicant_count)
           {
             return;
           }
           const auto min_literal = min_literal_cost(candidates);
-          if (current_literal_total + lower_bound_count * min_literal > best_literal_count)
+          if (current_literal_total + lower_bound_count * min_literal
+              > best_literal_count)
           {
             return;
           }
@@ -1676,11 +1750,13 @@ namespace feature_isolation
 
             std::vector<size_t> next_candidates {};
             next_candidates.reserve(candidates.size() - position - one);
-            for (auto next_position { position + one }; next_position < candidates.size();
+            for (auto next_position { position + one };
+                 next_position < candidates.size();
                  ++next_position)
             {
               const auto next_index = candidates.at(next_position);
-              if (feature_ids_t::overlaps(cover_sets.at(next_index), next_uncovered))
+              if (feature_ids_t::overlaps(cover_sets.at(next_index),
+                                          next_uncovered))
               {
                 next_candidates.push_back(next_index);
               }
@@ -1689,15 +1765,17 @@ namespace feature_isolation
             search(next_candidates,
                    next_uncovered,
                    current_subset,
-                   current_literal_total + literal_count(prime_implicants.at(index)));
+                   current_literal_total
+                       + literal_count(prime_implicants.at(index)));
             current_subset.pop_back();
           }
         }
     };
 
-    /** @brief Selects a compact implicant cover from the prime implicants of one feature extent. */
+    /** @brief Selects a compact implicant cover from the prime implicants of
+     * one feature extent. */
     [[nodiscard]] std::vector<implicant_t>
-        select_cover(unsigned_integer                    variable_count,
+        select_cover(unsigned_integer                     variable_count,
                      const std::vector<unsigned_integer>& minterms,
                      const std::vector<implicant_t>&      prime_implicants)
     {
@@ -1706,22 +1784,23 @@ namespace feature_isolation
         return {};
       }
 
-      const auto cover_sets = implicant_cover_sets(variable_count,
-                                                   minterms,
-                                                   prime_implicants);
+      const auto cover_sets
+          = implicant_cover_sets(variable_count, minterms, prime_implicants);
 
       std::vector<implicant_t> selected {};
-      feature_ids_t uncovered {};
-      std::vector<bool> chosen(prime_implicants.size(), false);
-      for (auto minterm_index { zero }; minterm_index < minterms.size(); ++minterm_index)
+      feature_ids_t            uncovered {};
+      std::vector<bool>        chosen(prime_implicants.size(), false);
+      for (auto minterm_index { zero }; minterm_index < minterms.size();
+           ++minterm_index)
       {
         uncovered.insert(minterm_index + one);
       }
 
-      for (auto minterm_index { zero }; minterm_index < minterms.size(); ++minterm_index)
+      for (auto minterm_index { zero }; minterm_index < minterms.size();
+           ++minterm_index)
       {
         std::vector<size_t> covering_indices {};
-        const auto minterm_id = minterm_index + one;
+        const auto          minterm_id = minterm_index + one;
         for (auto index { zero }; index < prime_implicants.size(); ++index)
         {
           if (cover_sets.at(index).contains(minterm_id))
@@ -1736,7 +1815,8 @@ namespace feature_isolation
           {
             chosen.at(essential) = true;
             selected.push_back(prime_implicants.at(essential));
-            uncovered = feature_ids_t::difference_of(uncovered, cover_sets.at(essential));
+            uncovered = feature_ids_t::difference_of(uncovered,
+                                                     cover_sets.at(essential));
           }
         }
       }
@@ -1744,7 +1824,8 @@ namespace feature_isolation
       std::vector<size_t> remaining_indices {};
       for (auto index { zero }; index < prime_implicants.size(); ++index)
       {
-        if (!chosen.at(index) && feature_ids_t::overlaps(cover_sets.at(index), uncovered))
+        if (!chosen.at(index)
+            && feature_ids_t::overlaps(cover_sets.at(index), uncovered))
         {
           remaining_indices.push_back(index);
         }
@@ -1753,15 +1834,13 @@ namespace feature_isolation
       if (!uncovered.empty())
       {
         exact_cover_search_t search_state { prime_implicants, cover_sets };
-        search_state.best_subset
-            = greedy_cover_subset(remaining_indices,
-                                  prime_implicants,
-                                  cover_sets,
-                                  uncovered);
+        search_state.best_subset = greedy_cover_subset(
+            remaining_indices, prime_implicants, cover_sets, uncovered);
         search_state.best_literal_count = 0;
         for (const auto index : search_state.best_subset)
         {
-          search_state.best_literal_count += literal_count(prime_implicants.at(index));
+          search_state.best_literal_count
+              += literal_count(prime_implicants.at(index));
         }
         search_state.best_implicant_count = search_state.best_subset.size();
 
@@ -1787,17 +1866,20 @@ namespace feature_isolation
       return selected;
     }
 
-    /** @brief Selects whether minimized implicants are rendered as DNF or CNF. */
+    /** @brief Selects whether minimized implicants are rendered as DNF or CNF.
+     */
     enum class normal_form_t
     {
       dnf,
       cnf
     };
 
-    /** @brief Renders one implicant as a single clause in the requested normal form. */
-    [[nodiscard]] std::string clause_to_string(const implicant_t&             implicant,
-                                               const std::vector<std::string>& feature_names,
-                                               normal_form_t                  normal_form)
+    /** @brief Renders one implicant as a single clause in the requested normal
+     * form. */
+    [[nodiscard]] std::string
+        clause_to_string(const implicant_t&              implicant,
+                         const std::vector<std::string>& feature_names,
+                         normal_form_t                   normal_form)
     {
       std::vector<std::string> positive_literals {};
       std::vector<std::string> negative_literals {};
@@ -1809,7 +1891,8 @@ namespace feature_isolation
           continue;
         }
 
-        const auto negated = normal_form == normal_form_t::dnf ? bit == 0 : bit == 1;
+        const auto negated
+            = normal_form == normal_form_t::dnf ? bit == 0 : bit == 1;
         if (negated)
         {
           negative_literals.push_back(std::string(logical_not_symbol)
@@ -1826,8 +1909,10 @@ namespace feature_isolation
 
       std::vector<std::string> literals {};
       literals.reserve(positive_literals.size() + negative_literals.size());
-      literals.insert(literals.end(), positive_literals.begin(), positive_literals.end());
-      literals.insert(literals.end(), negative_literals.begin(), negative_literals.end());
+      literals.insert(
+          literals.end(), positive_literals.begin(), positive_literals.end());
+      literals.insert(
+          literals.end(), negative_literals.begin(), negative_literals.end());
 
       if (literals.empty())
       {
@@ -1848,11 +1933,12 @@ namespace feature_isolation
       return oss.str();
     }
 
-    /** @brief Renders a minimized implicant cover as a whole DNF or CNF expression. */
+    /** @brief Renders a minimized implicant cover as a whole DNF or CNF
+     * expression. */
     [[nodiscard]] std::string
         normal_form_to_string(const std::vector<implicant_t>& implicants,
                               const std::vector<std::string>& feature_names,
-                              normal_form_t                  normal_form)
+                              normal_form_t                   normal_form)
     {
       if (implicants.empty())
       {
@@ -1866,7 +1952,8 @@ namespace feature_isolation
                                                  : logical_false_symbol;
       }
 
-      /** @brief Stores one rendered clause together with sort keys used for stable output ordering. */
+      /** @brief Stores one rendered clause together with sort keys used for
+       * stable output ordering. */
       struct rendered_clause_t
       {
           std::string text {};
@@ -1878,7 +1965,8 @@ namespace feature_isolation
       rendered_clauses.reserve(implicants.size());
       for (const auto& implicant : implicants)
       {
-        const auto clause = clause_to_string(implicant, feature_names, normal_form);
+        const auto clause
+            = clause_to_string(implicant, feature_names, normal_form);
         size_t negated_literals {};
         for (const auto bit : implicant.bits)
         {
@@ -1886,7 +1974,8 @@ namespace feature_isolation
           {
             continue;
           }
-          const auto negated = normal_form == normal_form_t::dnf ? bit == 0 : bit == 1;
+          const auto negated
+              = normal_form == normal_form_t::dnf ? bit == 0 : bit == 1;
           if (negated)
           {
             ++negated_literals;
@@ -1903,7 +1992,8 @@ namespace feature_isolation
                           {
                             if (lhs.negated_literals != rhs.negated_literals)
                             {
-                              return lhs.negated_literals < rhs.negated_literals;
+                              return lhs.negated_literals
+                                     < rhs.negated_literals;
                             }
                             if (lhs.literal_total != rhs.literal_total)
                             {
@@ -1923,7 +2013,7 @@ namespace feature_isolation
         }
 
         const auto& clause = rendered_clauses.at(index);
-        const auto needs_parentheses
+        const auto  needs_parentheses
             = rendered_clauses.size() > one && clause.literal_total > one;
         if (needs_parentheses)
         {
@@ -1972,60 +2062,64 @@ namespace feature_isolation
     }
   }
 
-  feature_analysis_t::feature_analysis_t(
-      unsigned_integer                                  f,
-      const system_space_t&                             system_space,
-      std::vector<std::string>                          feature_names,
-      report_request_t                                  report_request)
+  feature_analysis_t::feature_analysis_t(unsigned_integer         f,
+                                         const system_space_t&    system_space,
+                                         std::vector<std::string> feature_names,
+                                         report_request_t report_request)
       : m_base_feature_count { f }
-      , m_valid_system_count {
-          static_cast<unsigned_integer>(system_space.valid.size())
-        }
+      , m_valid_system_count { static_cast<unsigned_integer>(
+            system_space.valid.size()) }
       , m_max_system_id { power2(f) }
-      , m_system_space {
-          normalize_theory_system_space(power2(f), system_space)
-        }
+      , m_system_space { normalize_theory_system_space(power2(f),
+                                                       system_space) }
       , m_feature_names { feature_names.empty() ? std::vector<std::string> {}
                                                 : std::move(feature_names) }
       , m_report_request { std::move(report_request) }
-      , m_resolved_feature_names {
-          [this]()
-          {
-            std::vector<std::string> names {};
-            names.reserve(m_base_feature_count);
-            for (auto index { zero }; index < m_base_feature_count; ++index)
-            {
-              if (index < m_feature_names.size())
-              {
-                names.push_back(m_feature_names.at(index));
-              }
-              else
-              {
-                names.push_back("f" + std::to_string(index + one));
-              }
-            }
-            return names;
-          }()
-        }
-      , m_ordered_valid_system_ids {
-          [this]()
-          {
-            return std::vector<unsigned_integer>(m_system_space.valid.begin(),
-                                                m_system_space.valid.end());
-          }()
-        }
-      , m_valid_system_positions {
-          [this]()
-          {
-            std::unordered_map<unsigned_integer, std::size_t> positions {};
-            positions.reserve(m_ordered_valid_system_ids.size());
-            for (std::size_t index { 0 }; index < m_ordered_valid_system_ids.size(); ++index)
-            {
-              positions.emplace(m_ordered_valid_system_ids.at(index), index);
-            }
-            return positions;
-          }()
-        }
+      , m_resolved_feature_names { [this]()
+                                   {
+                                     std::vector<std::string> names {};
+                                     names.reserve(m_base_feature_count);
+                                     for (auto index { zero };
+                                          index < m_base_feature_count;
+                                          ++index)
+                                     {
+                                       if (index < m_feature_names.size())
+                                       {
+                                         names.push_back(
+                                             m_feature_names.at(index));
+                                       }
+                                       else
+                                       {
+                                         names.push_back(
+                                             "f" + std::to_string(index + one));
+                                       }
+                                     }
+                                     return names;
+                                   }() }
+      , m_ordered_valid_system_ids { [this]()
+                                     {
+                                       return std::vector<unsigned_integer>(
+                                           m_system_space.valid.begin(),
+                                           m_system_space.valid.end());
+                                     }() }
+      , m_valid_system_positions { [this]()
+                                   {
+                                     std::unordered_map<unsigned_integer,
+                                                        std::size_t>
+                                         positions {};
+                                     positions.reserve(
+                                         m_ordered_valid_system_ids.size());
+                                     for (std::size_t index { 0 };
+                                          index
+                                          < m_ordered_valid_system_ids.size();
+                                          ++index)
+                                     {
+                                       positions.emplace(
+                                           m_ordered_valid_system_ids.at(index),
+                                           index);
+                                     }
+                                     return positions;
+                                   }() }
       , m_feature_registry { initialize_feature_registry() }
       , m_systems { m_report_request.mode == report_mode_t::summary
                         ? systems_t {}
@@ -2033,77 +2127,83 @@ namespace feature_isolation
   { }
 
   feature_analysis_t::feature_analysis_t(
-      std::vector<std::string>                          systems_found_in_alignment,
-      unsigned_integer                                  f,
-      const system_space_t&                             system_space,
-      std::vector<std::string>                          feature_names,
-      report_request_t                                  report_request)
+      std::vector<std::string> systems_found_in_alignment,
+      unsigned_integer         f,
+      const system_space_t&    system_space,
+      std::vector<std::string> feature_names,
+      report_request_t         report_request)
       : m_base_feature_count { f }
-      , m_valid_system_count {
-          static_cast<unsigned_integer>(system_space.valid.size())
-        }
+      , m_valid_system_count { static_cast<unsigned_integer>(
+            system_space.valid.size()) }
       , m_max_system_id { power2(f) }
-      , m_system_space {
-          normalize_theory_system_space(power2(f), system_space)
-        }
+      , m_system_space { normalize_theory_system_space(power2(f),
+                                                       system_space) }
       , m_feature_names { feature_names.empty() ? std::vector<std::string> {}
                                                 : std::move(feature_names) }
       , m_report_request { std::move(report_request) }
-      , m_resolved_feature_names {
-          [this]()
-          {
-            std::vector<std::string> names {};
-            names.reserve(m_base_feature_count);
-            for (auto index { zero }; index < m_base_feature_count; ++index)
-            {
-              if (index < m_feature_names.size())
-              {
-                names.push_back(m_feature_names.at(index));
-              }
-              else
-              {
-                names.push_back("f" + std::to_string(index + one));
-              }
-            }
-            return names;
-          }()
-        }
-      , m_ordered_valid_system_ids {
-          [this]()
-          {
-            return std::vector<unsigned_integer>(m_system_space.valid.begin(),
-                                                m_system_space.valid.end());
-          }()
-        }
-      , m_valid_system_positions {
-          [this]()
-          {
-            std::unordered_map<unsigned_integer, std::size_t> positions {};
-            positions.reserve(m_ordered_valid_system_ids.size());
-            for (std::size_t index { 0 }; index < m_ordered_valid_system_ids.size(); ++index)
-            {
-              positions.emplace(m_ordered_valid_system_ids.at(index), index);
-            }
-            return positions;
-          }()
-        }
-      , m_feature_registry { initialize_feature_registry(systems_found_in_alignment) }
+      , m_resolved_feature_names { [this]()
+                                   {
+                                     std::vector<std::string> names {};
+                                     names.reserve(m_base_feature_count);
+                                     for (auto index { zero };
+                                          index < m_base_feature_count;
+                                          ++index)
+                                     {
+                                       if (index < m_feature_names.size())
+                                       {
+                                         names.push_back(
+                                             m_feature_names.at(index));
+                                       }
+                                       else
+                                       {
+                                         names.push_back(
+                                             "f" + std::to_string(index + one));
+                                       }
+                                     }
+                                     return names;
+                                   }() }
+      , m_ordered_valid_system_ids { [this]()
+                                     {
+                                       return std::vector<unsigned_integer>(
+                                           m_system_space.valid.begin(),
+                                           m_system_space.valid.end());
+                                     }() }
+      , m_valid_system_positions { [this]()
+                                   {
+                                     std::unordered_map<unsigned_integer,
+                                                        std::size_t>
+                                         positions {};
+                                     positions.reserve(
+                                         m_ordered_valid_system_ids.size());
+                                     for (std::size_t index { 0 };
+                                          index
+                                          < m_ordered_valid_system_ids.size();
+                                          ++index)
+                                     {
+                                       positions.emplace(
+                                           m_ordered_valid_system_ids.at(index),
+                                           index);
+                                     }
+                                     return positions;
+                                   }() }
+      , m_feature_registry { initialize_feature_registry(
+            systems_found_in_alignment) }
   { }
-
 
   feature_analysis_t::feature_analysis_t(
-      unsigned_integer                                  f,
-      const system_space_t&                             system_space,
-      std::vector<std::string>                          feature_names,
+      unsigned_integer                                      f,
+      const system_space_t&                                 system_space,
+      std::vector<std::string>                              feature_names,
       std::optional<std::vector<theory_feature_category_t>> category_filter)
-      : feature_analysis_t(f,
-                           system_space,
-                           std::move(feature_names),
-                           report_request_t::from_category_hint(
-                               std::move(category_filter)))
+      : feature_analysis_t(
+            f,
+            system_space,
+            std::move(feature_names),
+            report_request_t::from_category_hint(std::move(category_filter)))
   { }
 
-  [[nodiscard]] feature_t feature_analysis_t::at(unsigned_integer feature_id) const
+  [[nodiscard]] feature_t
+      feature_analysis_t::at(unsigned_integer feature_id) const
   {
     if (feature_id == zero || feature_id > m_feature_registry.size())
     {
@@ -2112,18 +2212,22 @@ namespace feature_isolation
     return m_feature_registry.at(feature_id - one).systems_present;
   }
 
-  unsigned_integer feature_analysis_t::category(unsigned_integer feature_id) const
+  unsigned_integer
+      feature_analysis_t::category(unsigned_integer feature_id) const
   {
     if (feature_id == zero || feature_id > m_feature_registry.size())
     {
       throw std::out_of_range("Illegal derived feature id.");
     }
-    return static_cast<unsigned_integer>(m_feature_registry.at(feature_id - one).category);
+    return static_cast<unsigned_integer>(
+        m_feature_registry.at(feature_id - one).category);
   }
 
-  std::string feature_analysis_t::category_name(unsigned_integer feature_id) const
+  std::string
+      feature_analysis_t::category_name(unsigned_integer feature_id) const
   {
-    return to_string(static_cast<theory_feature_category_t>(category(feature_id)));
+    return to_string(
+        static_cast<theory_feature_category_t>(category(feature_id)));
   }
 
   bool feature_analysis_t::uses_theory_registry() const
@@ -2156,7 +2260,8 @@ namespace feature_isolation
     return m_report_request;
   }
 
-  const std::vector<feature_record_t>& feature_analysis_t::feature_registry() const
+  const std::vector<feature_record_t>&
+      feature_analysis_t::feature_registry() const
   {
     return m_feature_registry;
   }
@@ -2181,12 +2286,14 @@ namespace feature_isolation
     return m_valid_system_count;
   }
 
-  const system_t& feature_analysis_t::system_by_id(unsigned_integer system_id) const
+  const system_t&
+      feature_analysis_t::system_by_id(unsigned_integer system_id) const
   {
     const auto position = m_valid_system_positions.find(system_id);
     if (position == m_valid_system_positions.end())
     {
-      throw std::out_of_range("System id is not part of the valid system registry.");
+      throw std::out_of_range(
+          "System id is not part of the valid system registry.");
     }
     return m_systems.at(position->second);
   }
@@ -2220,7 +2327,8 @@ namespace feature_isolation
            << paper_feature_label(record.id) << separator()
            << system_membership_set(record.systems_present, m_system_space)
            << separator() << to_string(record.systems_present) << separator()
-           << record.simplified_term << separator() << record.raw_term << std::endl;
+           << record.simplified_term << separator() << record.raw_term
+           << std::endl;
       }
     }
   }
@@ -2234,9 +2342,10 @@ namespace feature_isolation
       {
         continue;
       }
-      const auto count = std::ranges::count_if(
-          m_feature_registry,
-          [&](const feature_record_t& record) { return record.category == category; });
+      const auto count
+          = std::ranges::count_if(m_feature_registry,
+                                  [&](const feature_record_t& record)
+                                  { return record.category == category; });
       os << to_string(category) << separator() << count << std::endl;
     }
   }
@@ -2245,8 +2354,9 @@ namespace feature_isolation
                                                    const system_t&  system,
                                                    unsigned_integer id) const
   {
-    std::array<unsigned_integer, 7> counts { zero, zero, zero, zero, zero, zero, zero };
-    const auto& system_features = system.all_features();
+    std::array<unsigned_integer, 7> counts { zero, zero, zero, zero,
+                                             zero, zero, zero };
+    const auto&                     system_features = system.all_features();
     for (const auto feature_id : system_features)
     {
       const auto category = m_feature_registry.at(feature_id - one).category;
@@ -2290,11 +2400,13 @@ namespace feature_isolation
   void feature_analysis_t::print_systems_statistics(std::ostream& os) const
   {
     os << "SYSTEM ID" << separator() << "SYSTEM" << separator() << "STATUS"
-       << separator() << "Impossible" << separator() << "Core"
-       << separator() << "Fundamental" << separator() << "Not" << separator()
-       << "And" << separator() << "Or" << separator() << "Complex"
-       << separator() << "T" << std::endl;
-    for (auto system_index { zero }; system_index < m_ordered_valid_system_ids.size(); ++system_index)
+       << separator() << "Impossible" << separator() << "Core" << separator()
+       << "Fundamental" << separator() << "Not" << separator() << "And"
+       << separator() << "Or" << separator() << "Complex" << separator() << "T"
+       << std::endl;
+    for (auto system_index { zero };
+         system_index < m_ordered_valid_system_ids.size();
+         ++system_index)
     {
       print_system_statistics(os,
                               m_systems.at(system_index),
@@ -2302,15 +2414,17 @@ namespace feature_isolation
     }
   }
 
-  void feature_analysis_t::print_system_features(std::ostream&    os,
-                                                 const system_t&  system,
-                                                 unsigned_integer system_id) const
+  void feature_analysis_t::print_system_features(
+      std::ostream&    os,
+      const system_t&  system,
+      unsigned_integer system_id) const
   {
-    os << system_id << separator() << paper_system_label(system_id) << separator()
-       << system_status(system_id, m_system_space) << separator();
+    os << system_id << separator() << paper_system_label(system_id)
+       << separator() << system_status(system_id, m_system_space)
+       << separator();
 
     std::array<feature_ids_t, 7> grouped {};
-    const auto& system_features = system.all_features();
+    const auto&                  system_features = system.all_features();
     for (const auto feature_id : system_features)
     {
       const auto category = m_feature_registry.at(feature_id - one).category;
@@ -2352,11 +2466,12 @@ namespace feature_isolation
   void feature_analysis_t::print_systems_features(std::ostream& os) const
   {
     os << "\nSYSTEM ID" << separator() << "SYSTEM" << separator() << "STATUS"
-       << separator() << "Impossible" << separator() << "Core"
-       << separator() << "Fundamental" << separator() << "Not" << separator()
-       << "And" << separator() << "Or" << separator() << "Complex"
-       << std::endl;
-    for (auto system_index { zero }; system_index < m_ordered_valid_system_ids.size(); ++system_index)
+       << separator() << "Impossible" << separator() << "Core" << separator()
+       << "Fundamental" << separator() << "Not" << separator() << "And"
+       << separator() << "Or" << separator() << "Complex" << std::endl;
+    for (auto system_index { zero };
+         system_index < m_ordered_valid_system_ids.size();
+         ++system_index)
     {
       print_system_features(os,
                             m_systems.at(system_index),
@@ -2370,16 +2485,19 @@ namespace feature_isolation
        << separator() << "|S_available|" << separator() << "|S_missing|"
        << separator() << "|T|" << std::endl;
     os << "THEORY" << separator() << m_base_feature_count << separator()
-       << m_system_space.valid.size() << separator() << m_system_space.available.size()
-       << separator() << m_system_space.missing.size() << separator() << feature_count()
-       << std::endl << std::endl;
+       << m_system_space.valid.size() << separator()
+       << m_system_space.available.size() << separator()
+       << m_system_space.missing.size() << separator() << feature_count()
+       << std::endl
+       << std::endl;
     print_categories(os);
     os << std::endl;
     print_systems_statistics(os);
     print_systems_features(os);
   }
 
-  std::string feature_analysis_t::feature_name(unsigned_integer feature_index) const
+  std::string
+      feature_analysis_t::feature_name(unsigned_integer feature_index) const
   {
     if (feature_index < m_resolved_feature_names.size())
     {
@@ -2388,17 +2506,20 @@ namespace feature_isolation
     return "f" + std::to_string(feature_index + one);
   }
 
-  std::string feature_analysis_t::raw_term_for(const feature_t& systems_present) const
+  std::string
+      feature_analysis_t::raw_term_for(const feature_t& systems_present) const
   {
     if (systems_present.empty()
-        || std::ranges::none_of(systems_present, [](bool value) { return value; }))
+        || std::ranges::none_of(systems_present,
+                                [](bool value) { return value; }))
     {
       return logical_false_symbol;
     }
 
     std::vector<implicant_t> implicants {};
     implicants.reserve(systems_present.size());
-    for (auto system_index { zero }; system_index < systems_present.size(); ++system_index)
+    for (auto system_index { zero }; system_index < systems_present.size();
+         ++system_index)
     {
       if (!systems_present.at(system_index))
       {
@@ -2410,17 +2531,17 @@ namespace feature_isolation
                          false));
     }
 
-    return normal_form_to_string(implicants,
-                                 m_resolved_feature_names,
-                                 normal_form_t::dnf);
+    return normal_form_to_string(
+        implicants, m_resolved_feature_names, normal_form_t::dnf);
   }
 
   std::string feature_analysis_t::simplified_term_for(
-      const feature_t& systems_present,
+      const feature_t&                     systems_present,
       const std::vector<unsigned_integer>& dont_cares) const
   {
     if (systems_present.empty()
-        || std::ranges::none_of(systems_present, [](bool value) { return value; }))
+        || std::ranges::none_of(systems_present,
+                                [](bool value) { return value; }))
     {
       return logical_false_symbol;
     }
@@ -2430,10 +2551,12 @@ namespace feature_isolation
     minterms.reserve(m_ordered_valid_system_ids.size());
     complement_minterms.reserve(m_ordered_valid_system_ids.size());
 
-    for (auto system_index { zero }; system_index < m_ordered_valid_system_ids.size();
+    for (auto system_index { zero };
+         system_index < m_ordered_valid_system_ids.size();
          ++system_index)
     {
-      const auto encoded_system = m_ordered_valid_system_ids.at(system_index) - one;
+      const auto encoded_system
+          = m_ordered_valid_system_ids.at(system_index) - one;
       if (systems_present.at(system_index))
       {
         minterms.push_back(encoded_system);
@@ -2446,25 +2569,23 @@ namespace feature_isolation
 
     const auto dnf_primes
         = prime_implicants(m_base_feature_count, minterms, dont_cares);
-    const auto dnf_cover = select_cover(m_base_feature_count, minterms, dnf_primes);
-    const auto dnf_expression = normal_form_to_string(dnf_cover,
-                                                      m_resolved_feature_names,
-                                                      normal_form_t::dnf);
+    const auto dnf_cover
+        = select_cover(m_base_feature_count, minterms, dnf_primes);
+    const auto dnf_expression = normal_form_to_string(
+        dnf_cover, m_resolved_feature_names, normal_form_t::dnf);
 
-    const auto cnf_primes = prime_implicants(m_base_feature_count,
-                                             complement_minterms,
-                                             dont_cares);
+    const auto cnf_primes = prime_implicants(
+        m_base_feature_count, complement_minterms, dont_cares);
     const auto cnf_cover
         = select_cover(m_base_feature_count, complement_minterms, cnf_primes);
-    const auto cnf_expression = normal_form_to_string(cnf_cover,
-                                                      m_resolved_feature_names,
-                                                      normal_form_t::cnf);
+    const auto cnf_expression = normal_form_to_string(
+        cnf_cover, m_resolved_feature_names, normal_form_t::cnf);
 
-    if (dnf_expression.size() < cnf_expression.size())
-    {
-      return dnf_expression;
-    }
-    return cnf_expression;
+    // if (dnf_expression.size() < cnf_expression.size())
+    //{
+    return dnf_expression;
+    //}
+    // return cnf_expression;
   }
 
   theory_feature_category_t feature_analysis_t::classify_simplified_term(
@@ -2479,9 +2600,12 @@ namespace feature_isolation
       return theory_feature_category_t::core;
     }
 
-    const auto has_or  = simplified_term.find(logical_or_symbol) != std::string::npos;
-    const auto has_and = simplified_term.find(logical_and_symbol) != std::string::npos;
-    const auto has_not = simplified_term.find(logical_not_symbol) != std::string::npos;
+    const auto has_or
+        = simplified_term.find(logical_or_symbol) != std::string::npos;
+    const auto has_and
+        = simplified_term.find(logical_and_symbol) != std::string::npos;
+    const auto has_not
+        = simplified_term.find(logical_not_symbol) != std::string::npos;
 
     if (!has_or && !has_and)
     {
@@ -2549,21 +2673,23 @@ namespace feature_isolation
       feature_analysis_t::initialize_feature_registry() const
   {
     std::vector<feature_record_t> result {};
-    const auto registry_size = power2(m_valid_system_count);
-    const auto simple_term_index = build_simple_term_index(m_base_feature_count,
-                                                           m_ordered_valid_system_ids,
-                                                           m_resolved_feature_names);
+    const auto                    registry_size = power2(m_valid_system_count);
+    const auto                    simple_term_index
+        = build_simple_term_index(m_base_feature_count,
+                                  m_ordered_valid_system_ids,
+                                  m_resolved_feature_names);
     result.reserve(static_cast<size_t>(registry_size));
     std::vector<std::size_t> pending_complex_simplifications {};
 
-    auto build_invalid_system_minterms = [this]() {
+    auto build_invalid_system_minterms = [this]()
+    {
       std::vector<unsigned_integer> invalid_minterms {};
       if (m_valid_system_count == m_max_system_id)
       {
         return invalid_minterms;
       }
-      invalid_minterms.reserve(
-          static_cast<size_t>(m_max_system_id - m_ordered_valid_system_ids.size()));
+      invalid_minterms.reserve(static_cast<size_t>(
+          m_max_system_id - m_ordered_valid_system_ids.size()));
       for (auto system_id { one }; system_id <= m_max_system_id; ++system_id)
       {
         if (!m_system_space.valid.contains(system_id))
@@ -2574,23 +2700,26 @@ namespace feature_isolation
       return invalid_minterms;
     };
 
-    for (auto encoded_subset { zero }; encoded_subset < registry_size; ++encoded_subset)
+    for (auto encoded_subset { zero }; encoded_subset < registry_size;
+         ++encoded_subset)
     {
       feature_record_t record {};
-      record.id = encoded_subset + one;
+      record.id              = encoded_subset + one;
       record.systems_present = feature_t(m_valid_system_count, false);
-      for (auto system_index { zero }; system_index < m_valid_system_count; ++system_index)
+      for (auto system_index { zero }; system_index < m_valid_system_count;
+           ++system_index)
       {
-        const auto shift
-            = static_cast<unsigned_integer>(m_valid_system_count - system_index - one);
-        record.systems_present.at(system_index) = ((encoded_subset >> shift) & one) == one;
+        const auto shift = static_cast<unsigned_integer>(m_valid_system_count
+                                                         - system_index - one);
+        record.systems_present.at(system_index)
+            = ((encoded_subset >> shift) & one) == one;
       }
 
       const auto any_present = std::ranges::any_of(
           record.systems_present, [](bool value) { return value; });
-      const auto all_present = !record.systems_present.empty()
-                               && std::ranges::all_of(
-                                   record.systems_present,
+      const auto all_present
+          = !record.systems_present.empty()
+            && std::ranges::all_of(record.systems_present,
                                    [](bool value) { return value; });
       if (!any_present)
       {
@@ -2674,8 +2803,8 @@ namespace feature_isolation
       for (const auto index : pending_complex_simplifications)
       {
         auto& record = result.at(index);
-        record.simplified_term = simplified_term_for(record.systems_present,
-                                                     invalid_minterms);
+        record.simplified_term
+            = simplified_term_for(record.systems_present, invalid_minterms);
         record.display_name = record.simplified_term;
       }
     }
@@ -2683,18 +2812,19 @@ namespace feature_isolation
     return result;
   }
 
-
   [[nodiscard]] std::vector<feature_record_t>
-      feature_analysis_t::initialize_feature_registry(std::vector<std::string> systems_from_alignment) 
+      feature_analysis_t::initialize_feature_registry(
+          std::vector<std::string> systems_from_alignment)
   {
-    auto build_invalid_system_minterms = [this]() {
+    auto build_invalid_system_minterms = [this]()
+    {
       std::vector<unsigned_integer> invalid_minterms {};
       if (m_valid_system_count == m_max_system_id)
       {
         return invalid_minterms;
       }
-      invalid_minterms.reserve(
-          static_cast<size_t>(m_max_system_id - m_ordered_valid_system_ids.size()));
+      invalid_minterms.reserve(static_cast<size_t>(
+          m_max_system_id - m_ordered_valid_system_ids.size()));
       for (auto system_id { one }; system_id <= m_max_system_id; ++system_id)
       {
         if (!m_system_space.valid.contains(system_id))
@@ -2705,54 +2835,56 @@ namespace feature_isolation
       return invalid_minterms;
     };
 
-
-    std::vector<unsigned long> ordered_valid_system_ids{};
+    std::vector<unsigned long> ordered_valid_system_ids {};
     for (const auto& id : m_system_space.valid)
     {
-        ordered_valid_system_ids.push_back(id-1);
+      ordered_valid_system_ids.push_back(id - 1);
     }
     std::sort(ordered_valid_system_ids.begin(), ordered_valid_system_ids.end());
 
-    std::unordered_map<unsigned long, size_t> valid_system_positions{};
+    std::unordered_map<unsigned long, size_t> valid_system_positions {};
     for (size_t i = 0; i < ordered_valid_system_ids.size(); ++i)
     {
-        valid_system_positions[ordered_valid_system_ids[i]] = i;
+      valid_system_positions[ordered_valid_system_ids[i]] = i;
     }
 
-    std::vector<bool> systems_from_alignment_bool(m_ordered_valid_system_ids.size(), false);
+    std::vector<bool> systems_from_alignment_bool(
+        m_ordered_valid_system_ids.size(), false);
 
     for (const auto& system_name : systems_from_alignment)
     {
-      if (valid_system_positions.find(std::stoul(system_name)) != valid_system_positions.end())
+      if (valid_system_positions.find(std::stoul(system_name))
+          != valid_system_positions.end())
       {
-        const auto system_id {valid_system_positions[std::stoul(system_name)]};
+        const auto system_id {
+          valid_system_positions[std::stoul(system_name)]
+        };
         systems_from_alignment_bool.at(system_id) = true;
       }
       else
       {
-        std::cerr << "Warning: System ID " << std::stoul(system_name) << " from alignment is out of range and will be ignored." << std::endl;
+        std::cerr << "Warning: System ID " << std::stoul(system_name)
+                  << " from alignment is out of range and will be ignored."
+                  << std::endl;
       }
     }
 
     const auto invalid_minterms = build_invalid_system_minterms();
-    std::cout << simplified_term_for(systems_from_alignment_bool, invalid_minterms) << "\n";
-
+    std::cout << simplified_term_for(systems_from_alignment_bool,
+                                     invalid_minterms)
+              << "\n";
 
     std::vector<feature_record_t> result {};
     return result;
   }
-
-
-
-
-
 
   systems_t feature_analysis_t::initialize_registry_backed_systems() const
   {
     systems_t result(m_ordered_valid_system_ids.size(), system_t {});
     for (const auto& record : m_feature_registry)
     {
-      for (auto system_index { zero }; system_index < m_ordered_valid_system_ids.size();
+      for (auto system_index { zero };
+           system_index < m_ordered_valid_system_ids.size();
            ++system_index)
       {
         if (!record.systems_present.at(system_index))
@@ -2765,7 +2897,8 @@ namespace feature_isolation
     return result;
   }
 
-  /** @brief Returns or updates the current tabular output separator used by print helpers. */
+  /** @brief Returns or updates the current tabular output separator used by
+   * print helpers. */
   [[nodiscard]] char separator(const char s)
   {
     static char sep = '\t';
@@ -2776,7 +2909,8 @@ namespace feature_isolation
     return sep;
   }
 
-  /** @brief Renders a bit-vector feature extent in the repository's binary order. */
+  /** @brief Renders a bit-vector feature extent in the repository's binary
+   * order. */
   std::string to_string(const feature_t& fd)
   {
     std::string result {};
