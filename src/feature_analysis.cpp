@@ -1060,7 +1060,8 @@ namespace feature_isolation
         unsigned_integer                     base_feature_count,
         const std::vector<unsigned_integer>& ordered_valid_system_ids,
         const std::vector<std::string>&      feature_names,
-        bool                                 conjunction_mode)
+        bool                                 conjunction_mode,
+        std::size_t max_grade = std::numeric_limits<std::size_t>::max())
     {
       std::map<feature_t, simple_term_state_t> best_states {};
       std::deque<simple_term_state_t>          worklist {};
@@ -1091,28 +1092,31 @@ namespace feature_isolation
         worklist.push_back(std::move(state));
       };
 
-      for (auto feature_index { zero }; feature_index < base_feature_count;
-           ++feature_index)
+      if (max_grade >= 1)
       {
-        for (const auto negated : { false, true })
+        for (auto feature_index { zero }; feature_index < base_feature_count;
+             ++feature_index)
         {
-          std::vector<std::int8_t> states(base_feature_count, 0);
-          states.at(feature_index)   = negated ? static_cast<std::int8_t>(-1)
-                                               : static_cast<std::int8_t>(1);
-          const auto          extent = negated
-                                           ? negative_literal_extents.at(feature_index)
-                                           : positive_literal_extents.at(feature_index);
-          simple_term_state_t state {
-            extent,
-            states,
-            { negated ? theory_feature_category_t::not_feature
-                      : theory_feature_category_t::fundamental,
-              render_simple_literals(
-                  literal_pairs_from_states(states, feature_names),
-              conjunction_mode ? logical_and_symbol : logical_or_symbol),
-              1 }
-          };
-          try_record_state(std::move(state));
+          for (const auto negated : { false, true })
+          {
+            std::vector<std::int8_t> states(base_feature_count, 0);
+            states.at(feature_index)   = negated ? static_cast<std::int8_t>(-1)
+                                                 : static_cast<std::int8_t>(1);
+            const auto          extent = negated
+                                             ? negative_literal_extents.at(feature_index)
+                                             : positive_literal_extents.at(feature_index);
+            simple_term_state_t state {
+              extent,
+              states,
+              { negated ? theory_feature_category_t::not_feature
+                        : theory_feature_category_t::fundamental,
+                render_simple_literals(
+                    literal_pairs_from_states(states, feature_names),
+                conjunction_mode ? logical_and_symbol : logical_or_symbol),
+                1 }
+            };
+            try_record_state(std::move(state));
+          }
         }
       }
 
@@ -1164,6 +1168,10 @@ namespace feature_isolation
             {
               continue;
             }
+            if (literal_count > max_grade)
+            {
+              continue;
+            }
             simple_term_state_t next_state {
               std::move(next_extent),
               std::move(next_states),
@@ -1185,19 +1193,22 @@ namespace feature_isolation
     [[nodiscard]] simple_term_index_t build_simple_term_index(
         unsigned_integer                     base_feature_count,
         const std::vector<unsigned_integer>& ordered_valid_system_ids,
-        const std::vector<std::string>&      feature_names)
+        const std::vector<std::string>&      feature_names,
+        std::size_t max_grade = std::numeric_limits<std::size_t>::max())
     {
       simple_term_index_t result {};
       enumerate_simple_closure(result,
                                base_feature_count,
                                ordered_valid_system_ids,
                                feature_names,
-                               true);
+                               true,
+                               max_grade);
       enumerate_simple_closure(result,
                                base_feature_count,
                                ordered_valid_system_ids,
                                feature_names,
-                               false);
+                               false,
+                               max_grade);
       return result;
     }
 
@@ -2027,6 +2038,46 @@ namespace feature_isolation
       return oss.str();
     }
   } // namespace
+
+  std::vector<bounded_trace_t> enumerate_bounded_traces(
+      unsigned_integer                     base_feature_count,
+      const std::vector<unsigned_integer>& ordered_valid_system_ids,
+      const std::vector<std::string>&      feature_names,
+      unsigned_integer                     max_grade)
+  {
+    const auto index = build_simple_term_index(
+        base_feature_count,
+        ordered_valid_system_ids,
+        feature_names,
+        static_cast<std::size_t>(max_grade));
+
+    std::vector<bounded_trace_t> traces {};
+    traces.reserve(index.size() + 1);
+    for (const auto& [extent, descriptor] : index)
+    {
+      traces.push_back({ descriptor.expression,
+                         extent,
+                         descriptor.category,
+                         static_cast<unsigned_integer>(descriptor.literal_count) });
+    }
+
+    feature_t core_extent(ordered_valid_system_ids.size(), true);
+    traces.push_back({ std::string(logical_true_symbol),
+                       std::move(core_extent),
+                       theory_feature_category_t::core,
+                       0 });
+
+    std::ranges::sort(traces,
+                      [](const bounded_trace_t& lhs, const bounded_trace_t& rhs)
+                      {
+                        if (lhs.grade != rhs.grade)
+                        {
+                          return lhs.grade < rhs.grade;
+                        }
+                        return lhs.label < rhs.label;
+                      });
+    return traces;
+  }
 
   [[nodiscard]] unsigned_integer system_t::T() const
   {
