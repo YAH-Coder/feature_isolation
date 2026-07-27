@@ -35,6 +35,7 @@ namespace
       analyze,
       plan,
       expression_from_systems,
+      trace_export,
   };
 
   /** @brief Holds parsed command-line options and guided-mode selections. */
@@ -59,6 +60,7 @@ namespace
       std::optional<bool>        include_simplified_terms_override {};
       std::optional<bool>        include_isolation_override {};
       std::vector<string> found_systems_in_alignment {};
+      std::optional<unsigned_integer> max_grade {};
   };
 
   /** @brief Captures hard runtime and output-size limits used before report generation. */
@@ -244,10 +246,12 @@ namespace
        << "  " << program_name << " analyze <spl-file> <output-file>"
        << " -min-diffs=<false|true> -feature-names=<false|true> [options]\n"
        << "  " << program_name << " plan <spl-file> [options]\n"
+       << "  " << program_name << " traces <spl-file> <output-file> [--max-grade=N]\n"
        << "  " << program_name << " guided [analyze|plan] [seed-inputs]\n"
        << "  " << program_name << " --help\n"
        << "  " << program_name << " analyze --help\n"
        << "  " << program_name << " plan --help\n"
+       << "  " << program_name << " traces --help\n"
        << "  " << program_name << " guided --help\n"
        << "\n"
        << "Quick start\n"
@@ -263,6 +267,8 @@ namespace
        << "Commands\n"
        << "  analyze   Parse the SPL specification, estimate the resulting derived feature space, and write a report file.\n"
        << "  plan      Inspect the valid systems, the derived feature space, and the planner recommendation without writing a report.\n"
+       << "  traces    Precompute a bounded, grade-limited lookup file mapping system-id\n"
+       << "            combinations to their derived-feature expression.\n"
        << "  guided    Start the interactive wizard explicitly. Optionally seed it with\n"
        << "            'analyze' or 'plan' and partial positional inputs.\n"
        << "  interactive\n"
@@ -377,6 +383,35 @@ namespace
        << "  No report file is written by the plan command.\n";
   }
 
+  /** @brief Writes subcommand help for the grade-bounded trace export. */
+  void print_traces_help(std::ostream& os, const std::string& program_name)
+  {
+    os << "Usage\n"
+       << "  " << program_name << " traces <spl-file> <output-file> [--max-grade=N]\n"
+       << "\nRequired positional arguments\n"
+       << "  <spl-file>      Path to the SPL specification in the current DSL.\n"
+       << "  <output-file>   Path of the trace-lookup file to write.\n"
+       << "\nOptions\n"
+       << "  --max-grade=<N>\n"
+       << "      Maximum number of literals combined per AND/OR term (grade 1 = a\n"
+       << "      single fundamental feature or its negation). If omitted and the\n"
+       << "      program is running interactively, you will be prompted for it.\n"
+       << "\nOutput format\n"
+       << "  One line per precomputed trace: a comma-separated, ascending list of\n"
+       << "  available system ids in the paper-style 0-based convention (matching\n"
+       << "  the s0/s1/... labels used elsewhere in report output, i.e. one less\n"
+       << "  than the id used in the .spl file's AVAILABLE_SYSTEMS/MISSING_SYSTEMS\n"
+       << "  sections), followed by \": \" and the trace's rendered boolean\n"
+       << "  expression (e.g. \"0,3,4: A\"). The core tautology (present in every\n"
+       << "  valid system) is always included regardless of the selected grade.\n"
+       << "  Traces whose available-system set is empty are omitted. This file is\n"
+       << "  a bounded, precomputed lookup table intended to be checked first by\n"
+       << "  another program before falling back to the 'expr' command for an\n"
+       << "  on-demand computation.\n"
+       << "\nExamples\n"
+       << "  " << program_name << " traces spec.spl traces.txt --max-grade=2\n";
+  }
+
   /** @brief Writes help for the interactive guided workflow. */
   void print_guided_help(std::ostream& os, const std::string& program_name)
   {
@@ -460,6 +495,39 @@ namespace
       errors << "Unknown option \"" << option << "\".\n"
              << "Expected \"" << expected_name
              << "=<non-negative-number>\".\n"
+             << "Program terminated." << endl;
+      return false;
+    }
+  }
+
+  /** @brief Parses a positive integer option value, such as "--max-grade=N". */
+  [[nodiscard]] bool parse_positive_unsigned_integer(
+      const std::string&                 option,
+      const char*                        expected_name,
+      std::optional<unsigned_integer>&   target,
+      std::ostream&                      errors)
+  {
+    const std::string prefix = std::string { expected_name } + "=";
+    if (!option.starts_with(prefix))
+    {
+      return false;
+    }
+    const std::string value_text = option.substr(prefix.size());
+    try
+    {
+      std::size_t consumed { 0 };
+      const auto  value = std::stoull(value_text, &consumed);
+      if (consumed != value_text.size() || value < 1)
+      {
+        throw std::invalid_argument { "not a positive integer" };
+      }
+      target = static_cast<unsigned_integer>(value);
+      return true;
+    }
+    catch (const std::exception&)
+    {
+      errors << "Unknown option \"" << option << "\".\n"
+             << "Expected \"" << expected_name << "=<positive-integer>\".\n"
              << "Program terminated." << endl;
       return false;
     }
@@ -1269,6 +1337,38 @@ namespace
       for (; cursor < argc; ++cursor)
       {
         options.found_systems_in_alignment.push_back(argv[cursor]);
+      }
+      return options;
+    }
+    else if (first_argument == "traces")
+    {
+      options.command = cli_command_t::trace_export;
+      ++cursor;
+      if (argc - cursor < 2)
+      {
+        cerr << "Usage: " << program_display_name(argv[0])
+             << " traces <spl-file> <output-file> [--max-grade=N]\n"
+             << "Program terminated." << endl;
+        return std::nullopt;
+      }
+      options.specification_path = argv[cursor++];
+      options.result_path        = argv[cursor++];
+      for (; cursor < argc; ++cursor)
+      {
+        const string option { argv[cursor] };
+        if (option.rfind("--max-grade=", 0) == 0)
+        {
+          if (!parse_positive_unsigned_integer(option, "--max-grade", options.max_grade, cerr))
+          {
+            return std::nullopt;
+          }
+        }
+        else
+        {
+          cerr << "Unknown option \"" << option << "\".\n"
+               << "Program terminated." << endl;
+          return std::nullopt;
+        }
       }
       return options;
     }
@@ -2499,8 +2599,146 @@ namespace
     feature_isolation_t fi { processor.get_specification(), report_request, options.found_systems_in_alignment };
 
     return 0;
-    
+
   }
+
+/** @brief Prompts for the maximum grade to compute when it was not supplied via --max-grade. */
+[[nodiscard]] std::optional<unsigned_integer> prompt_max_grade()
+{
+  while (true)
+  {
+    cerr << "Enter the maximum grade to compute (positive integer): " << flush;
+
+    std::string line {};
+    if (!std::getline(cin, line))
+    {
+      cerr << "\nInput closed before a grade was entered.\nProgram terminated."
+           << endl;
+      return std::nullopt;
+    }
+
+    const auto trimmed = trim_copy(line);
+    try
+    {
+      std::size_t consumed { 0 };
+      const auto  value = std::stoull(trimmed, &consumed);
+      if (consumed == trimmed.size() && value >= 1)
+      {
+        return static_cast<unsigned_integer>(value);
+      }
+    }
+    catch (...)
+    {
+    }
+    cerr << "Please enter a positive integer." << endl;
+  }
+}
+
+/** @brief Executes the traces command: precomputes a grade-bounded lookup file
+ * mapping available-system-id combinations to their derived-feature expression. */
+[[nodiscard]] int run_trace_export(const std::string& program_name,
+                                   const cli_options_t& options)
+{
+  ifstream spl_file { options.specification_path };
+  if (spl_file)
+  {
+    spl_file.close();
+  }
+  else
+  {
+    cerr << "Cannot open spl-specification-file named \""
+         << options.specification_path << "\".\nProgram terminated."
+         << endl;
+    return 2;
+  }
+
+  auto max_grade = options.max_grade;
+  if (!max_grade.has_value())
+  {
+    if (!stdin_is_terminal())
+    {
+      cerr << "Missing required option \"--max-grade=<N>\" for the traces"
+              " command.\n"
+           << "Program terminated." << endl;
+      return 4;
+    }
+    max_grade = prompt_max_grade();
+    if (!max_grade.has_value())
+    {
+      return 4;
+    }
+  }
+
+  spl_processor_t processor { options.specification_path };
+  const auto&     spec         = processor.get_specification();
+  const auto&     system_space = spec.system_space();
+
+  const std::vector<unsigned_integer> ordered_valid_system_ids(
+      system_space.valid.begin(), system_space.valid.end());
+
+  const auto traces = enumerate_bounded_traces(
+      spec.m_F,
+      ordered_valid_system_ids,
+      std::vector<std::string>(spec.m_feature_names.begin(), spec.m_feature_names.end()),
+      max_grade.value());
+
+  ofstream output_file { options.result_path };
+  if (!output_file)
+  {
+    cerr << "Cannot open output file named \"" << options.result_path
+         << "\".\nProgram terminated." << endl;
+    return 2;
+  }
+
+  std::set<std::string> written_keys {};
+  unsigned_integer       written_count { 0 };
+  for (const auto& trace : traces)
+  {
+    std::vector<unsigned_integer> available_ids {};
+    for (auto position { zero }; position < ordered_valid_system_ids.size(); ++position)
+    {
+      if (!trace.systems_present.at(position))
+      {
+        continue;
+      }
+      const auto system_id = ordered_valid_system_ids.at(position);
+      if (system_space.available.contains(system_id))
+      {
+        available_ids.push_back(system_id);
+      }
+    }
+    if (available_ids.empty())
+    {
+      continue;
+    }
+
+    std::ostringstream key {};
+    for (std::size_t index = 0; index < available_ids.size(); ++index)
+    {
+      if (index != 0)
+      {
+        key << ',';
+      }
+      // Paper-style 0-based system id, matching paper_system_label() minus its "s" prefix.
+      key << (available_ids.at(index) - one);
+    }
+    const auto key_text = key.str();
+    if (!written_keys.insert(key_text).second)
+    {
+      continue;
+    }
+
+    output_file << key_text << ": " << trace.label << '\n';
+    ++written_count;
+  }
+  output_file.close();
+
+  cerr << "Wrote " << written_count << " trace(s) up to grade "
+       << max_grade.value() << " to \"" << options.result_path << "\"."
+       << endl;
+  (void)program_name;
+  return 0;
+}
 
 /** @brief Entry point that routes between help, guided mode, analyze, and plan. */
 int main(int argc, char* argv[])
@@ -2525,6 +2763,11 @@ int main(int argc, char* argv[])
           print_plan_help(cout, program_name);
           return 0;
         }
+        if (second_argument == "traces")
+        {
+          print_traces_help(cout, program_name);
+          return 0;
+        }
         if (is_guided_token(second_argument))
         {
           print_guided_help(cout, program_name);
@@ -2544,6 +2787,11 @@ int main(int argc, char* argv[])
       if (first_argument == "plan")
       {
         print_plan_help(cout, program_name);
+        return 0;
+      }
+      if (first_argument == "traces")
+      {
+        print_traces_help(cout, program_name);
         return 0;
       }
       if (is_guided_token(first_argument))
@@ -2581,6 +2829,8 @@ int main(int argc, char* argv[])
     return run_plan(program_name, *options);
   case cli_command_t::expression_from_systems:
     return run_expression_from_systems(program_name, *options);
+  case cli_command_t::trace_export:
+    return run_trace_export(program_name, *options);
   }
 
   cerr << "Unknown command.\nProgram terminated." << endl;

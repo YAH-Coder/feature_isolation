@@ -561,6 +561,90 @@ namespace
     assert_not_contains(result.output, "Planner recommendation", "guided plan transcript");
     assert_not_contains(result.output, "Selected report", "guided plan transcript");
   }
+
+  void test_traces_grade1_output()
+  {
+    const fs::path output_path = generated_dir() / "cli_traces_grade1.txt";
+    const auto result = run_process({ cli_path().string(),
+                                      "traces",
+                                      "spl_specs/new_dsl/valid/unconstrained_2f.spl",
+                                      output_path.string(),
+                                      "--max-grade=1" });
+    if (result.exit_code != 0)
+    {
+      throw std::runtime_error(result.output);
+    }
+    std::ifstream output_stream { output_path };
+    std::stringstream buffer {};
+    buffer << output_stream.rdbuf();
+    const auto output = buffer.str();
+
+    assert_contains(output, "1,3: fx", "grade-1 traces");
+    assert_contains(output, "2,3: fy", "grade-1 traces");
+    assert_contains(output, "0,2: ¬fx", "grade-1 traces");
+    assert_contains(output, "0,1: ¬fy", "grade-1 traces");
+    assert_contains(output, "0,1,2,3: ⊤", "grade-1 traces");
+    assert_not_contains(output, "∧", "grade-1 traces");
+    assert_not_contains(output, "∨", "grade-1 traces");
+  }
+
+  void test_traces_grade2_output()
+  {
+    const fs::path output_path = generated_dir() / "cli_traces_grade2.txt";
+    const auto result = run_process({ cli_path().string(),
+                                      "traces",
+                                      "spl_specs/new_dsl/valid/unconstrained_2f.spl",
+                                      output_path.string(),
+                                      "--max-grade=2" });
+    if (result.exit_code != 0)
+    {
+      throw std::runtime_error(result.output);
+    }
+    std::ifstream output_stream { output_path };
+    std::stringstream buffer {};
+    buffer << output_stream.rdbuf();
+    const auto output = buffer.str();
+
+    assert_contains(output, "3: fx ∧ fy", "grade-2 traces");
+    assert_contains(output, "1: fx ∧ ¬fy", "grade-2 traces");
+    assert_contains(output, "2: fy ∧ ¬fx", "grade-2 traces");
+    assert_contains(output, "0: ¬fx ∧ ¬fy", "grade-2 traces");
+    assert_contains(output, "1,2,3: fx ∨ fy", "grade-2 traces");
+    assert_contains(output, "0,1,3: fx ∨ ¬fy", "grade-2 traces");
+    assert_contains(output, "0,2,3: fy ∨ ¬fx", "grade-2 traces");
+    assert_contains(output, "0,1,2: ¬fx ∨ ¬fy", "grade-2 traces");
+  }
+
+  void test_traces_exclude_missing_systems()
+  {
+    const fs::path output_path = generated_dir() / "cli_traces_missing.txt";
+    const auto result = run_process({ cli_path().string(),
+                                      "traces",
+                                      "spl_specs/new_dsl/valid/missing_systems_example.spl",
+                                      output_path.string(),
+                                      "--max-grade=1" });
+    if (result.exit_code != 0)
+    {
+      throw std::runtime_error(result.output);
+    }
+    std::ifstream output_stream { output_path };
+    std::stringstream buffer {};
+    buffer << output_stream.rdbuf();
+    const auto output = buffer.str();
+
+    assert_contains(output, "3: fx", "grade-1 traces with a missing system");
+    assert_contains(output, "2: ¬fx", "grade-1 traces with a missing system");
+    assert_contains(output, "2,3: ⊤", "grade-1 traces with a missing system");
+    // Raw system 1 (paper-style id 0) is the only valid system where fy is
+    // false, and it is missing; among the *available* systems fy and the
+    // core tautology are therefore indistinguishable ({2,3} either way).
+    // The core (grade 0) is the simplest trace and wins that key collision,
+    // so "fy" is not written as its own line.
+    assert_not_contains(output,
+                        "fy",
+                        "grade-1 traces with a missing system (fy collides with core availability)");
+    assert_not_contains(output, "0", "grade-1 traces with a missing system (paper-style id 0 is missing)");
+  }
 }
 
 int main()
@@ -578,6 +662,9 @@ int main()
       { "guardrails and recommended execution", test_guardrails_and_recommended_execution },
       { "compatibility notes", test_compatibility_notes },
       { "guided plan flow", test_guided_plan_flow },
+      { "traces grade-1 output", test_traces_grade1_output },
+      { "traces grade-2 output", test_traces_grade2_output },
+      { "traces excludes missing systems", test_traces_exclude_missing_systems },
     };
 
     for (const auto& [name, test] : tests)
