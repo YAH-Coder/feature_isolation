@@ -608,6 +608,40 @@ namespace feature_isolation
                             const system_space_t& system_space,
                             const report_request_t& report_request);
 
+  /** @brief One grade-bounded simple derived-feature trace, or the core tautology. */
+  struct bounded_trace_t
+  {
+      std::string label {}; /**< Rendered expression, e.g. "A", "¬A", "A ∧ B", or "⊤" for the core tautology. */
+      feature_t   systems_present {}; /**< Presence vector over the supplied ordered valid systems. */
+      theory_feature_category_t category {
+        theory_feature_category_t::unclassified
+      }; /**< Assigned category. */
+      unsigned_integer grade { 0 }; /**< Literal count; the core tautology uses grade 0. */
+  };
+
+  /**
+   * @brief Enumerate every AND-only and OR-only combination of fundamental-feature
+   * literals up to @p max_grade literals, plus the core tautology.
+   *
+   * This reuses the same bounded literal-closure enumeration used to build the
+   * full derived-feature registry, but never expands past @p max_grade literals
+   * per term and never materializes the full 2^|valid systems| presence-vector
+   * classification. Results are sorted by grade, then label.
+   *
+   * @param base_feature_count Number of fundamental features.
+   * @param ordered_valid_system_ids Valid system ids in a stable iteration order;
+   * presence vectors are indexed against this order.
+   * @param feature_names Display names for the fundamental features, used to
+   * render trace labels.
+   * @param max_grade Maximum number of literals combined per AND/OR term (grade
+   * 1 = a single literal or its negation).
+   */
+  [[nodiscard]] std::vector<bounded_trace_t> enumerate_bounded_traces(
+      unsigned_integer                     base_feature_count,
+      const std::vector<unsigned_integer>& ordered_valid_system_ids,
+      const std::vector<std::string>&      feature_names,
+      unsigned_integer                     max_grade);
+
   /**
    * @brief Core derived-feature analysis engine.
    *
