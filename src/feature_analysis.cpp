@@ -1100,11 +1100,11 @@ namespace feature_isolation
           for (const auto negated : { false, true })
           {
             std::vector<std::int8_t> states(base_feature_count, 0);
-            states.at(feature_index)   = negated ? static_cast<std::int8_t>(-1)
-                                                 : static_cast<std::int8_t>(1);
-            const auto          extent = negated
-                                             ? negative_literal_extents.at(feature_index)
-                                             : positive_literal_extents.at(feature_index);
+            states.at(feature_index) = negated ? static_cast<std::int8_t>(-1)
+                                               : static_cast<std::int8_t>(1);
+            const auto extent
+                = negated ? negative_literal_extents.at(feature_index)
+                          : positive_literal_extents.at(feature_index);
             simple_term_state_t state {
               extent,
               states,
@@ -1331,6 +1331,14 @@ namespace feature_isolation
       return input;
     }
 
+    /** @brief Selects whether minimized implicants are rendered as DNF or CNF.
+     */
+    enum class normal_form_t
+    {
+      dnf,
+      cnf
+    };
+
     /** @brief Represents one implicant used by the minimization-based raw and
      * simplified term derivation. */
     struct implicant_t
@@ -1403,6 +1411,28 @@ namespace feature_isolation
     [[nodiscard]] size_t literal_count(const implicant_t& implicant)
     {
       return implicant.literal_count_cache;
+    }
+
+    /** @brief Counts the literals that render negated in the requested normal
+     * form, used to prefer non-negated literals among equal-cost covers. */
+    [[nodiscard]] size_t negated_literal_count(const implicant_t& implicant,
+                                               normal_form_t      normal_form)
+    {
+      size_t count { 0 };
+      for (const auto bit : implicant.bits)
+      {
+        if (bit == -1)
+        {
+          continue;
+        }
+        const auto negated
+            = normal_form == normal_form_t::dnf ? bit == 0 : bit == 1;
+        if (negated)
+        {
+          ++count;
+        }
+      }
+      return count;
     }
 
     /** @brief Returns whether two implicants differ in exactly one literal and
@@ -1584,7 +1614,8 @@ namespace feature_isolation
         greedy_cover_subset(const std::vector<size_t>&        candidate_indices,
                             const std::vector<implicant_t>&   prime_implicants,
                             const std::vector<feature_ids_t>& cover_sets,
-                            feature_ids_t                     uncovered)
+                            feature_ids_t                     uncovered,
+                            normal_form_t                     normal_form)
     {
       std::vector<size_t> subset {};
       std::vector<size_t> remaining_indices { candidate_indices.begin(),
@@ -1593,18 +1624,24 @@ namespace feature_isolation
       {
         auto   best_index = remaining_indices.front();
         size_t best_gain {};
-        size_t best_cost = std::numeric_limits<size_t>::max();
+        size_t best_cost    = std::numeric_limits<size_t>::max();
+        size_t best_negated = std::numeric_limits<size_t>::max();
         for (const auto index : remaining_indices)
         {
           const auto overlap
               = feature_ids_t::intersection_of(cover_sets.at(index), uncovered);
           const auto gain = overlap.size();
           const auto cost = literal_count(prime_implicants.at(index));
-          if (gain > best_gain || (gain == best_gain && cost < best_cost))
+          const auto negated
+              = negated_literal_count(prime_implicants.at(index), normal_form);
+          if (gain > best_gain || (gain == best_gain && cost < best_cost)
+              || (gain == best_gain && cost == best_cost
+                  && negated < best_negated))
           {
-            best_index = index;
-            best_gain  = gain;
-            best_cost  = cost;
+            best_index   = index;
+            best_gain    = gain;
+            best_cost    = cost;
+            best_negated = negated;
           }
         }
         if (best_gain == zero)
@@ -1628,22 +1665,29 @@ namespace feature_isolation
     {
         const std::vector<implicant_t>&   prime_implicants;
         const std::vector<feature_ids_t>& cover_sets;
+        normal_form_t                     normal_form;
         std::vector<size_t>               best_subset {};
         size_t best_literal_count { std::numeric_limits<size_t>::max() };
         size_t best_implicant_count { std::numeric_limits<size_t>::max() };
+        size_t best_negated_count { std::numeric_limits<size_t>::max() };
 
         /** @brief Records a new best subset when it improves the current
-         * incumbent. */
+         * incumbent, preferring fewer negated literals on exact ties. */
         void consider_current(const std::vector<size_t>& subset,
-                              size_t                     literal_total)
+                              size_t                     literal_total,
+                              size_t                     negated_total)
         {
           if (literal_total < best_literal_count
               || (literal_total == best_literal_count
-                  && subset.size() < best_implicant_count))
+                  && subset.size() < best_implicant_count)
+              || (literal_total == best_literal_count
+                  && subset.size() == best_implicant_count
+                  && negated_total < best_negated_count))
           {
             best_subset          = subset;
             best_literal_count   = literal_total;
             best_implicant_count = subset.size();
+            best_negated_count   = negated_total;
           }
         }
 
@@ -1704,11 +1748,13 @@ namespace feature_isolation
         void search(const std::vector<size_t>& candidates,
                     const feature_ids_t&       uncovered,
                     std::vector<size_t>&       current_subset,
-                    size_t                     current_literal_total)
+                    size_t                     current_literal_total,
+                    size_t                     current_negated_total)
         {
           if (uncovered.empty())
           {
-            consider_current(current_subset, current_literal_total);
+            consider_current(
+                current_subset, current_literal_total, current_negated_total);
             return;
           }
           if (candidates.empty())
@@ -1777,7 +1823,10 @@ namespace feature_isolation
                    next_uncovered,
                    current_subset,
                    current_literal_total
-                       + literal_count(prime_implicants.at(index)));
+                       + literal_count(prime_implicants.at(index)),
+                   current_negated_total
+                       + negated_literal_count(prime_implicants.at(index),
+                                               normal_form));
             current_subset.pop_back();
           }
         }
@@ -1788,7 +1837,8 @@ namespace feature_isolation
     [[nodiscard]] std::vector<implicant_t>
         select_cover(unsigned_integer                     variable_count,
                      const std::vector<unsigned_integer>& minterms,
-                     const std::vector<implicant_t>&      prime_implicants)
+                     const std::vector<implicant_t>&      prime_implicants,
+                     normal_form_t                        normal_form)
     {
       if (minterms.empty())
       {
@@ -1844,20 +1894,28 @@ namespace feature_isolation
 
       if (!uncovered.empty())
       {
-        exact_cover_search_t search_state { prime_implicants, cover_sets };
-        search_state.best_subset = greedy_cover_subset(
-            remaining_indices, prime_implicants, cover_sets, uncovered);
+        exact_cover_search_t search_state { prime_implicants,
+                                            cover_sets,
+                                            normal_form };
+        search_state.best_subset        = greedy_cover_subset(remaining_indices,
+                                                       prime_implicants,
+                                                       cover_sets,
+                                                       uncovered,
+                                                       normal_form);
         search_state.best_literal_count = 0;
+        search_state.best_negated_count = 0;
         for (const auto index : search_state.best_subset)
         {
           search_state.best_literal_count
               += literal_count(prime_implicants.at(index));
+          search_state.best_negated_count
+              += negated_literal_count(prime_implicants.at(index), normal_form);
         }
         search_state.best_implicant_count = search_state.best_subset.size();
 
         std::vector<size_t> current_subset {};
         current_subset.reserve(remaining_indices.size());
-        search_state.search(remaining_indices, uncovered, current_subset, 0);
+        search_state.search(remaining_indices, uncovered, current_subset, 0, 0);
 
         for (const auto index : search_state.best_subset)
         {
@@ -1876,14 +1934,6 @@ namespace feature_isolation
                         });
       return selected;
     }
-
-    /** @brief Selects whether minimized implicants are rendered as DNF or CNF.
-     */
-    enum class normal_form_t
-    {
-      dnf,
-      cnf
-    };
 
     /** @brief Renders one implicant as a single clause in the requested normal
      * form. */
@@ -2045,20 +2095,21 @@ namespace feature_isolation
       const std::vector<std::string>&      feature_names,
       unsigned_integer                     max_grade)
   {
-    const auto index = build_simple_term_index(
-        base_feature_count,
-        ordered_valid_system_ids,
-        feature_names,
-        static_cast<std::size_t>(max_grade));
+    const auto index
+        = build_simple_term_index(base_feature_count,
+                                  ordered_valid_system_ids,
+                                  feature_names,
+                                  static_cast<std::size_t>(max_grade));
 
     std::vector<bounded_trace_t> traces {};
     traces.reserve(index.size() + 1);
     for (const auto& [extent, descriptor] : index)
     {
-      traces.push_back({ descriptor.expression,
-                         extent,
-                         descriptor.category,
-                         static_cast<unsigned_integer>(descriptor.literal_count) });
+      traces.push_back(
+          { descriptor.expression,
+            extent,
+            descriptor.category,
+            static_cast<unsigned_integer>(descriptor.literal_count) });
     }
 
     feature_t core_extent(ordered_valid_system_ids.size(), true);
@@ -2620,15 +2671,17 @@ namespace feature_isolation
 
     const auto dnf_primes
         = prime_implicants(m_base_feature_count, minterms, dont_cares);
-    const auto dnf_cover
-        = select_cover(m_base_feature_count, minterms, dnf_primes);
+    const auto dnf_cover = select_cover(
+        m_base_feature_count, minterms, dnf_primes, normal_form_t::dnf);
     const auto dnf_expression = normal_form_to_string(
         dnf_cover, m_resolved_feature_names, normal_form_t::dnf);
 
     const auto cnf_primes = prime_implicants(
         m_base_feature_count, complement_minterms, dont_cares);
-    const auto cnf_cover
-        = select_cover(m_base_feature_count, complement_minterms, cnf_primes);
+    const auto cnf_cover      = select_cover(m_base_feature_count,
+                                        complement_minterms,
+                                        cnf_primes,
+                                        normal_form_t::cnf);
     const auto cnf_expression = normal_form_to_string(
         cnf_cover, m_resolved_feature_names, normal_form_t::cnf);
 
