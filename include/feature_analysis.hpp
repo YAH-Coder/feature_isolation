@@ -619,9 +619,37 @@ namespace feature_isolation
       unsigned_integer grade { 0 }; /**< Literal count; the core tautology uses grade 0. */
   };
 
+  /** @brief Selects which formulas the grade-bounded trace export enumerates. */
+  enum class bounded_trace_kind_t
+  {
+    simple,  /**< AND-only and OR-only combinations of literals. */
+    complex, /**< Every and/or formula over the selected features, each feature positive or negated. */
+  };
+
+  /** @brief Largest grade for which complex traces can be enumerated. */
+  constexpr unsigned_integer max_complex_trace_grade { 5 };
+
+  /**
+   * @brief Number of candidate formulas that are new at exactly @p grade.
+   *
+   * Simple: 2·f at grade 1, 2·2^k·C(f,k) at grade k >= 2. Complex:
+   * 2^k·E(k)·C(f,k), where E(k) = 1, 2, 9, 114, 6894 counts the monotone
+   * functions depending on all k variables (Dedekind inversion). Formulas with
+   * identical valid-system extents are merged later, so these are upper bounds
+   * on the traces written. Saturates at the largest @ref unsigned_integer.
+   *
+   * @pre For complex traces, @p grade <= @ref max_complex_trace_grade.
+   */
+  [[nodiscard]] unsigned_integer
+      estimated_trace_count(unsigned_integer     base_feature_count,
+                            unsigned_integer     grade,
+                            bounded_trace_kind_t kind);
+
   /**
    * @brief Enumerate every AND-only and OR-only combination of fundamental-feature
-   * literals up to @p max_grade literals, plus the core tautology.
+   * literals up to @p max_grade literals, plus the core tautology. With
+   * @ref bounded_trace_kind_t::complex, also every and/or formula over up to
+   * @p max_grade distinct features, with each feature positive or negated.
    *
    * This reuses the same bounded literal-closure enumeration used to build the
    * full derived-feature registry, but never expands past @p max_grade literals
@@ -634,13 +662,17 @@ namespace feature_isolation
    * @param feature_names Display names for the fundamental features, used to
    * render trace labels.
    * @param max_grade Maximum number of literals combined per AND/OR term (grade
-   * 1 = a single literal or its negation).
+   * 1 = a single literal or its negation). For complex traces this is the
+   * number of distinct features and must not exceed
+   * @ref max_complex_trace_grade.
+   * @param kind Whether only simple or also complex formulas are enumerated.
    */
   [[nodiscard]] std::vector<bounded_trace_t> enumerate_bounded_traces(
       unsigned_integer                     base_feature_count,
       const std::vector<unsigned_integer>& ordered_valid_system_ids,
       const std::vector<std::string>&      feature_names,
-      unsigned_integer                     max_grade);
+      unsigned_integer                     max_grade,
+      bounded_trace_kind_t kind = bounded_trace_kind_t::simple);
 
   /**
    * @brief Core derived-feature analysis engine.

@@ -5,9 +5,12 @@
  */
 #include "../include/isolation.hpp"
 #include "../include/spl.hpp"
+#include <algorithm>
 #include <array>
 #include <cctype>
 #include <fstream>
+#include <iomanip>
+#include <limits>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -63,6 +66,7 @@ namespace
       std::optional<bool>             include_isolation_override {};
       std::vector<string>             found_systems_in_alignment {};
       std::optional<unsigned_integer> max_grade {};
+      std::optional<bounded_trace_kind_t> trace_kind {};
   };
 
   /** @brief Captures hard runtime and output-size limits used before report
@@ -257,7 +261,8 @@ namespace
        << " -min-diffs=<false|true> -feature-names=<false|true> [options]\n"
        << "  " << program_name << " plan <spl-file> [options]\n"
        << "  " << program_name
-       << " traces <spl-file> <output-file> [--max-grade=N]\n"
+       << " traces <spl-file> <output-file> [--max-grade=N]"
+       << " [--trace-kind=simple|complex]\n"
        << "  " << program_name << " guided [analyze|plan] [seed-inputs]\n"
        << "  " << program_name << " --help\n"
        << "  " << program_name << " analyze --help\n"
@@ -428,7 +433,8 @@ namespace
   {
     os << "Usage\n"
        << "  " << program_name
-       << " traces <spl-file> <output-file> [--max-grade=N]\n"
+       << " traces <spl-file> <output-file> [--max-grade=N]"
+       << " [--trace-kind=simple|complex]\n"
        << "\nRequired positional arguments\n"
        << "  <spl-file>      Path to the SPL specification in the current "
           "DSL.\n"
@@ -441,6 +447,28 @@ namespace
           "the\n"
        << "      program is running interactively, you will be prompted for "
           "it.\n"
+       << "      The grade is the number of distinct fundamental features in a "
+          "trace.\n"
+       << "  --trace-kind=<simple|complex>\n"
+       << "      simple  : AND-only and OR-only combinations of literals "
+          "(default).\n"
+       << "      complex : additionally every and/or formula over up to N "
+          "features,\n"
+       << "                each feature positive or negated, e.g. "
+          "\"A ∨ (B ∧ ¬C)\".\n"
+       << "                Per feature subset of size 1..5 there are 2, 8, 72, "
+          "1824\n"
+       << "                and 220608 such formulas (2^k times the number of "
+          "monotone\n"
+       << "                functions depending on all k features, cf. Dedekind "
+          "numbers);\n"
+       << "                the grade is therefore limited to "
+       << max_complex_trace_grade << ".\n"
+       << "      If omitted and the program is running interactively, you will "
+          "be asked.\n"
+       << "      Before prompting, a table with the number of candidate formulas "
+          "per grade\n"
+       << "      for the given SPL is shown.\n"
        << "\nOutput format\n"
        << "  One line per precomputed trace: a comma-separated, ascending list "
           "of\n"
@@ -462,7 +490,9 @@ namespace
        << "  another program before falling back to the 'expr' command for an\n"
        << "  on-demand computation.\n"
        << "\nExamples\n"
-       << "  " << program_name << " traces spec.spl traces.txt --max-grade=2\n";
+       << "  " << program_name << " traces spec.spl traces.txt --max-grade=2\n"
+       << "  " << program_name
+       << " traces spec.spl traces.txt --max-grade=4 --trace-kind=complex\n";
   }
 
   /** @brief Writes help for the interactive guided workflow. */
@@ -1439,7 +1469,8 @@ namespace
       if (argc - cursor < 2)
       {
         cerr << "Usage: " << program_display_name(argv[0])
-             << " traces <spl-file> <output-file> [--max-grade=N]\n"
+             << " traces <spl-file> <output-file> [--max-grade=N]"
+       << " [--trace-kind=simple|complex]\n"
              << "Program terminated." << endl;
         return std::nullopt;
       }
@@ -1453,6 +1484,26 @@ namespace
           if (!parse_positive_unsigned_integer(
                   option, "--max-grade", options.max_grade, cerr))
           {
+            return std::nullopt;
+          }
+        }
+        else if (option.rfind("--trace-kind=", 0) == 0)
+        {
+          const auto value = option.substr(std::string("--trace-kind=").size());
+          if (value == "simple")
+          {
+            options.trace_kind = bounded_trace_kind_t::simple;
+          }
+          else if (value == "complex")
+          {
+            options.trace_kind = bounded_trace_kind_t::complex;
+          }
+          else
+          {
+            cerr << "Invalid value \"" << value
+                 << "\" for \"--trace-kind\"; expected \"simple\" or"
+                    " \"complex\".\nProgram terminated."
+                 << endl;
             return std::nullopt;
           }
         }
@@ -2744,6 +2795,38 @@ namespace
   return 0;
 }
 
+/** @brief Prints how many candidate formulas the simple and complex trace
+ * kinds produce per grade for @p base_feature_count fundamental features. */
+void print_trace_count_table(std::ostream&    os,
+                             unsigned_integer base_feature_count)
+{
+  const auto max_shown = std::min(max_complex_trace_grade, base_feature_count);
+  os << "Candidate formulas for " << base_feature_count
+     << " fundamental features (the core tautology is always added;\n"
+        "formulas covering the same valid systems are merged, so the file can "
+        "have fewer lines):\n"
+     << std::setw(7) << "grade" << std::setw(14) << "simple new"
+     << std::setw(14) << "simple total" << std::setw(16) << "complex new"
+     << std::setw(16) << "complex total" << '\n';
+
+  unsigned_integer simple_total { 0 };
+  unsigned_integer complex_total { 0 };
+  for (unsigned_integer grade { 1 }; grade <= max_shown; ++grade)
+  {
+    const auto simple_new = estimated_trace_count(
+        base_feature_count, grade, bounded_trace_kind_t::simple);
+    const auto complex_new = estimated_trace_count(
+        base_feature_count, grade, bounded_trace_kind_t::complex);
+    simple_total  += simple_new;
+    complex_total += complex_new;
+    os << std::setw(7) << grade << std::setw(14) << simple_new << std::setw(14)
+       << simple_total << std::setw(16) << complex_new << std::setw(16)
+       << complex_total << '\n';
+  }
+  os << "Complex traces are limited to grade " << max_complex_trace_grade
+     << ".\n";
+}
+
 /** @brief Prompts for the maximum grade to compute when it was not supplied via
  * --max-grade. */
 [[nodiscard]] std::optional<unsigned_integer> prompt_max_grade()
@@ -2794,14 +2877,65 @@ namespace
     return 2;
   }
 
-  auto max_grade = options.max_grade;
+  spl_processor_t processor { options.specification_path };
+  const auto&     spec               = processor.get_specification();
+  const auto&     system_space       = spec.system_space();
+  const auto      base_feature_count = static_cast<unsigned_integer>(spec.m_F);
+
+  const bool interactive = stdin_is_terminal();
+  auto       max_grade   = options.max_grade;
+  auto       trace_kind  = options.trace_kind;
+  if (!max_grade.has_value() && !interactive)
+  {
+    cerr << "Missing required option \"--max-grade=<N>\" for the traces"
+            " command.\n"
+         << "Program terminated." << endl;
+    return 4;
+  }
+
+  if (interactive && (!max_grade.has_value() || !trace_kind.has_value()))
+  {
+    print_trace_count_table(cerr, base_feature_count);
+  }
   if (!max_grade.has_value())
   {
-    if (!stdin_is_terminal())
+    max_grade = prompt_max_grade();
+    if (!max_grade.has_value())
     {
-      cerr << "Missing required option \"--max-grade=<N>\" for the traces"
-              " command.\n"
-           << "Program terminated." << endl;
+      return 4;
+    }
+  }
+  if (!trace_kind.has_value())
+  {
+    if (interactive)
+    {
+      const auto choice = prompt_numbered_choice(
+          "Which traces should be precomputed?",
+          { "Simple traces (AND-only / OR-only combinations of literals)",
+            "Complex traces (every and/or formula over up to the selected "
+            "number of features, Dedekind)" },
+          1);
+      if (!choice.has_value())
+      {
+        return 4;
+      }
+      trace_kind = choice.value() == 2 ? bounded_trace_kind_t::complex
+                                       : bounded_trace_kind_t::simple;
+    }
+    else
+    {
+      trace_kind = bounded_trace_kind_t::simple;
+    }
+  }
+
+  const bool is_complex = trace_kind.value() == bounded_trace_kind_t::complex;
+  while (is_complex && max_grade.value() > max_complex_trace_grade)
+  {
+    cerr << "Complex traces can be computed up to grade "
+         << max_complex_trace_grade << " only." << endl;
+    if (!interactive)
+    {
+      cerr << "Program terminated." << endl;
       return 4;
     }
     max_grade = prompt_max_grade();
@@ -2811,9 +2945,31 @@ namespace
     }
   }
 
-  spl_processor_t processor { options.specification_path };
-  const auto&     spec         = processor.get_specification();
-  const auto&     system_space = spec.system_space();
+  unsigned_integer candidate_count { 1 }; // the core tautology
+  for (unsigned_integer grade { 1 }; grade <= max_grade.value(); ++grade)
+  {
+    const auto count
+        = estimated_trace_count(base_feature_count, grade, trace_kind.value());
+    candidate_count
+        = count > std::numeric_limits<unsigned_integer>::max() - candidate_count
+              ? std::numeric_limits<unsigned_integer>::max()
+              : candidate_count + count;
+  }
+  if (is_complex && interactive && max_grade.value() == max_complex_trace_grade)
+  {
+    const auto proceed = prompt_yes_no(
+        "Grade " + std::to_string(max_grade.value()) + " complex traces mean "
+            + std::to_string(candidate_count)
+            + " candidate formulas and may take a while. Continue?",
+        false);
+    if (!proceed.has_value() || !proceed.value())
+    {
+      return 4;
+    }
+  }
+  cerr << "Enumerating " << candidate_count << " candidate formula(s) ("
+       << (is_complex ? "complex" : "simple") << ", grades 1.."
+       << max_grade.value() << ")." << endl;
 
   const std::vector<unsigned_integer> ordered_valid_system_ids(
       system_space.valid.begin(), system_space.valid.end());
@@ -2823,7 +2979,8 @@ namespace
       ordered_valid_system_ids,
       std::vector<std::string>(spec.m_feature_names.begin(),
                                spec.m_feature_names.end()),
-      max_grade.value());
+      max_grade.value(),
+      trace_kind.value());
 
   ofstream output_file { options.result_path };
   if (!output_file)

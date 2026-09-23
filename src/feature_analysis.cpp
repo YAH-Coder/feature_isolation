@@ -5,6 +5,9 @@
  */
 #include "../include/feature_analysis.hpp"
 #include <cmath>
+#include <algorithm>
+#include <array>
+#include <bit>
 #include <cstdint>
 #include <deque>
 #include <iomanip>
@@ -1212,6 +1215,276 @@ namespace feature_isolation
       return result;
     }
 
+    /** @brief Number of monotone Boolean functions depending on all k
+     * variables, indexed by k (Dedekind inversion). */
+    constexpr std::array<unsigned_integer, max_complex_trace_grade + 1>
+        essential_monotone_function_counts { 0, 1, 2, 9, 114, 6894 };
+
+    /** @brief Enumerates all monotone truth tables on @p variable_count
+     * variables. Bit i of a table is the function value at assignment i, where
+     * bit j of i is the value of variable j. */
+    [[nodiscard]] std::vector<std::uint32_t>
+        all_monotone_functions(std::size_t variable_count)
+    {
+      if (variable_count == 0)
+      {
+        return { 0U, 1U };
+      }
+      const auto previous = all_monotone_functions(variable_count - 1);
+      const auto shift    = static_cast<std::uint32_t>(1U << (variable_count - 1));
+      std::vector<std::uint32_t> result {};
+      for (const auto low : previous)
+      {
+        for (const auto high : previous)
+        {
+          if ((low & ~high) == 0U)
+          {
+            result.push_back(low | (high << shift));
+          }
+        }
+      }
+      return result;
+    }
+
+    /** @brief Checks whether a truth table depends on each of its variables. */
+    [[nodiscard]] bool depends_on_all_variables(std::uint32_t truth_table,
+                                                std::size_t   variable_count)
+    {
+      const auto assignment_count = std::size_t { 1 } << variable_count;
+      for (std::size_t variable = 0; variable < variable_count; ++variable)
+      {
+        const auto bit       = std::size_t { 1 } << variable;
+        bool       dependent = false;
+        for (std::size_t assignment = 0; assignment < assignment_count;
+             ++assignment)
+        {
+          if ((assignment & bit) == 0
+              && ((truth_table >> assignment) & 1U)
+                     != ((truth_table >> (assignment | bit)) & 1U))
+          {
+            dependent = true;
+            break;
+          }
+        }
+        if (!dependent)
+        {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    /** @brief Returns the minimal true assignments of a monotone truth table,
+     * i.e. the AND-terms of its unique minimal DNF, ordered by term size and
+     * then assignment. */
+    [[nodiscard]] std::vector<std::size_t>
+        minimal_true_points(std::uint32_t truth_table,
+                            std::size_t   variable_count)
+    {
+      std::vector<std::size_t> terms {};
+      const auto assignment_count = std::size_t { 1 } << variable_count;
+      for (std::size_t assignment = 0; assignment < assignment_count;
+           ++assignment)
+      {
+        if (((truth_table >> assignment) & 1U) == 0U)
+        {
+          continue;
+        }
+        bool minimal = true;
+        for (std::size_t variable = 0; variable < variable_count; ++variable)
+        {
+          const auto bit = std::size_t { 1 } << variable;
+          if ((assignment & bit) != 0
+              && ((truth_table >> (assignment ^ bit)) & 1U) != 0U)
+          {
+            minimal = false;
+            break;
+          }
+        }
+        if (minimal)
+        {
+          terms.push_back(assignment);
+        }
+      }
+      std::ranges::sort(terms,
+                        [](std::size_t lhs, std::size_t rhs)
+                        {
+                          const auto lhs_size = std::popcount(lhs);
+                          const auto rhs_size = std::popcount(rhs);
+                          if (lhs_size != rhs_size)
+                          {
+                            return lhs_size < rhs_size;
+                          }
+                          return lhs < rhs;
+                        });
+      return terms;
+    }
+
+    /** @brief Monotone function over k variables that is neither a pure AND
+     * nor a pure OR, stored together with its minimal DNF terms. */
+    struct complex_monotone_function_t
+    {
+        std::uint32_t            truth_table {};
+        std::vector<std::size_t> terms {};
+    };
+
+    /** @brief Lists the monotone functions depending on all @p variable_count
+     * variables that are not already covered by the simple AND/OR closure. */
+    [[nodiscard]] std::vector<complex_monotone_function_t>
+        complex_monotone_functions(std::size_t variable_count)
+    {
+      std::vector<complex_monotone_function_t> result {};
+      for (const auto truth_table : all_monotone_functions(variable_count))
+      {
+        if (!depends_on_all_variables(truth_table, variable_count))
+        {
+          continue;
+        }
+        auto       terms   = minimal_true_points(truth_table, variable_count);
+        const bool is_and  = terms.size() == 1;
+        const bool is_or   = std::ranges::all_of(
+            terms, [](std::size_t term) { return std::popcount(term) == 1; });
+        if (is_and || is_or)
+        {
+          continue;
+        }
+        result.push_back({ truth_table, std::move(terms) });
+      }
+      return result;
+    }
+
+    /** @brief Adds every and/or formula over 3..@p max_grade distinct
+     * fundamental features, with each feature positive or negated, that is not
+     * a pure AND or OR term. Formulas are recorded per valid-system extent like
+     * the simple closure; @p max_grade must not exceed
+     * max_complex_trace_grade. */
+    void enumerate_complex_closure(
+        simple_term_index_t&                 result,
+        unsigned_integer                     base_feature_count,
+        const std::vector<unsigned_integer>& ordered_valid_system_ids,
+        const std::vector<std::string>&      feature_names,
+        std::size_t                          max_grade)
+    {
+      const auto system_count = ordered_valid_system_ids.size();
+      const auto upper_grade  = std::min<std::size_t>(
+          { max_grade, max_complex_trace_grade,
+            static_cast<std::size_t>(base_feature_count) });
+
+      for (std::size_t grade = 3; grade <= upper_grade; ++grade)
+      {
+        const auto functions = complex_monotone_functions(grade);
+
+        // Lexicographic k-subsets of feature indices.
+        std::vector<std::size_t> subset(grade);
+        for (std::size_t position = 0; position < grade; ++position)
+        {
+          subset.at(position) = position;
+        }
+
+        while (true)
+        {
+          for (std::uint32_t polarity = 0; polarity < (1U << grade); ++polarity)
+          {
+            std::vector<std::size_t> local_assignment(system_count, 0);
+            for (std::size_t system_index = 0; system_index < system_count;
+                 ++system_index)
+            {
+              const auto minterm
+                  = ordered_valid_system_ids.at(system_index) - one;
+              std::size_t assignment = 0;
+              for (std::size_t position = 0; position < grade; ++position)
+              {
+                const auto value = ((minterm >> subset.at(position)) & one)
+                                   ^ ((polarity >> position) & 1U);
+                assignment |= static_cast<std::size_t>(value) << position;
+              }
+              local_assignment.at(system_index) = assignment;
+            }
+
+            for (const auto& function : functions)
+            {
+              feature_t extent(system_count, false);
+              for (std::size_t system_index = 0; system_index < system_count;
+                   ++system_index)
+              {
+                extent.at(system_index)
+                    = ((function.truth_table
+                        >> local_assignment.at(system_index))
+                       & 1U)
+                      != 0U;
+              }
+              if (is_all_false_extent(extent) || is_all_true_extent(extent))
+              {
+                continue;
+              }
+              const auto existing = result.find(extent);
+              if (existing != result.end()
+                  && existing->second.literal_count < grade)
+              {
+                continue;
+              }
+
+              std::ostringstream expression {};
+              for (std::size_t term_index = 0;
+                   term_index < function.terms.size();
+                   ++term_index)
+              {
+                const auto term = function.terms.at(term_index);
+                std::vector<std::pair<std::string, bool>> literals {};
+                for (std::size_t position = 0; position < grade; ++position)
+                {
+                  if (((term >> position) & 1U) != 0U)
+                  {
+                    literals.emplace_back(
+                        feature_names.at(subset.at(position)),
+                        ((polarity >> position) & 1U) != 0U);
+                  }
+                }
+                if (term_index > 0)
+                {
+                  expression << logical_or_symbol;
+                }
+                const auto rendered
+                    = render_simple_literals(literals, logical_and_symbol);
+                if (literals.size() > 1)
+                {
+                  expression << '(' << rendered << ')';
+                }
+                else
+                {
+                  expression << rendered;
+                }
+              }
+
+              record_simple_descriptor(result,
+                                       extent,
+                                       { theory_feature_category_t::complex,
+                                         expression.str(),
+                                         grade });
+            }
+          }
+
+          // Advance to the next combination.
+          std::size_t position = grade;
+          while (position > 0
+                 && subset.at(position - 1)
+                        == base_feature_count - grade + position - 1)
+          {
+            --position;
+          }
+          if (position == 0)
+          {
+            break;
+          }
+          ++subset.at(position - 1);
+          for (auto next = position; next < grade; ++next)
+          {
+            subset.at(next) = subset.at(next - 1) + 1;
+          }
+        }
+      }
+    }
+
     /** @brief Formats the valid-system subset represented by a feature extent.
      */
     [[nodiscard]] std::string
@@ -2093,13 +2366,21 @@ namespace feature_isolation
       unsigned_integer                     base_feature_count,
       const std::vector<unsigned_integer>& ordered_valid_system_ids,
       const std::vector<std::string>&      feature_names,
-      unsigned_integer                     max_grade)
+      unsigned_integer                     max_grade,
+      bounded_trace_kind_t                 kind)
   {
-    const auto index
-        = build_simple_term_index(base_feature_count,
-                                  ordered_valid_system_ids,
-                                  feature_names,
-                                  static_cast<std::size_t>(max_grade));
+    auto index = build_simple_term_index(base_feature_count,
+                                         ordered_valid_system_ids,
+                                         feature_names,
+                                         static_cast<std::size_t>(max_grade));
+    if (kind == bounded_trace_kind_t::complex)
+    {
+      enumerate_complex_closure(index,
+                                base_feature_count,
+                                ordered_valid_system_ids,
+                                feature_names,
+                                static_cast<std::size_t>(max_grade));
+    }
 
     std::vector<bounded_trace_t> traces {};
     traces.reserve(index.size() + 1);
@@ -2128,6 +2409,36 @@ namespace feature_isolation
                         return lhs.label < rhs.label;
                       });
     return traces;
+  }
+
+  unsigned_integer estimated_trace_count(unsigned_integer     base_feature_count,
+                                         unsigned_integer     grade,
+                                         bounded_trace_kind_t kind)
+  {
+    if (grade == zero || grade > base_feature_count)
+    {
+      return zero;
+    }
+    constexpr auto saturated = std::numeric_limits<unsigned_integer>::max();
+    try
+    {
+      const auto subsets = combinations(base_feature_count, grade);
+      if (grade == one)
+      {
+        return arithmetic::multiply(subsets, unsigned_integer { 2 });
+      }
+      const auto per_subset
+          = kind == bounded_trace_kind_t::simple
+                ? arithmetic::multiply(unsigned_integer { 2 }, power2(grade))
+                : arithmetic::multiply(
+                      power2(grade),
+                      essential_monotone_function_counts.at(grade));
+      return arithmetic::multiply(per_subset, subsets);
+    }
+    catch (const std::overflow_error&)
+    {
+      return saturated;
+    }
   }
 
   [[nodiscard]] unsigned_integer system_t::T() const
