@@ -16,7 +16,9 @@ for build instructions and usage examples.
 ## Requirements and tests
 
 - Start planned work from the [delivery backlog](docs/delivery/README.md).
-  Use its ticket ID to connect the branch, requirement, and verification.
+  Use the [Obsidian Base](docs/delivery/Delivery.base) to review work and
+  keep status and acceptance evidence on each ticket note. Use its ticket ID
+  to connect the branch, requirement, and verification.
 - Use the [requirements index](docs/requirements/README.md) to find the
   expected behavior and its stable ID. The EARS statements describe observable
   outcomes. The Given/When/Then examples provide acceptance cases.

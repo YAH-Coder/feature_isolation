@@ -1,0 +1,58 @@
+filters: 'file.ext == "md"'
+properties:
+  file.name:
+    displayName: ID
+  note.title:
+    displayName: Title
+  note.status:
+    displayName: Status
+  note.milestone:
+    displayName: Milestone
+  note.assignee:
+    displayName: Assignee
+views:
+  - type: table
+    name: Milestone review
+    filters: 'file.folder == "docs/delivery/milestones"'
+    order:
+      - file.name
+      - note.title
+      - note.status
+  - type: table
+    name: Ticket proposals
+    filters:
+      and:
+        - 'file.folder == "docs/delivery/tickets"'
+        - 'status == "Draft"'
+    groupBy:
+      property: note.milestone
+      direction: ASC
+    order:
+      - file.name
+      - note.title
+      - note.status
+  - type: kanban
+    name: Ticket board
+    filters:
+      and:
+        - 'file.folder == "docs/delivery/tickets"'
+        - or:
+            - 'status == "Ready"'
+            - 'status == "In progress"'
+            - 'status == "Review"'
+            - 'status == "Blocked"'
+            - 'status == "Done"'
+    groupBy:
+      property: note.status
+      direction: ASC
+    groupOrder:
+      - Ready
+      - In progress
+      - Review
+      - Blocked
+      - Done
+    order:
+      - note.title
+      - file.name
+      - note.milestone
+      - note.assignee
