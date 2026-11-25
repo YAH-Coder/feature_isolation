@@ -11,7 +11,8 @@ The CLI supports two usage styles:
   and recommend an appropriate report plan
 
 See the [requirements and behavior reference](docs/requirements/README.md) for
-command contracts, model semantics, and open decisions.
+command contracts, model semantics, and open decisions. Milestones and
+verification tickets are tracked in the [delivery backlog](docs/delivery/README.md).
 
 ## Build
 
