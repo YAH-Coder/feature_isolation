@@ -10,6 +10,9 @@ The CLI supports two usage styles:
 - **guided mode** for users who want the tool to ask for the required inputs
   and recommend an appropriate report plan
 
+See the [requirements and behavior reference](docs/requirements/README.md) for
+command contracts, model semantics, and open decisions.
+
 ## Build
 
 Build the CLI:
@@ -18,13 +21,13 @@ Build the CLI:
 make cli
 ```
 
-Run the full regression-tested suite:
+Run the default test suite:
 
 ```bash
 make test
 ```
 
-Run the benchmark executables:
+Build the benchmark executables:
 
 ```bash
 make bench
@@ -45,13 +48,12 @@ Install the build and documentation toolchain for the current platform with:
 make deps
 ```
 
-The bootstrap target dispatches automatically to the platform-specific script:
+On the supported platforms, the bootstrap target dispatches to the corresponding script:
 
 - macOS -> `scripts/install-deps-macos.sh`
 - Debian -> `scripts/install-deps-debian.sh`
 - Ubuntu -> `scripts/install-deps-ubuntu.sh`
 - Arch Linux -> `scripts/install-deps-arch.sh`
-- Windows -> `scripts/install-deps-windows.ps1`
 
 The documentation build requires both `doxygen` and Graphviz `dot`.
 
